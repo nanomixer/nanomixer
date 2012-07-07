@@ -53,6 +53,38 @@ applicable agreement for further details.
 	(text "VCC" (rect 128 7 149 17)(font "Arial" (font_size 6)))
 	(annotation_block (location)(rect 24 336 88 352))
 )
+(pin
+	(output)
+	(rect 704 288 880 304)
+	(text "OUTPUT" (rect 1 0 41 10)(font "Arial" (font_size 6)))
+	(text "GPIO_0[33]" (rect 90 0 147 11)(font "Arial" ))
+	(pt 0 8)
+	(drawing
+		(line (pt 0 8)(pt 52 8))
+		(line (pt 52 4)(pt 78 4))
+		(line (pt 52 12)(pt 78 12))
+		(line (pt 52 12)(pt 52 4))
+		(line (pt 78 4)(pt 82 8))
+		(line (pt 82 8)(pt 78 12))
+		(line (pt 78 12)(pt 82 8))
+	)
+)
+(pin
+	(output)
+	(rect 704 304 880 320)
+	(text "OUTPUT" (rect 1 0 41 10)(font "Arial" (font_size 6)))
+	(text "LED[7..0]" (rect 90 0 137 11)(font "Arial" ))
+	(pt 0 8)
+	(drawing
+		(line (pt 0 8)(pt 52 8))
+		(line (pt 52 4)(pt 78 4))
+		(line (pt 52 12)(pt 78 12))
+		(line (pt 52 12)(pt 52 4))
+		(line (pt 78 4)(pt 82 8))
+		(line (pt 82 8)(pt 78 12))
+		(line (pt 78 12)(pt 82 8))
+	)
+)
 (symbol
 	(rect 248 80 496 232)
 	(text "adat_bitclock" (rect 86 0 178 16)(font "Arial" (font_size 10)))
@@ -162,7 +194,7 @@ applicable agreement for further details.
 	)
 )
 (symbol
-	(rect 280 288 536 448)
+	(rect 328 400 584 560)
 	(text "config_mem" (rect 93 0 177 16)(font "Arial" (font_size 10)))
 	(text "inst2" (rect 8 145 32 156)(font "Arial" ))
 	(port
@@ -283,7 +315,7 @@ applicable agreement for further details.
 	)
 )
 (symbol
-	(rect 688 312 856 408)
+	(rect 736 376 904 472)
 	(text "mult_signed_24_24_48" (rect 18 0 176 16)(font "Arial" (font_size 10)))
 	(text "inst3" (rect 8 81 32 92)(font "Arial" ))
 	(port
@@ -325,7 +357,74 @@ applicable agreement for further details.
 		(circle (rect 72 40 104 72))
 	)
 )
+(symbol
+	(rect 440 264 704 360)
+	(text "mixer" (rect 5 0 33 11)(font "Arial" ))
+	(text "inst4" (rect 8 80 32 91)(font "Arial" ))
+	(port
+		(pt 0 32)
+		(input)
+		(text "adat_bitclock" (rect 0 0 66 11)(font "Arial" ))
+		(text "adat_bitclock" (rect 21 27 87 38)(font "Arial" ))
+		(line (pt 0 32)(pt 16 32))
+	)
+	(port
+		(pt 0 48)
+		(input)
+		(text "oversampling_bitclock" (rect 0 0 109 11)(font "Arial" ))
+		(text "oversampling_bitclock" (rect 21 43 130 54)(font "Arial" ))
+		(line (pt 0 48)(pt 16 48))
+	)
+	(port
+		(pt 0 64)
+		(input)
+		(text "adat_in" (rect 0 0 36 11)(font "Arial" ))
+		(text "adat_in" (rect 21 59 57 70)(font "Arial" ))
+		(line (pt 0 64)(pt 16 64))
+	)
+	(port
+		(pt 264 32)
+		(output)
+		(text "adat_out" (rect 0 0 43 11)(font "Arial" ))
+		(text "adat_out" (rect 207 27 250 38)(font "Arial" ))
+		(line (pt 264 32)(pt 248 32))
+	)
+	(port
+		(pt 264 48)
+		(output)
+		(text "LED[7..0]" (rect 0 0 47 11)(font "Arial" ))
+		(text "LED[7..0]" (rect 204 43 251 54)(font "Arial" ))
+		(line (pt 264 48)(pt 248 48)(line_width 3))
+	)
+	(drawing
+		(rectangle (rect 16 16 248 80))
+	)
+)
 (connector
 	(pt 496 144)
 	(pt 512 144)
+)
+(connector
+	(text "oversampling_bitclock" (rect 776 128 885 139)(font "Arial" ))
+	(pt 768 144)
+	(pt 792 144)
+)
+(connector
+	(text "adat_bitclock" (rect 776 144 842 155)(font "Arial" ))
+	(pt 768 160)
+	(pt 792 160)
+)
+(connector
+	(text "oversampling_bitclock" (rect 328 296 437 307)(font "Arial" ))
+	(pt 336 312)
+	(pt 440 312)
+)
+(connector
+	(text "adat_bitclock" (rect 344 280 410 291)(font "Arial" ))
+	(pt 440 296)
+	(pt 336 296)
+)
+(connector
+	(pt 256 328)
+	(pt 440 328)
 )
