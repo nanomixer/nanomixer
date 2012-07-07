@@ -23,7 +23,7 @@ applicable agreement for further details.
 	(input)
 	(rect 80 136 248 152)
 	(text "INPUT" (rect 125 0 154 10)(font "Arial" (font_size 6)))
-	(text "CLOCK_50" (rect 5 0 62 11)(font "Arial" ))
+	(text "CLOCK_50" (rect 5 0 61 11)(font "Arial" ))
 	(pt 168 8)
 	(drawing
 		(line (pt 84 12)(pt 109 12))
@@ -40,7 +40,7 @@ applicable agreement for further details.
 	(input)
 	(rect 88 320 256 336)
 	(text "INPUT" (rect 125 0 154 10)(font "Arial" (font_size 6)))
-	(text "GPIO_032" (rect 5 0 57 11)(font "Arial" ))
+	(text "GPIO_032" (rect 5 0 56 11)(font "Arial" ))
 	(pt 168 8)
 	(drawing
 		(line (pt 84 12)(pt 109 12))
@@ -55,7 +55,7 @@ applicable agreement for further details.
 )
 (pin
 	(output)
-	(rect 712 432 888 448)
+	(rect 704 304 880 320)
 	(text "OUTPUT" (rect 1 0 41 10)(font "Arial" (font_size 6)))
 	(text "LED[7..0]" (rect 90 0 137 11)(font "Arial" ))
 	(pt 0 8)
@@ -68,7 +68,7 @@ applicable agreement for further details.
 		(line (pt 82 8)(pt 78 12))
 		(line (pt 78 12)(pt 82 8))
 	)
-	(annotation_block (location)(rect 888 448 952 464))
+	(annotation_block (location)(rect 880 320 944 336))
 )
 (pin
 	(output)
@@ -238,49 +238,6 @@ applicable agreement for further details.
 		(rectangle (rect 16 16 248 80))
 	)
 )
-(symbol
-	(rect 448 408 696 536)
-	(text "CPU_toplevel" (rect 5 0 73 11)(font "Arial" ))
-	(text "inst7" (rect 8 112 32 123)(font "Arial" ))
-	(port
-		(pt 0 32)
-		(input)
-		(text "clk" (rect 0 0 15 11)(font "Arial" ))
-		(text "clk" (rect 21 27 36 38)(font "Arial" ))
-		(line (pt 0 32)(pt 16 32))
-	)
-	(port
-		(pt 0 48)
-		(input)
-		(text "config_data[31..0]" (rect 0 0 88 11)(font "Arial" ))
-		(text "config_data[31..0]" (rect 21 43 109 54)(font "Arial" ))
-		(line (pt 0 48)(pt 16 48)(line_width 3))
-	)
-	(port
-		(pt 0 64)
-		(input)
-		(text "config_addr[7..0]" (rect 0 0 82 11)(font "Arial" ))
-		(text "config_addr[7..0]" (rect 21 59 103 70)(font "Arial" ))
-		(line (pt 0 64)(pt 16 64)(line_width 3))
-	)
-	(port
-		(pt 0 80)
-		(input)
-		(text "config_wren" (rect 0 0 60 11)(font "Arial" ))
-		(text "config_wren" (rect 21 75 81 86)(font "Arial" ))
-		(line (pt 0 80)(pt 16 80))
-	)
-	(port
-		(pt 248 32)
-		(output)
-		(text "LED[7..0]" (rect 0 0 47 11)(font "Arial" ))
-		(text "LED[7..0]" (rect 188 27 235 38)(font "Arial" ))
-		(line (pt 248 32)(pt 232 32)(line_width 3))
-	)
-	(drawing
-		(rectangle (rect 16 16 232 112))
-	)
-)
 (connector
 	(pt 496 144)
 	(pt 512 144)
@@ -308,19 +265,4 @@ applicable agreement for further details.
 (connector
 	(pt 256 328)
 	(pt 440 328)
-)
-(connector
-	(pt 704 312)
-	(pt 712 312)
-	(bus)
-)
-(connector
-	(pt 696 440)
-	(pt 712 440)
-	(bus)
-)
-(connector
-	(text "oversampling_bitclock" (rect 344 424 453 435)(font "Arial" ))
-	(pt 448 440)
-	(pt 336 440)
 )
