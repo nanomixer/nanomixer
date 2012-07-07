@@ -254,8 +254,6 @@ set_location_assignment PIN_C11 -to GPIO_0[28]
 set_location_assignment PIN_B11 -to GPIO_0[29]
 set_location_assignment PIN_A12 -to GPIO_0[30]
 set_location_assignment PIN_D11 -to GPIO_0[31]
-set_location_assignment PIN_D12 -to GPIO_0[32]
-set_location_assignment PIN_B12 -to GPIO_0[33]
 
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_0_IN[0]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_0[0]
@@ -291,8 +289,6 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_0[28]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_0[29]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_0[30]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_0[31]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_0[32]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_0[33]
 
 #============================================================
 # GPIO_0, GPIO_1 connect to GPIO Default
@@ -387,6 +383,15 @@ set_global_assignment -name LAST_QUARTUS_VERSION 12.0
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "2.5 V"
+set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
+set_global_assignment -name BLOCK_DESIGN_NAMING MAXPLUSII
+set_location_assignment PIN_D12 -to GPIO_032
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_032
+set_location_assignment PIN_B12 -to GPIO_033
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_033
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+set_global_assignment -name SYSTEMVERILOG_FILE CPU_toplevel.sv
 set_global_assignment -name VERILOG_INCLUDE_FILE mips/mips.h
 set_global_assignment -name VERILOG_FILE mips/rf.v
 set_global_assignment -name VERILOG_FILE mips/rd.v
@@ -411,4 +416,3 @@ set_global_assignment -name QIP_FILE config_mem.qip
 set_global_assignment -name QIP_FILE mult_signed_24_24_48.qip
 set_global_assignment -name SYSTEMVERILOG_FILE mixer.sv
 set_global_assignment -name QIP_FILE instruction_rom.qip
-set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

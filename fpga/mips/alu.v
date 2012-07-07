@@ -23,7 +23,6 @@ module ALU (
     // The always @(*) syntax is a Verilog 2001 addition. It automatically
     // puts every variable referenced inside in the sensitivity list.
     always @(*) begin
-        out = 0; // catch default case.
         case(op)
             `a_ADD: out = a + b;
             `a_AND: out = a & b;
@@ -36,6 +35,7 @@ module ALU (
             `a_SRA: out = sra(b, sa);
             `a_SRL: out = b >> sa;
             `a_SLL: out = b << sa;
+				default: out = 0;
         endcase
     end
 
