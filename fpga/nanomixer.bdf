@@ -68,6 +68,7 @@ applicable agreement for further details.
 		(line (pt 82 8)(pt 78 12))
 		(line (pt 78 12)(pt 82 8))
 	)
+	(annotation_block (location)(rect 880 304 944 320))
 )
 (pin
 	(output)
@@ -84,6 +85,7 @@ applicable agreement for further details.
 		(line (pt 82 8)(pt 78 12))
 		(line (pt 78 12)(pt 82 8))
 	)
+	(annotation_block (location)(rect 880 320 944 336))
 )
 (symbol
 	(rect 248 80 496 232)
@@ -454,6 +456,77 @@ applicable agreement for further details.
 		(line (pt 0 0)(pt 0 0))
 	)
 )
+(symbol
+	(rect 992 120 1200 248)
+	(text "CPU" (rect 5 0 29 11)(font "Arial" ))
+	(text "inst6" (rect 8 112 32 123)(font "Arial" ))
+	(port
+		(pt 0 32)
+		(input)
+		(text "clk" (rect 0 0 15 11)(font "Arial" ))
+		(text "clk" (rect 21 27 36 38)(font "Arial" ))
+		(line (pt 0 32)(pt 16 32))
+	)
+	(port
+		(pt 0 48)
+		(input)
+		(text "reset" (rect 0 0 25 11)(font "Arial" ))
+		(text "reset" (rect 21 43 46 54)(font "Arial" ))
+		(line (pt 0 48)(pt 16 48))
+	)
+	(port
+		(pt 0 64)
+		(input)
+		(text "Iin[31..0]" (rect 0 0 43 11)(font "Arial" ))
+		(text "Iin[31..0]" (rect 21 59 64 70)(font "Arial" ))
+		(line (pt 0 64)(pt 16 64)(line_width 3))
+	)
+	(port
+		(pt 0 80)
+		(input)
+		(text "Din[31..0]" (rect 0 0 48 11)(font "Arial" ))
+		(text "Din[31..0]" (rect 21 75 69 86)(font "Arial" ))
+		(line (pt 0 80)(pt 16 80)(line_width 3))
+	)
+	(port
+		(pt 208 32)
+		(output)
+		(text "Iaddr[31..0]" (rect 0 0 56 11)(font "Arial" ))
+		(text "Iaddr[31..0]" (rect 140 27 196 38)(font "Arial" ))
+		(line (pt 208 32)(pt 192 32)(line_width 3))
+	)
+	(port
+		(pt 208 48)
+		(output)
+		(text "Daddr[31..0]" (rect 0 0 61 11)(font "Arial" ))
+		(text "Daddr[31..0]" (rect 136 43 197 54)(font "Arial" ))
+		(line (pt 208 48)(pt 192 48)(line_width 3))
+	)
+	(port
+		(pt 208 64)
+		(output)
+		(text "Dout[31..0]" (rect 0 0 55 11)(font "Arial" ))
+		(text "Dout[31..0]" (rect 141 59 196 70)(font "Arial" ))
+		(line (pt 208 64)(pt 192 64)(line_width 3))
+	)
+	(port
+		(pt 208 80)
+		(output)
+		(text "DMC[1..0]" (rect 0 0 51 11)(font "Arial" ))
+		(text "DMC[1..0]" (rect 144 75 195 86)(font "Arial" ))
+		(line (pt 208 80)(pt 192 80)(line_width 3))
+	)
+	(port
+		(pt 208 96)
+		(output)
+		(text "Dread" (rect 0 0 30 11)(font "Arial" ))
+		(text "Dread" (rect 162 91 192 102)(font "Arial" ))
+		(line (pt 208 96)(pt 192 96))
+	)
+	(drawing
+		(rectangle (rect 16 16 192 112))
+	)
+)
 (connector
 	(pt 496 144)
 	(pt 512 144)
@@ -481,4 +554,9 @@ applicable agreement for further details.
 (connector
 	(pt 256 328)
 	(pt 440 328)
+)
+(connector
+	(text "oversampling_bitclock" (rect 902 136 1011 147)(font "Arial" ))
+	(pt 992 152)
+	(pt 896 152)
 )

@@ -17,12 +17,6 @@ module RF
    // A 32 x 32 bit memory array
    reg [31:0] r [0:31];
    
-   integer   i;   
-   always @(posedge reset) begin
-      for (i=0; i<32; i=i+1)
-	r[i] = 0;
-   end
-   
    // Writes occur on clock negedge.
    always @(negedge clk) begin
       // Register r0 is read-only
