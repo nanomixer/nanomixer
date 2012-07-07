@@ -2,3 +2,6 @@
 *.done
 greybox_tmp
 db
+*.rpt
+*.smsg
+*.summary
