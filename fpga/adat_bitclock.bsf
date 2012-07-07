@@ -1,0 +1,69 @@
+/*
+WARNING: Do NOT edit the input and output ports in this file in a text
+editor if you plan to continue editing the block that represents it in
+the Block Editor! File corruption is VERY likely to occur.
+*/
+/*
+Copyright (C) 1991-2012 Altera Corporation
+Your use of Altera Corporation's design tools, logic functions 
+and other software and tools, and its AMPP partner logic 
+functions, and any output files from any of the foregoing 
+(including device programming or simulation files), and any 
+associated documentation or information are expressly subject 
+to the terms and conditions of the Altera Program License 
+Subscription Agreement, Altera MegaCore Function License 
+Agreement, or other applicable license agreement, including, 
+without limitation, that your use is for the sole purpose of 
+programming logic devices manufactured by Altera and sold by 
+Altera or its authorized distributors.  Please refer to the 
+applicable agreement for further details.
+*/
+(header "symbol" (version "1.2"))
+(symbol
+	(rect 0 0 248 152)
+	(text "adat_bitclock" (rect 86 0 178 16)(font "Arial" (font_size 10)))
+	(text "inst" (rect 8 137 26 148)(font "Arial" ))
+	(port
+		(pt 0 64)
+		(input)
+		(text "inclk0" (rect 0 0 31 13)(font "Arial" (font_size 8)))
+		(text "inclk0" (rect 4 51 32 63)(font "Arial" (font_size 8)))
+		(line (pt 0 64)(pt 40 64))
+	)
+	(port
+		(pt 248 64)
+		(output)
+		(text "c0" (rect 0 0 14 13)(font "Arial" (font_size 8)))
+		(text "c0" (rect 233 51 246 63)(font "Arial" (font_size 8)))
+	)
+	(drawing
+		(text "Cyclone IV E" (rect 174 138 405 286)(font "Arial" ))
+		(text "inclk0 frequency: 50.000 MHz" (rect 50 60 227 130)(font "Arial" ))
+		(text "Operation Mode: Normal" (rect 50 72 204 154)(font "Arial" ))
+		(text "Clk " (rect 51 91 115 192)(font "Arial" ))
+		(text "Ratio" (rect 80 91 184 192)(font "Arial" ))
+		(text "Ph (dg)" (rect 114 91 260 192)(font "Arial" ))
+		(text "DC (%)" (rect 148 91 329 192)(font "Arial" ))
+		(text "c0" (rect 54 104 120 218)(font "Arial" ))
+		(text "768/3125" (rect 72 104 184 218)(font "Arial" ))
+		(text "0.00" (rect 120 104 260 218)(font "Arial" ))
+		(text "50.00" (rect 152 104 329 218)(font "Arial" ))
+		(line (pt 0 0)(pt 249 0))
+		(line (pt 249 0)(pt 249 153))
+		(line (pt 0 153)(pt 249 153))
+		(line (pt 0 0)(pt 0 153))
+		(line (pt 48 89)(pt 180 89))
+		(line (pt 48 101)(pt 180 101))
+		(line (pt 48 114)(pt 180 114))
+		(line (pt 48 89)(pt 48 114))
+		(line (pt 69 89)(pt 69 114)(line_width 3))
+		(line (pt 111 89)(pt 111 114)(line_width 3))
+		(line (pt 145 89)(pt 145 114)(line_width 3))
+		(line (pt 179 89)(pt 179 114))
+		(line (pt 40 48)(pt 215 48))
+		(line (pt 215 48)(pt 215 135))
+		(line (pt 40 135)(pt 215 135))
+		(line (pt 40 48)(pt 40 135))
+		(line (pt 247 64)(pt 215 64))
+	)
+)
