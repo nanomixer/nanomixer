@@ -55,6 +55,10 @@ always_ff @(posedge clk) begin
 			current_bit <= 0; // Reset bit counter
 			data_ready = 0; // Clear data ready strobe
 		end
+		
+		BIT_WAIT: begin
+		
+		end
 
 		BIT_SAMPLE: begin
 			adat_deser <= {adat_deser[1:245], adat_synced^last_sample}; // Shift in decoded bit
