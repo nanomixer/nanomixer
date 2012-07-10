@@ -8,7 +8,7 @@ module mixer(
 
 wire data_request;
 
-bit signed [23:0] audio_out [0:7];
+wire signed [23:0] audio_out [0:7];
 adat_out adat_out_0(
         .clk(adat_bitclock),
         .rst(0), .timecode(0), .smux(0),
@@ -27,10 +27,11 @@ adat_in adat_in_0(
         .audio_bus(audio_in)
         );
 
-always @(posedge data_request) begin
-	integer i;
-	for (i=0; i<8; i++) audio_out[i] = audio_in[i];
-end
+gain_ctl gain(
+	.clk(oversampling_bitclock),
+	.data_request(data_request),
+	.audio_out(audio_out),
+	.audio_in(audio_in));
 
 bit [23:0] max_level = 0;
 wire [23:0] abs_val;
