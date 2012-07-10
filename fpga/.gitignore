@@ -10,3 +10,5 @@ db
 *.tis_db_list.ddb
 incremental_db
 *.pin
+*.sof
+PLLJ_PLLSPE_INFO.txt
