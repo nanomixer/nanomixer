@@ -27,19 +27,14 @@ adat_in adat_in_0(
         .audio_bus(audio_in)
         );
 
-gain_ctl gain(
-	.clk(oversampling_bitclock),
-	.data_request(data_request),
-	.audio_out(audio_out),
-	.audio_in(audio_in));
 
-bit [23:0] max_level = 0;
+uDSP dsp0(
+    .clk(oversampling_bitclock),
+    .reset(0),
+    .start(data_request));
+    
 wire [23:0] abs_val;
 assign abs_val = audio_in[0][23] ? -audio_in[0] : audio_in[0];
-
-always_ff @(posedge data_request) begin
-	if (abs_val > max_level) max_level <= abs_val;
-end
 
 assign LED = abs_val[23:16];
 

@@ -38,7 +38,7 @@ module instruction_rom (
 
 	input	[8:0]  address;
 	input	  clock;
-	output	[31:0]  q;
+	output	[35:0]  q;
 `ifndef ALTERA_RESERVED_QIS
 // synopsys translate_off
 `endif
@@ -57,7 +57,7 @@ endmodule
 // Retrieval info: PRIVATE: AclrByte NUMERIC "0"
 // Retrieval info: PRIVATE: AclrOutput NUMERIC "0"
 // Retrieval info: PRIVATE: BYTE_ENABLE NUMERIC "0"
-// Retrieval info: PRIVATE: BYTE_SIZE NUMERIC "8"
+// Retrieval info: PRIVATE: BYTE_SIZE NUMERIC "9"
 // Retrieval info: PRIVATE: BlankMemory NUMERIC "0"
 // Retrieval info: PRIVATE: CLOCK_ENABLE_INPUT_A NUMERIC "0"
 // Retrieval info: PRIVATE: CLOCK_ENABLE_OUTPUT_A NUMERIC "0"
@@ -67,7 +67,7 @@ endmodule
 // Retrieval info: PRIVATE: INIT_TO_SIM_X NUMERIC "0"
 // Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone IV E"
 // Retrieval info: PRIVATE: JTAG_ENABLED NUMERIC "1"
-// Retrieval info: PRIVATE: JTAG_ID STRING "gain"
+// Retrieval info: PRIVATE: JTAG_ID STRING "inst"
 // Retrieval info: PRIVATE: MAXIMUM_DEPTH NUMERIC "0"
 // Retrieval info: PRIVATE: MIFfilename STRING "instr.mif"
 // Retrieval info: PRIVATE: NUMWORDS_A NUMERIC "512"
@@ -78,7 +78,7 @@ endmodule
 // Retrieval info: PRIVATE: SingleClock NUMERIC "1"
 // Retrieval info: PRIVATE: UseDQRAM NUMERIC "0"
 // Retrieval info: PRIVATE: WidthAddr NUMERIC "9"
-// Retrieval info: PRIVATE: WidthData NUMERIC "32"
+// Retrieval info: PRIVATE: WidthData NUMERIC "36"
 // Retrieval info: PRIVATE: rden NUMERIC "0"
 // Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
 // Retrieval info: CONSTANT: ADDRESS_ACLR_A STRING "NONE"
@@ -86,25 +86,25 @@ endmodule
 // Retrieval info: CONSTANT: CLOCK_ENABLE_OUTPUT_A STRING "BYPASS"
 // Retrieval info: CONSTANT: INIT_FILE STRING "instr.mif"
 // Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone IV E"
-// Retrieval info: CONSTANT: LPM_HINT STRING "ENABLE_RUNTIME_MOD=YES,INSTANCE_NAME=gain"
+// Retrieval info: CONSTANT: LPM_HINT STRING "ENABLE_RUNTIME_MOD=YES,INSTANCE_NAME=inst"
 // Retrieval info: CONSTANT: LPM_TYPE STRING "altsyncram"
 // Retrieval info: CONSTANT: NUMWORDS_A NUMERIC "512"
 // Retrieval info: CONSTANT: OPERATION_MODE STRING "ROM"
 // Retrieval info: CONSTANT: OUTDATA_ACLR_A STRING "NONE"
 // Retrieval info: CONSTANT: OUTDATA_REG_A STRING "UNREGISTERED"
 // Retrieval info: CONSTANT: WIDTHAD_A NUMERIC "9"
-// Retrieval info: CONSTANT: WIDTH_A NUMERIC "32"
+// Retrieval info: CONSTANT: WIDTH_A NUMERIC "36"
 // Retrieval info: CONSTANT: WIDTH_BYTEENA_A NUMERIC "1"
 // Retrieval info: USED_PORT: address 0 0 9 0 INPUT NODEFVAL "address[8..0]"
 // Retrieval info: USED_PORT: clock 0 0 0 0 INPUT VCC "clock"
-// Retrieval info: USED_PORT: q 0 0 32 0 OUTPUT NODEFVAL "q[31..0]"
+// Retrieval info: USED_PORT: q 0 0 36 0 OUTPUT NODEFVAL "q[35..0]"
 // Retrieval info: CONNECT: @address_a 0 0 9 0 address 0 0 9 0
 // Retrieval info: CONNECT: @clock0 0 0 0 0 clock 0 0 0 0
-// Retrieval info: CONNECT: q 0 0 32 0 @q_a 0 0 32 0
+// Retrieval info: CONNECT: q 0 0 36 0 @q_a 0 0 36 0
 // Retrieval info: GEN_FILE: TYPE_NORMAL instruction_rom.v TRUE
 // Retrieval info: GEN_FILE: TYPE_NORMAL instruction_rom.inc FALSE
 // Retrieval info: GEN_FILE: TYPE_NORMAL instruction_rom.cmp FALSE
 // Retrieval info: GEN_FILE: TYPE_NORMAL instruction_rom.bsf TRUE
-// Retrieval info: GEN_FILE: TYPE_NORMAL instruction_rom_inst.v FALSE
+// Retrieval info: GEN_FILE: TYPE_NORMAL instruction_rom_inst.v TRUE
 // Retrieval info: GEN_FILE: TYPE_NORMAL instruction_rom_bb.v TRUE
 // Retrieval info: LIB_FILE: altera_mf

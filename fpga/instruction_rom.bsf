@@ -40,12 +40,12 @@ applicable agreement for further details.
 	(port
 		(pt 216 32)
 		(output)
-		(text "q[31..0]" (rect 0 0 43 13)(font "Arial" (font_size 8)))
-		(text "q[31..0]" (rect 177 19 215 31)(font "Arial" (font_size 8)))
+		(text "q[35..0]" (rect 0 0 43 13)(font "Arial" (font_size 8)))
+		(text "q[35..0]" (rect 177 19 215 31)(font "Arial" (font_size 8)))
 		(line (pt 216 32)(pt 136 32)(line_width 3))
 	)
 	(drawing
-		(text "32 bits" (rect 110 18 194 158)(font "Arial" )(vertical))
+		(text "36 bits" (rect 110 18 194 158)(font "Arial" )(vertical))
 		(text "512 words" (rect 120 7 211 172)(font "Arial" )(vertical))
 		(text "Block type: AUTO" (rect 48 115 174 240)(font "Arial" ))
 		(line (pt 104 24)(pt 136 24))

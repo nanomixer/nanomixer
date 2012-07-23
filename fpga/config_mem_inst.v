@@ -1,9 +1,9 @@
 config_mem	config_mem_inst (
-	.clock ( clock_sig ),
 	.data ( data_sig ),
 	.rdaddress ( rdaddress_sig ),
-	.rden ( rden_sig ),
+	.rdclock ( rdclock_sig ),
 	.wraddress ( wraddress_sig ),
+	.wrclock ( wrclock_sig ),
 	.wren ( wren_sig ),
 	.q ( q_sig )
 	);
