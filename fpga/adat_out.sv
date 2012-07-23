@@ -8,13 +8,13 @@ module adat_out (
 	input bit timecode, midi, smux, // User bits per ADAT specification
 	input bit signed [23:0] audio_bus [0:7], // 8 channels @ 24 bits
 	output bit adat_bitstream, // ADAT bitstream output
-	output bit data_request // Asserted 1 clock before data required
+	output bit data_request // Asserted as soon as previous data has been loaded.
 );
 
 bit [7:0] current_bit = 0;
 bit [0:255] adat_piso = 0;
 
-assign data_request = (current_bit == 254);
+assign data_request = (current_bit == 0);
 
 always @(posedge clk) begin
 
