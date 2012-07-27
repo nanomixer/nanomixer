@@ -1,2 +1,0 @@
-#!/bin/sh
-srec_cat instr.bin -binary -o instr.mif -Memory_Initialization_File

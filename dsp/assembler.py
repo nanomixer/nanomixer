@@ -1,90 +1,67 @@
-# dest addr always goes first
+OFFSET_WIDTH = 7
 
-# halt
-# load:   reg addr
-# store:  reg addr
-# mul:    rd, rs, rt
-# mulacc: rd, rs, rt # accumulator is both rd and rd+1
-
-def bin_(num):
-    return bin(num)[2:]
-
-def zero_extend(num, width):
-    assert len(num) <= width
-    return '0'*(width-len(num)) + num
+def bin_(num, width):
+    #s = bin(num)[2:]
+    #assert len(s) <= width
+    #return '0'*(width-len(s)) + s
+    return '{:0{width}b}'.format(num, width=width)
 
 class Instruction(object):
-    def __init__(self, data=''):
-        self.opcode = opcode_for_inst[self.__class__]
-        self.data = data
+    def __init__(self, w, a, b):
+        self.w = w
+        self.a = a
+        self.b = b
     def assemble(self):
-        return zero_extend(bin_(self.opcode), 3) + self.data + '0'*(16-3-len(self.data))
-class Halt(Instruction): pass
-class Load(Instruction):
-    def __init__(self, reg, addr):
-        super(Load, self).__init__(Reg(reg) + Mem(addr))
-class Store(Instruction):
-    def __init__(self, reg, addr):
-        super(Store, self).__init__(Reg(reg) + Mem(addr))
-class Mul(Instruction):
-    def __init__(self, rs, rt, rd):
-        super(Mul, self).__init__(Reg(rd) + Reg(rs) + Reg(rt))
-class MulAcc(Instruction):
-    def __init__(self, rd, rs, rt):
-        super(MulAcc, self).__init__(Reg(rd) + Reg(rs) + Reg(rt))
+        return (
+            bin_(self.opcode, 6) +
+            bin_(self.w, 10) +
+            bin_(self.a, 10) +
+            bin_(self.b, 10))
 
-opcodes = [Halt, Load, Store, Mul, MulAcc]
-opcode_for_inst = dict((inst, opcode) for opcode, inst in enumerate(opcodes))
+class Nop(Instruction):
+    opcode = 0
+class _MulInstruction(Instruction):
+    def __init__(self, a, b):
+        Instruction.__init__(self, w=0, a=a, b=b)
+class Mul(_MulInstruction):
+    opcode = 1
+class MulAcc(_MulInstruction):
+    opcode = 2
+class MulToW(Instruction):
+    opcode = 3
+class AToHi(Instruction):
+    opcode = 4
+    def __init__(self, a):
+        Instruction.__init__(self, w=0, a=a, b=0)
+class AToLo(Instruction):
+    opcode = 5
+    def __init__(self, a):
+        Instruction.__init__(self, w=0, a=a, b=0)
+class HiToW(Instruction):
+    opcode = 6
+    def __init__(self, w):
+        Instruction.__init__(self, w=w, a=0, b=0)
+class LoToW(Instruction):
+    opcode = 7
+    def __init__(self, w):
+        Instruction.__init__(self, w=w, a=0, b=0)
+class AToW(Instruction):
+    opcode = 8
+    def __init__(self, w, a):
+        Instruction.__init__(self, w=w, a=a, b=0)
 
-def assemble(instructions):
-    for inst in instructions:
-        print inst.assemble()
+def assemble(instructions, outfile):
+    print >>outfile, "DEPTH = 256"
+    print >>outfile, "WIDTH = 36"
+    print >>outfile, "ADDRESS_RADIX = HEX"
+    print >>outfile, "DATA_RADIX = BIN"
+    print >>outfile, "CONTENT BEGIN"
+    for addr, inst in enumerate(instructions):
+        print >>outfile, '{:02x} : {};'.format(addr, inst.assemble())
+    print >>outfile, "END;"
+        
 
 # See http://www.earlevel.com/main/2003/02/28/biquads/ but note that it has A and B backwards.
-
-# Biquad memory layout
-mem = range(14)
-zero, noise, xn, xn1, xn2, yn, yn1, yn2 = mem[0:8]
-b0, b1, b2, a1, a2, gain = mem[8:14]
-
-# registers
-r0, r1, r2, r3 = range(4)
-
-biquad = [
-    Load(r0, zero),
-    Load(r1, noise),
-    Load(r2, xn),
-    Load(r3, b0),
-    MulAcc(r0, r2, r3),
-    Load(r2, xn1),
-    Load(r3, b1),
-    MulAcc(r0, r2, r3),
-    Load(r2, xn2),
-    Load(r3, b2),
-    MulAcc(r0, r2, r3),
-    Load(r2, yn1),
-    Load(r3, a1),
-    MulAcc(r0, r2, r3),
-    Load(r2, yn2),
-    Load(r3, a2),
-    MulAcc(r0, r2, r3),
-    Store(r1, noise),
-    Load(r3, gain),
-    Mul(r2, r0, r3),
-    Halt()]
-
-assemble(biquad)
-    
-
-
-# biquad = [
-#     Copy(zero, accMSB),
-#     Copy(zero, accLSB),
-#     MulAcc(xn, b0, accMSB),
-#     MulAcc(xn1, b1, accMSB),
-#     MulAcc(xn2, b2, accMSB),
-#     MulAcc(yn1, a1, accMSB),
-#     Mul(accMSB, gain, yn)]
 
 def segmented_address(segment, offset):
     return (segment << OFFSET_WIDTH) | offset
@@ -98,7 +75,7 @@ def io(n):
 def param(n):
     return segmented_address(2, n)
 
-zero, xn, xn1, xn2, yn, yn1, yn2 = [reg(n) for n in range(6)]
+zero, xn, xn1, xn2, yn, yn1, yn2 = [reg(n) for n in range(7)]
 # Segment 1: inputs/outputs
 ch1 = io(0)
 # Segment 2: parameter memory
@@ -122,19 +99,11 @@ biquad = [
     MulAcc(xn2, b2),
     MulAcc(yn1, a1),
     MulAcc(yn2, a2),
-    HiToReg(yn),
-    MulToReg(yn, yn, gain),
+    HiToW(yn),
+    MulToW(yn, yn, gain),
     # Write output
     AToW(ch1, yn)
     ]
 
-# Instructions
-# 0: nop
-# 1: Mul
-# 2: MulAcc
-# 3: MulToW
-# 4: AToHi
-# 5: AToLo
-# 6: HiToW
-# 7: LoToW
-# 8: AToW
+with open('instr.mif', 'w') as f:
+    assemble(biquad, f)
