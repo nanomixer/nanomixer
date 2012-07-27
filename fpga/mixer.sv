@@ -28,10 +28,12 @@ adat_in adat_in_0(
         );
 
 
-uDSP dsp0(
+DSPCore dsp0(
     .clk(oversampling_bitclock),
     .reset(0),
-    .start(data_request));
+    .start(data_request),
+    .inputs(audio_in),
+    .outputs(audio_out));
     
 wire [23:0] abs_val;
 assign abs_val = audio_in[0][23] ? -audio_in[0] : audio_in[0];
