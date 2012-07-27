@@ -53,6 +53,14 @@ def peaking(f0, dBgain, **kw):
          1-alpha/A]
     return b, a
 
+def to_fixedpt(x, bits):
+    # Use 2 bits to the left of the binary point (1 of which is sign, i.e., the -2's place)
+    if x >= 2 or x < -2:
+        raise ValueError('Overflow!')
+    shift = 1<<(bits-2)
+    xx = int(x * shift)
+    return xx
+
 def plot_freqz(b, a, *args, **kw):
     f = np.logspace(1, np.log(Fs/2)/np.log(10), 512)
     w, h = freqz(b, a, f*twoPiOverFs)
@@ -69,9 +77,19 @@ def plot_rounded_freqz(b, a, bits):
     plot_freqz(b, a, 'r')
 
 def round_coeff(x, bits):
-    # Use 2 bits to the left of the binary point (1 of which is sign)
-    if x >= 2 or x < -2:
-        raise ValueError('Overflow!')
-    shift = (2**(bits-2))
-    xx = x * shift
-    return np.round(xx)/shift
+    return to_fixedpt(x, bits) / (1<<(bits-2))
+
+def biquad_to_param_mif(b, a, outfile):
+    from bitstring import BitArray
+    b, a = normalize(b, a)
+    assert abs(a[0] - 1.0) < 1e-5
+    arr = [b[0], b[1], b[2],
+           a[1], a[2], 1.0]
+    print >>outfile, "DEPTH = 256;"
+    print >>outfile, "WIDTH = 36;"
+    print >>outfile, "ADDRESS_RADIX = HEX;"
+    print >>outfile, "DATA_RADIX = HEX;"
+    print >>outfile, "CONTENT BEGIN"
+    for addr, data in enumerate(arr):
+        print >>outfile, '{:02x} : {};'.format(addr, BitArray(int=to_fixedpt(data, 36), length=36).hex)
+    print >>outfile, "END;"
