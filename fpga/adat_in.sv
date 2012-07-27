@@ -27,7 +27,7 @@ always_ff @(posedge clk) begin
 	if (adat_synced != adat_s2)
 		sync_counter <= '0; // Reset sync-detect counter whenever input changes
 	else
-		sync_counter <= sync_counter + 1; // Otherwise, increment sync-detect counter
+		sync_counter <= sync_counter + 2'b1; // Otherwise, increment sync-detect counter
 end
 
 initial begin
@@ -45,7 +45,7 @@ always_ff @(posedge clk) begin
 	end
 	else state <= next; // Increment state if not in reset
 
-	tic_counter = tic_counter + 1; // Increment tic counter
+	tic_counter = tic_counter + 2'b1; // Increment tic counter
 	
 	unique case (state)
 		SYNC_WAIT: last_sample <= adat_synced; // Set "last sample" to current value
@@ -63,7 +63,7 @@ always_ff @(posedge clk) begin
 		BIT_SAMPLE: begin
 			adat_deser <= {adat_deser[1:245], adat_synced^last_sample}; // Shift in decoded bit
 			last_sample <= adat_synced; // Save sample value
-			current_bit <= current_bit + 1; // Increment bit counter
+			current_bit <= current_bit + 2'b1; // Increment bit counter
 		end
 			
 		PARSE: begin

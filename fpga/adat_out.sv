@@ -47,7 +47,7 @@ always @(posedge clk) begin
 	adat_bitstream = adat_piso[0];
 	adat_piso = {adat_piso[1:255], 1'b0};
 	
-	current_bit = current_bit + 1; // Loops around every 256 clocks
+	current_bit = current_bit + 8'b1; // Loops around every 256 clocks
 
 	if (rst) begin // Synchronous reset mechanism
 		adat_bitstream = 0;
