@@ -51,15 +51,14 @@ class AToW(Instruction):
         Instruction.__init__(self, w=w, a=a, b=0)
 
 def assemble(instructions, outfile):
-    print >>outfile, "DEPTH = 256"
-    print >>outfile, "WIDTH = 36"
-    print >>outfile, "ADDRESS_RADIX = HEX"
-    print >>outfile, "DATA_RADIX = BIN"
+    print >>outfile, "DEPTH = 256;"
+    print >>outfile, "WIDTH = 36;"
+    print >>outfile, "ADDRESS_RADIX = HEX;"
+    print >>outfile, "DATA_RADIX = BIN;"
     print >>outfile, "CONTENT BEGIN"
     for addr, inst in enumerate(instructions):
         print >>outfile, '{:02x} : {};'.format(addr, inst.assemble())
     print >>outfile, "END;"
-        
 
 # See http://www.earlevel.com/main/2003/02/28/biquads/ but note that it has A and B backwards.
 
@@ -105,5 +104,5 @@ biquad = [
     AToW(ch1, yn)
     ]
 
-with open('instr.mif', 'w') as f:
+with open('../fpga/instr.mif', 'w') as f:
     assemble(biquad, f)
