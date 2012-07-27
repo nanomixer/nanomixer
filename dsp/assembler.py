@@ -51,7 +51,7 @@ class AToW(Instruction):
         Instruction.__init__(self, w=w, a=a, b=0)
 
 def assemble(instructions, outfile):
-    print >>outfile, "DEPTH = 256;"
+    print >>outfile, "DEPTH = 512;"
     print >>outfile, "WIDTH = 36;"
     print >>outfile, "ADDRESS_RADIX = HEX;"
     print >>outfile, "DATA_RADIX = BIN;"
