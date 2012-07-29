@@ -42,7 +42,7 @@ module uDSP #(
             if (start)
                 PC <= 0;
             else 
-                PC <= PC + 1;
+                PC <= PC + 2'b1;
         end
     end
     
@@ -82,37 +82,50 @@ module uDSP #(
             end
         end
     end
+
+    // advance declarations for forwarding data
+    logic[35:0] Inst_WB;
+    logic[35:0] wbData_WB;
+    logic wren_WB;
+
     
     //
     // EXECUTE
     //
     wire [35:0] dataA_EXfwd, dataB_EXfwd;
-    assign dataA_EXfwd = (wren_EX && addrA == Inst_EX[`rw]) ? wbData_WB : dataA_EX;
-    assign dataB_EXfwd = (wren_EX && addrB == Inst_EX[`rw]) ? wbData_WB : dataB_EX;
+    assign dataA_EXfwd = (wren_WB && addrA == Inst_WB[`rw]) ? wbData_WB : dataA_EX;
+    assign dataB_EXfwd = (wren_WB && addrB == Inst_WB[`rw]) ? wbData_WB : dataB_EX;
     
     // The Multiplier!
-    wire[35:0] mulOutHi, mulOutLo;
+    wire signed [35:0] mulOutHi;
+    wire[35:0] mulOutLo;
     assign {mulOutHi, mulOutLo} = signed'(dataA_EXfwd) * signed'(dataB_EXfwd);
     
     // The Accumulator!
-    logic[35:0] HI, LO;
-    always @(posedge clk or posedge reset or posedge start) begin
-        if (reset || start) begin
-            HI <= 0;
-            LO <= 0;
-        end else begin
-            case (Inst_EX[`op])
-            MulAcc: {HI, LO} <= {mulOutHi, mulOutLo} + {HI, LO};
-            Mul: {HI, LO} <= {mulOutHi, mulOutLo};
-            AToHi: HI <= dataA_EXfwd;
-            AToLo: LO <= dataA_EXfwd;
-            endcase
+    logic signed [35:0] HI;
+    logic[35:0] LO;
+    always @(posedge clk or posedge reset) begin
+        if (reset) {HI, LO} <= 0;
+        else begin
+            if (start) {HI, LO} <= 0;
+            else begin
+                case (Inst_EX[`op])
+                MulAcc: {HI, LO} <= {mulOutHi, mulOutLo} + signed'({HI, LO});
+                Mul: {HI, LO} <= {mulOutHi, mulOutLo};
+                AToHi: {HI, LO} <= {dataA_EXfwd, LO};
+                AToLo: {HI, LO} <= {HI, dataA_EXfwd};
+                default: begin
+                    HI <= HI;
+                    LO <= LO;
+                end
+                endcase
+            end
         end
     end
 
     // Compute writeback
-    wire[35:0] wbData_EX;
-    wire wren_EX;
+    logic[35:0] wbData_EX;
+    logic wren_EX;
     
     always_comb begin
         case (Inst_EX[`op])
@@ -142,9 +155,6 @@ module uDSP #(
     //
     // EXECUTE - WRITEBACK pipeline registers
     //
-    logic[35:0] Inst_WB;
-    logic[35:0] wbData_WB;
-    logic wren_WB;
     always @(posedge clk or posedge reset) begin
         if (reset) begin
             Inst_WB <= 0;

@@ -14,11 +14,11 @@ module memCtl #(
     
     // Data memory port A
     input wire[DAW-1:0] addrA,
-    output wire[DWW-1:0] dataA,
+    output logic[DWW-1:0] dataA,
     
     // Data memory port B
     input wire[DAW-1:0] addrB,
-    output wire[DWW-1:0] dataB,
+    output logic[DWW-1:0] dataB,
     
     // Data memory port W
     input wire[DAW-1:0] addrW,
@@ -53,10 +53,10 @@ module memCtl #(
         .writeEnable(writeEn && (segmentW == 0)));
 
     // Parameter memory
-    wire[7:0] pmemData;
+    wire[DWW-1:0] pmemData;
     parameter_memory pmem(
         .clk(clk),
-        .addr(segmentA == 0 ? daA : daB),
+        .addr({1'b0, (segmentA == 0 ? daA : daB)}),
         .data(pmemData));
     
     // Reads are combinatorial here.
