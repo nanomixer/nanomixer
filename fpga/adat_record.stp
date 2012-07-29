@@ -1,0 +1,16 @@
+<session jtag_chain="" jtag_device="" sof_file="nanomixer.sof">
+  <display_tree gui_logging_enabled="0">
+  </display_tree>
+  <mnemonics/>
+  <static_plugin_mnemonics/>
+  <global_info>
+    <single attribute="active instance" value="0"/>
+    <single attribute="config widget visible" value="1"/>
+    <single attribute="data log widget visible" value="1"/>
+    <single attribute="hierarchy widget visible" value="1"/>
+    <single attribute="instance widget visible" value="1"/>
+    <single attribute="jtag widget visible" value="1"/>
+    <multi attribute="frame size" size="2" value="1213,747"/>
+    <multi attribute="jtag widget size" size="2" value="400,145"/>
+  </global_info>
+</session>
