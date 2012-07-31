@@ -139,7 +139,7 @@ module uDSP #(
         end
         default: begin 
             wbData_EX = 'x;
-            wren_EX <= 0;
+            wren_EX = 0;
         end
         endcase
     end
