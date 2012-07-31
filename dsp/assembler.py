@@ -60,8 +60,6 @@ def assemble(instructions, outfile):
         print >>outfile, '{:02x} : {};'.format(addr, inst.assemble())
     print >>outfile, "END;"
 
-# See http://www.earlevel.com/main/2003/02/28/biquads/ but note that it has A and B backwards.
-
 def segmented_address(segment, offset):
     return (segment << OFFSET_WIDTH) | offset
 
@@ -74,35 +72,41 @@ def io(n):
 def param(n):
     return segmented_address(2, n)
 
-zero, xn, xn1, xn2, yn, yn1, yn2 = [reg(n) for n in range(7)]
-# Segment 1: inputs/outputs
-ch1 = io(0)
-# Segment 2: parameter memory
-b0, b1, b2, a1, a2, gain = [param(n) for n in range(6)]
+def biquad(in_addr, buf_base, param_base, out_addr):
+    # See http://www.earlevel.com/main/2003/02/28/biquads/ but note that it has A and B backwards.
+    zero = reg(0)  # register 0 is always zero
+    xn, xn1, xn2, yn, yn1, yn2 = [buf_base+n for n in range(6)]
+    b0, b1, b2, a1, a2, gain = [param_base+n for n in range(6)]
 
-# Instructions read from A and optionally B, and write to W.
-biquad = [
-    # Zero the accumulator.
-    AToHi(zero), # register 0 is zero
-    AToLo(zero),
-    # Set up registers: move existing values
-    AToW(xn2, xn1),
-    AToW(xn1, xn),
-    AToW(yn2, yn1),
-    AToW(yn1, yn),
-    # Read input
-    AToW(xn, ch1),
-    # Run biquad
-    MulAcc(xn, b0),
-    MulAcc(xn1, b1),
-    MulAcc(xn2, b2),
-    MulAcc(yn1, a1),
-    MulAcc(yn2, a2),
-    HiToW(yn),
-    MulToW(yn, yn, gain),
-    # Write output
-    AToW(ch1, yn)
-    ]
+    return [
+        # Zero the accumulator.
+        AToHi(zero),
+        AToLo(zero),
+        # Set up registers: move existing values
+        AToW(xn2, xn1),
+        AToW(xn1, xn),
+        AToW(yn2, yn1),
+        AToW(yn1, yn),
+        # Read input
+        AToW(xn, in_addr),
+        # Run biquad
+        MulAcc(xn, b0),
+        MulAcc(xn1, b1),
+        MulAcc(xn2, b2),
+        MulAcc(yn1, a1),
+        MulAcc(yn2, a2),
+        HiToW(yn),
+        MulToW(yn, yn, gain),
+        # Write output
+        AToW(out_addr, yn)
+        ]
+
+program = []
+for channel in range(8):
+    program.extend(
+        biquad(io(channel), reg(6*channel+1), param(6*channel), io(channel)))
+
+print "Program length:", len(program)
 
 with open('../fpga/instr.mif', 'w') as f:
-    assemble(biquad, f)
+    assemble(program, f)
