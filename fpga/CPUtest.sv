@@ -34,6 +34,5 @@ initial begin
         $display(" PC = %d", u1.addrI);
         @(posedge clk);
     end
-    $stop;
 end
 endmodule

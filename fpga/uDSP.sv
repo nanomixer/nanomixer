@@ -52,14 +52,26 @@ module uDSP #(
     `define ra 19:10
     `define rb  9:0
     
+    //
+    // FETCH - READ pipeline registers
+    //
+    
     // The fetch->read pipeline register is the data memory output register.
+    logic [35:0] Inst_RD;
+    always @(posedge clk or posedge reset) begin
+        if (reset) Inst_RD <= 0;
+        else begin
+            if (start) Inst_RD <= 0;
+            else Inst_RD <= dataI;
+        end
+    end
     
     //
     // READ
     //
     assign addrA = dataI[`ra];
     assign addrB = dataI[`rb];
-
+    
     //
     // READ - EXECUTE pipeline registers
     //
@@ -76,7 +88,7 @@ module uDSP #(
                 dataA_EX <= 0;
                 dataB_EX <= 0;
             end else begin
-                Inst_EX <= dataI;
+                Inst_EX <= Inst_RD;
                 dataA_EX <= dataA;
                 dataB_EX <= dataB;
             end
@@ -92,7 +104,9 @@ module uDSP #(
     //
     // EXECUTE
     //
+    wire [5:0] opcode_EX;
     wire [35:0] dataA_EXfwd, dataB_EXfwd;
+    assign opcode_EX = Inst_EX[`op];
     assign dataA_EXfwd = (wren_WB && addrA == Inst_WB[`rw]) ? wbData_WB : dataA_EX;
     assign dataB_EXfwd = (wren_WB && addrB == Inst_WB[`rw]) ? wbData_WB : dataB_EX;
     
@@ -109,7 +123,7 @@ module uDSP #(
         else begin
             if (start) {HI, LO} <= 0;
             else begin
-                case (Inst_EX[`op])
+                case (opcode_EX)
                 MulAcc: {HI, LO} <= {mulOutHi, mulOutLo} + signed'({HI, LO});
                 Mul: {HI, LO} <= {mulOutHi, mulOutLo};
                 AToHi: {HI, LO} <= {dataA_EXfwd, LO};
@@ -128,7 +142,7 @@ module uDSP #(
     logic wren_EX;
     
     always_comb begin
-        case (Inst_EX[`op])
+        case (opcode_EX)
         MulToW: begin
             wbData_EX = mulOutHi;
             wren_EX = 1;
