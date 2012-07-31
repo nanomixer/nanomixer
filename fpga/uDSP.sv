@@ -33,18 +33,13 @@ module uDSP #(
     const bit[5:0] Nop=0, Mul=1, MulAcc=2, MulToW=3,
         AToHi=4, AToLo=5, HiToW=6, LoToW=7, AToW=8;
 
+    wire rst; // global async reset.
+    assign rst = reset | start;
+    
     // Program Counter
-    logic [IAW-1:0] PC = 0;
-    assign addrI = PC;
-    always @(posedge clk or posedge reset) begin
-        if (reset) PC <= 0;
-        else begin
-            if (start)
-                PC <= 0;
-            else 
-                PC <= PC + 2'b1;
-        end
-    end
+    wire [IAW-1:0] PC_IF;
+    posedgeFF #(IAW) pc (clk, rst, PC_IF + 'b1, PC_IF);
+    assign addrI = PC_IF;
     
     // Unpack address
     `define op 35:30
@@ -57,14 +52,12 @@ module uDSP #(
     //
     
     // The fetch->read pipeline register is the data memory output register.
-    logic [35:0] Inst_RD;
-    always @(posedge clk or posedge reset) begin
-        if (reset) Inst_RD <= 0;
-        else begin
-            if (start) Inst_RD <= 0;
-            else Inst_RD <= dataI;
-        end
-    end
+    wire[IAW-1:0] PC_RD;
+    wire [35:0] Inst_RD;
+    posedgeFF #(IAW) pc_ifrd(clk, rst, PC_IF, PC_RD);
+    posedgeFF #(36) inst_ifrd(clk, rst, dataI, Inst_RD);
+    wire[5:0] opcode_RD;
+    assign opcode_RD = Inst_RD[`op];
     
     //
     // READ
@@ -75,30 +68,18 @@ module uDSP #(
     //
     // READ - EXECUTE pipeline registers
     //
-    logic [35:0] Inst_EX;
-    logic [35:0] dataA_EX, dataB_EX;
-    always @(posedge clk or posedge reset) begin
-        if (reset) begin
-            Inst_EX <= 0;
-            dataA_EX <= 0;
-            dataB_EX <= 0;
-        end else begin
-            if (start) begin
-                Inst_EX <= 0;
-                dataA_EX <= 0;
-                dataB_EX <= 0;
-            end else begin
-                Inst_EX <= Inst_RD;
-                dataA_EX <= dataA;
-                dataB_EX <= dataB;
-            end
-        end
-    end
+    wire [IAW-1:0] PC_EX;
+    wire [35:0] Inst_EX;
+    wire [35:0] dataA_EX, dataB_EX;
+    posedgeFF #(IAW) pc_rdex(clk, rst, PC_RD, PC_EX);
+    posedgeFF #(36) inst_rdex(clk, rst, Inst_RD, Inst_EX);
+    posedgeFF #(36) dataA_rdex(clk, rst, dataA, dataA_EX);
+    posedgeFF #(36) dataB_rdex(clk, rst, dataB, dataB_EX);
 
     // advance declarations for forwarding data
-    logic[35:0] Inst_WB;
-    logic[35:0] wbData_WB;
-    logic wren_WB;
+    wire[35:0] Inst_WB;
+    wire[35:0] wbData_WB;
+    wire wren_WB;
 
     
     //
@@ -118,22 +99,19 @@ module uDSP #(
     // The Accumulator!
     logic signed [35:0] HI;
     logic[35:0] LO;
-    always @(posedge clk or posedge reset) begin
-        if (reset) {HI, LO} <= 0;
+    always @(posedge clk or posedge rst) begin
+        if (rst) {HI, LO} <= 0;
         else begin
-            if (start) {HI, LO} <= 0;
-            else begin
-                case (opcode_EX)
-                MulAcc: {HI, LO} <= {mulOutHi, mulOutLo} + signed'({HI, LO});
-                Mul: {HI, LO} <= {mulOutHi, mulOutLo};
-                AToHi: {HI, LO} <= {dataA_EXfwd, LO};
-                AToLo: {HI, LO} <= {HI, dataA_EXfwd};
-                default: begin
-                    HI <= HI;
-                    LO <= LO;
-                end
-                endcase
+            case (opcode_EX)
+            MulAcc: {HI, LO} <= {mulOutHi, mulOutLo} + signed'({HI, LO});
+            Mul: {HI, LO} <= {mulOutHi, mulOutLo};
+            AToHi: {HI, LO} <= {dataA_EXfwd, LO};
+            AToLo: {HI, LO} <= {HI, dataA_EXfwd};
+            default: begin
+                HI <= HI;
+                LO <= LO;
             end
+            endcase
         end
     end
 
@@ -169,27 +147,17 @@ module uDSP #(
     //
     // EXECUTE - WRITEBACK pipeline registers
     //
-    always @(posedge clk or posedge reset) begin
-        if (reset) begin
-            Inst_WB <= 0;
-            wbData_WB <= 0;
-            wren_WB <= 0;
-        end else begin
-            if (start) begin
-                Inst_WB <= 0;
-                wbData_WB <= 0;
-                wren_WB <= 0;
-            end else begin
-                Inst_WB <= Inst_EX;
-                wbData_WB <= wbData_EX;
-                wren_WB <= wren_EX;
-            end
-        end
-    end
-
+    wire [IAW-1:0] PC_WB;
+    posedgeFF #(IAW) pc_exwb(clk, rst, PC_EX, PC_WB);
+    posedgeFF #(36) inst_exwb(clk, rst, Inst_EX, Inst_WB);
+    posedgeFF #(36) wbdata_exwb(clk, rst, wbData_EX, wbData_WB);
+    posedgeFF #(1) wren_exwb(clk, rst, wren_EX, wren_WB);
+    
     //
     // WRITEBACK
     //
+    wire[5:0] opcode_WB;
+    assign opcode_WB = Inst_WB[`op];
     assign addrW = Inst_WB[`rw];
     assign dataW = wbData_WB;
     assign writeEn = wren_WB;

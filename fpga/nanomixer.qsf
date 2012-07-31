@@ -390,8 +390,6 @@ set_location_assignment PIN_D12 -to GPIO_032
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_032
 set_location_assignment PIN_B12 -to GPIO_033
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_033
-set_global_assignment -name ENABLE_SIGNALTAP ON
-set_global_assignment -name USE_SIGNALTAP_FILE adat_record.stp
 set_global_assignment -name SMART_RECOMPILE ON
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
@@ -426,4 +424,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE DSPCore.sv
 set_global_assignment -name SYSTEMVERILOG_FILE CPUtest.sv
 set_global_assignment -name HEX_FILE param.hex
 set_global_assignment -name HEX_FILE instr.hex
+
+set_global_assignment -name SYSTEMVERILOG_FILE posedgeFF.sv
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

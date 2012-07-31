@@ -59,24 +59,35 @@ module memCtl #(
         .addr({1'b0, (segmentA == 0 ? daA : daB)}),
         .data(pmemData));
     
-    // Reads are combinatorial here.
-    // FIXME: maybe buffer the inputs bus.
+    // Input reading
+    logic[DWW-1:0] inputDataA, inputDataB;
+    always @(posedge clk) begin
+        inputDataA <= inputs[daA[2:0]];
+        inputDataB <= inputs[daB[2:0]];
+    end
+
+    // Read results are available the cycle after they are requested.
+    logic[SW-1:0] segmentA_out, segmentB_out;
+    always @(posedge clk) begin
+        segmentA_out <= segmentA;
+        segmentB_out <= segmentB;
+    end
 
     // Data memory A and B controller
     always_comb begin
-        unique case (segmentA)
+        unique case (segmentA_out)
         0: // register file
             dataA = rfDataA;
         1: // IO
-            dataA = inputs[daA[2:0]];
+            dataA = inputDataA;
         2: // params
             dataA = pmemData;
         endcase
-        unique case (segmentB)
+        unique case (segmentB_out)
         0: // rf
             dataB = rfDataB;
         1: // IO
-            dataB = inputs[daB[2:0]];
+            dataB = inputDataB;
         2: // params, note that port A address has priority
             dataB = pmemData;
         endcase
