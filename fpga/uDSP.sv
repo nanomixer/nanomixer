@@ -88,8 +88,8 @@ module uDSP #(
     wire [5:0] opcode_EX;
     wire [35:0] dataA_EXfwd, dataB_EXfwd;
     assign opcode_EX = Inst_EX[`op];
-    assign dataA_EXfwd = (wren_WB && addrA == Inst_WB[`rw]) ? wbData_WB : dataA_EX;
-    assign dataB_EXfwd = (wren_WB && addrB == Inst_WB[`rw]) ? wbData_WB : dataB_EX;
+    assign dataA_EXfwd = (wren_WB && Inst_EX[`ra] == Inst_WB[`rw]) ? wbData_WB : dataA_EX;
+    assign dataB_EXfwd = (wren_WB && Inst_EX[`rb] == Inst_WB[`rw]) ? wbData_WB : dataB_EX;
     
     // The Multiplier!
     wire signed [35:0] mulOutHi;
