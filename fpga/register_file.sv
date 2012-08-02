@@ -5,27 +5,21 @@ module register_file #(
 (
 	input wire clk,
 	input wire [REGADDR_WIDTH-1:0] readAddrA, readAddrB, writeAddr,
-	output wire [DATA_WIDTH-1:0] dataA, dataB,
+	output logic [DATA_WIDTH-1:0] dataA, dataB,
 	input wire [DATA_WIDTH-1:0] dataW,
 	input wire writeEnable
 );
 
 bit[DATA_WIDTH-1:0] r[NUM_REGS];
-bit[DATA_WIDTH-1:0] dataA_, dataB_;
-
-assign dataA = (readAddrA == 'b0) ? 'b0 :
-	(writeEnable && readAddrA == writeAddr) ? dataW : dataA_;
-assign dataB = (readAddrB == 'b0) ? 'b0 :
-	(writeEnable && readAddrB == writeAddr) ? dataW : dataB_;
 
 always @(posedge clk) begin
-	dataA_ <= r[readAddrA];
-	dataB_ <= r[readAddrB];
+    dataA <= (readAddrA == 'b0) ? 'b0 : r[readAddrA];
+    dataB <= (readAddrB == 'b0) ? 'b0 : r[readAddrB];
 end
 
 always @(negedge clk) begin
 	if (writeEnable) begin
-		r[writeAddr] = dataW;
+		r[writeAddr] <= dataW;
 	end
 end
 
