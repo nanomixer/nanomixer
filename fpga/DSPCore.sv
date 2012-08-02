@@ -10,7 +10,7 @@ module DSPCore #(
     input wire reset,
     input wire start,
     input wire[DWW-1:0] inputs[8],
-    output logic[DWW-1:0] outputs[8]
+    output wire[DWW-1:0] outputs[8]
     );
 
     // Instruction memory port

@@ -21,6 +21,7 @@ DSPCore u1 (.clk, .reset, .start, .inputs, .outputs);
 `define rb  9:0
 
 int i;
+int sample;
 initial begin
     for (i=0; i<8; i++) inputs[i] = (i+1)<<10;
     
@@ -30,23 +31,27 @@ initial begin
     @(posedge clk);
     reset = 0;
 
-    // Start of sample
-    $display("Asserting start of sample.");
-    @(posedge clk) start <= 1;
-    @(posedge clk) start <= 0;
+    for (sample=0; sample<10; sample++) begin
+        inputs[0] <= inputs[0] + 'h100;
+        // Start of sample
+        $display("Asserting start of sample %d.", sample);
+        @(posedge clk) start <= 1;
+        @(posedge clk) start <= 0;
 
-    for (i=0; i<25; i++) begin
-        @(posedge clk);
-        $display("%2d: %x | %x %x %d | %x %x %d | %x %x %d",
-            i, u1.addrI,
-            u1.dsp.PC_RD, u1.dsp.Inst_RD, u1.dsp.opcode_RD,
-            u1.dsp.PC_EX, u1.dsp.Inst_EX, u1.dsp.opcode_EX,
-            u1.dsp.PC_WB, u1.dsp.Inst_WB, u1.dsp.opcode_WB);
-        $display(" EX a:(%x)=%x b:(%x)=%x",
-            u1.dsp.Inst_EX[`ra], u1.dsp.dataA_EXfwd, u1.dsp.Inst_EX[`rb], u1.dsp.dataB_EXfwd);
-        if(u1.dsp.writeEn)
-            $display(" WB w: %x <= %x",
-                u1.dsp.addrW, u1.dsp.dataW);
+        for (i=0; i<25; i++) begin
+            @(posedge clk);
+            $display("%2d: %x | %x %x %d | %x %x %d | %x %x %d",
+                i, u1.addrI,
+                u1.dsp.PC_RD, u1.dsp.Inst_RD, u1.dsp.opcode_RD,
+                u1.dsp.PC_EX, u1.dsp.Inst_EX, u1.dsp.opcode_EX,
+                u1.dsp.PC_WB, u1.dsp.Inst_WB, u1.dsp.opcode_WB);
+            $display(" EX a:(%x)=%x b:(%x)=%x",
+                u1.dsp.Inst_EX[`ra], u1.dsp.dataA_EXfwd, u1.dsp.Inst_EX[`rb], u1.dsp.dataB_EXfwd);
+            if(u1.dsp.writeEn)
+                $display(" WB w: %x <= %x",
+                    u1.dsp.addrW, u1.dsp.dataW);
+            $display("%x", outputs[0]);
+        end
     end
     $stop;
 end

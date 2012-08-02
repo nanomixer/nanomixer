@@ -8,7 +8,7 @@ module mixer(
 
 wire data_request;
 
-wire signed [23:0] audio_out [0:7];
+logic signed [23:0] audio_out [0:7];
 adat_out adat_out_0(
         .clk(adat_bitclock),
         .rst(0), .timecode(0), .smux(0),
@@ -27,16 +27,24 @@ adat_in adat_in_0(
         .audio_bus(audio_in)
         );
 
+logic signed [35:0] dsp_in[8];
+wire signed [35:0] dsp_out[8];
+int i;
+always_comb begin
+    for (i=0; i<8; i++) dsp_in[i] <= (audio_in[i] << (36-24));
+    for (i=0; i<8; i++) audio_out[i] <= (dsp_out[i] >> (36-24));
+end
 
 DSPCore dsp0(
     .clk(oversampling_bitclock),
     .reset(0),
     .start(data_request),
-    .inputs(audio_in),
-    .outputs(audio_out));
-    
+    .inputs(dsp_in),
+    .outputs(dsp_out));
+
+wire [23:0] meter_src = audio_out[0];
 wire [23:0] abs_val;
-assign abs_val = audio_in[0][23] ? -audio_in[0] : audio_in[0];
+assign abs_val = meter_src[23] ? -meter_src : meter_src;
 
 assign LED = abs_val[23:16];
 
