@@ -20,6 +20,8 @@ class Instruction(object):
 
 class Nop(Instruction):
     opcode = 0
+    def __init__(self):
+        Instruction.__init__(self, w=0, a=0, b=0)
 class _MulInstruction(Instruction):
     def __init__(self, a, b):
         Instruction.__init__(self, w=0, a=a, b=b)
@@ -105,8 +107,6 @@ program = []
 for channel in range(8):
     program.extend(
         biquad(io(channel), reg(6*channel+1), param(6*channel), io(channel)))
-
-program = [AToW(io(channel), io(channel)) for channel in range(8)]
 
 print "Program length:", len(program)
 
