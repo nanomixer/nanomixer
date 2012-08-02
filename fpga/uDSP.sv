@@ -38,7 +38,7 @@ module uDSP #(
     
     // Program Counter
     wire [IAW-1:0] PC_IF;
-    posedgeFF #(IAW) pc (clk, rst, PC_IF + 'b1, PC_IF);
+    posedgeFF #(IAW) pc (clk, rst, PC_IF + 1'b1, PC_IF);
     assign addrI = PC_IF;
     
     // Unpack address
