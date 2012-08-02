@@ -106,6 +106,8 @@ for channel in range(8):
     program.extend(
         biquad(io(channel), reg(6*channel+1), param(6*channel), io(channel)))
 
+program = [AToW(io(channel), io(channel)) for channel in range(8)]
+
 print "Program length:", len(program)
 
 with open('../fpga/instr.mif', 'w') as f:
