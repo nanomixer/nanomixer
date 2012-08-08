@@ -43,20 +43,20 @@ module memCtl #(
         .address(addrI),
         .q(dataI));
 
-    wire[DWW-1:0] rfDataA, rfDataB;
+    wire[DWW-1:0] rfData;
 
-    // Register file
+    // Register file (segment 0)
     register_file #(.REGADDR_WIDTH(uDAW), .DATA_WIDTH(36)) rf0(
         .clk,
-        .readAddrA(daA), .readAddrB(daB), .writeAddr(daW),
-        .dataA(rfDataA), .dataB(rfDataB), .dataW(dataW),
+        .readAddr(segmentA == 0 ? daA : daB), .writeAddr(daW),
+        .readData(rfData), .writeData(dataW),
         .writeEnable(writeEn && (segmentW == 0)));
 
-    // Parameter memory
+    // Parameter memory (segment 2)
     wire[DWW-1:0] pmemData;
     parameter_memory pmem(
         .clk(clk),
-        .addr({1'b0, (segmentA == 0 ? daA : daB)}),
+        .addr({1'b0, (segmentA == 2 ? daA : daB)}),
         .data(pmemData));
     
     // Input reading
@@ -67,6 +67,8 @@ module memCtl #(
     end
 
     // Read results are available the cycle after they are requested.
+    // But we select combinatorially between the sources.
+    // So register the segment addresses.
     logic[SW-1:0] segmentA_out, segmentB_out;
     always @(posedge clk) begin
         segmentA_out <= segmentA;
@@ -77,15 +79,15 @@ module memCtl #(
     always_comb begin
         unique case (segmentA_out)
         0: // register file
-            dataA = rfDataA;
+            dataA = rfData;
         1: // IO
             dataA = inputDataA;
         2: // params
             dataA = pmemData;
         endcase
         unique case (segmentB_out)
-        0: // rf
-            dataB = rfDataB;
+        0: // rf, note that port A address has priority
+            dataB = rfData;
         1: // IO
             dataB = inputDataB;
         2: // params, note that port A address has priority
