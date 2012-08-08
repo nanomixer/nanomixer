@@ -27,13 +27,16 @@ adat_in adat_in_0(
         .audio_bus(audio_in)
         );
 
-logic signed [35:0] dsp_in[8];
+wire signed [35:0] dsp_in[8];
 wire signed [35:0] dsp_out[8];
-int i;
-always_comb begin
-    for (i=0; i<8; i++) dsp_in[i] <= (audio_in[i] << (36-24));
-    for (i=0; i<8; i++) audio_out[i] <= (dsp_out[i] >> (36-24));
-end
+wire [7:0] clip;
+genvar i;
+generate
+    for (i=0; i<8; i++) begin:channel
+        assign dsp_in[i] = (audio_in[i] << 6);
+        saturate sat(.in(dsp_out[i]), .overflow(clip[i]), .out(audio_out[i]));
+    end
+endgenerate
 
 DSPCore dsp0(
     .clk(oversampling_bitclock),
