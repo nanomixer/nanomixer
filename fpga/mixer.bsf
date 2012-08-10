@@ -54,9 +54,16 @@ applicable agreement for further details.
 	(port
 		(pt 264 48)
 		(output)
+		(text "spdif_out" (rect 0 0 63 12)(font "Arial" ))
+		(text "spdif_out" (rect 180 43 243 55)(font "Arial" ))
+		(line (pt 264 48)(pt 248 48)(line_width 1))
+	)
+	(port
+		(pt 264 64)
+		(output)
 		(text "LED[7..0]" (rect 0 0 63 12)(font "Arial" ))
-		(text "LED[7..0]" (rect 180 43 243 55)(font "Arial" ))
-		(line (pt 264 48)(pt 248 48)(line_width 3))
+		(text "LED[7..0]" (rect 180 59 243 71)(font "Arial" ))
+		(line (pt 264 64)(pt 248 64)(line_width 3))
 	)
 	(drawing
 		(rectangle (rect 16 16 248 80)(line_width 1))

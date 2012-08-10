@@ -3,6 +3,7 @@ module mixer(
 	input wire oversampling_bitclock, // ~98.304 MHz
 	input wire adat_in,
 	output wire adat_out,
+    output wire spdif_out,
 	output wire[7:0] LED
 );
 
@@ -26,6 +27,11 @@ adat_in adat_in_0(
         .data_valid(adat_data_valid),
         .audio_bus(audio_in)
         );
+        
+        spdif_out spdif_out_0(
+            .clk(adat_bitclock),
+            .ldatain(audio_in[0]), .rdatain(audio_in[1]),
+            .serialout(spdif_out));
 
 wire signed [35:0] dsp_in[8];
 wire signed [35:0] dsp_out[8];
