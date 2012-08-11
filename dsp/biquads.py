@@ -90,6 +90,9 @@ def biquad_to_param_mif(b, a, outfile):
     print >>outfile, "ADDRESS_RADIX = HEX;"
     print >>outfile, "DATA_RADIX = HEX;"
     print >>outfile, "CONTENT BEGIN"
-    for addr, data in enumerate(arr):
-        print >>outfile, '{:02x} : {};'.format(addr, BitArray(int=to_fixedpt(data, 36), length=36).hex)
+    addr = 0
+    for channel in range(2):
+        for data in arr:
+            print >>outfile, '{:02x} : {};'.format(addr, BitArray(int=to_fixedpt(data, 36), length=36).hex)
+            addr += 1
     print >>outfile, "END;"
