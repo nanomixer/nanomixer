@@ -119,6 +119,11 @@ module uDSP #(
     logic[35:0] wbData_EX;
     logic wren_EX;
     
+    // Saturator: we multiplied a Q5.30 by a Q1.34 coefficient,
+    // giving a Q7.64 multiplicand. We want a Q5.30 output.
+    wire[35:0] accAsWord;
+    saturate #(.IN_WIDTH(72), .HEADROOM(2), .OUT_WIDTH(36)) saturator(
+        .in({HI, LO}), .out(accAsWord));
     always_comb begin
         case (opcode_EX)
         MulToW: begin
@@ -126,7 +131,7 @@ module uDSP #(
             wren_EX = 1;
         end
         HiToW: begin
-            wbData_EX = HI;
+            wbData_EX = accAsWord;
             wren_EX = 1;
         end
         LoToW: begin

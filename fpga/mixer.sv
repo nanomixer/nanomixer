@@ -51,7 +51,7 @@ DSPCore dsp0(
     .inputs(dsp_in),
     .outputs(dsp_out));
 
-wire [23:0] meter_src = audio_out[0];
+wire [23:0] meter_src = audio_in[0];
 wire [23:0] abs_val;
 assign abs_val = meter_src[23] ? -meter_src : meter_src;
 
