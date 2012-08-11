@@ -98,7 +98,7 @@ def biquad(in_addr, buf_base, param_base, out_addr):
         MulAcc(yn1, a1),
         MulAcc(yn2, a2),
         HiToW(yn),
-        MulToW(yn, yn, gain),
+        #MulToW(yn, yn, gain),
         # Write output
         AToW(out_addr, yn)
         ]
