@@ -43,7 +43,7 @@ genvar i;
 generate
     for (i=0; i<8; i++) begin:channel
         assign dsp_in[i] = {{6{audio_in[i][23]}}, audio_in[i][23:0], {6{1'b0}}};
-        saturate sat(.in(dsp_out[i]), .overflow(clip[i]), .out(audio_out[i]));
+        saturate #(.IN_WIDTH(36), .HEADROOM(6), .OUT_WIDTH(24)) sat(.in(dsp_out[i]), .overflow(clip[i]), .out(audio_out[i]));
     end
 endgenerate
 

@@ -121,13 +121,15 @@ module uDSP #(
     
     // Saturator: we multiplied a Q5.30 by a Q1.34 coefficient,
     // giving a Q7.64 multiplicand. We want a Q5.30 output.
-    wire[35:0] accAsWord;
-    saturate #(.IN_WIDTH(72), .HEADROOM(2), .OUT_WIDTH(36)) saturator(
+    wire[35:0] accAsWord, mulAsWord;
+    saturate #(.IN_WIDTH(72), .HEADROOM(2), .OUT_WIDTH(36)) accSaturator(
         .in({HI, LO}), .out(accAsWord));
+    saturate #(.IN_WIDTH(72), .HEADROOM(2), .OUT_WIDTH(36)) mulSaturator(
+        .in({mulOutHi, mulOutLo}), .out(mulAsWord));
     always_comb begin
         case (opcode_EX)
         MulToW: begin
-            wbData_EX = mulOutHi;
+            wbData_EX = mulAsWord;
             wren_EX = 1;
         end
         HiToW: begin
