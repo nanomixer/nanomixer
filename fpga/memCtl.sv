@@ -2,16 +2,16 @@ module memCtl #(
     // Current instruction ROM is 512 words => 9 bit address
     parameter IAW = 9,
     parameter IWW = 36,
-    // Current data memories are 128 words + 3-bit segment => 10 bit addresses
-    parameter DAW = 10,
+
+    parameter SegmentWidth = 2,
+    parameter OffsetWidth = 8,
+    parameter nSegments = 1 << SegmentWidth,
+    parameter DAW = SegmentWidth + OffsetWidth,
     parameter DWW = 36)
 (
     input wire clk,
-
-    // Instruction memory port
-    input wire[IAW-1:0] addrI,
-    output wire[IWW-1:0] dataI,
     
+    /// Interface to the CPU
     // Data memory port A
     input wire[DAW-1:0] addrA,
     output logic[DWW-1:0] dataA,
@@ -24,80 +24,44 @@ module memCtl #(
     input wire[DAW-1:0] addrW,
     input wire[DWW-1:0] dataW,
     input wire writeEn,
-    
-    input wire[DWW-1:0] inputs[8],
-    output logic[DWW-1:0] outputs[8]
-    
+
+    /// Interface to memories
+    output wire[OffsetWidth-1:0] readAddresses[nSegments],
+    input wire[DWW-1:0] readDatas[nSegments],
+    output wire[OffsetWidth-1:0] writeAddress,
+    output wire[DWW-1:0] writeData,
+    output wire[nSegments-1:0] writeEnables
     );
     
-    localparam uDAW = 7; // unpacked data word width
-    localparam SW = DAW-uDAW; // segment address width
-    // Unpack segmented addresses into segment and data address
-    wire[SW-1:0] segmentA = addrA[DAW-1:DAW-SW]; wire[uDAW-1:0] daA = addrA[uDAW-1:0];
-    wire[SW-1:0] segmentB = addrB[DAW-1:DAW-SW]; wire[uDAW-1:0] daB = addrB[uDAW-1:0];
-    wire[SW-1:0] segmentW = addrW[DAW-1:DAW-SW]; wire[uDAW-1:0] daW = addrW[uDAW-1:0];
-    
-    // Instruction memory
-    instruction_rom instruction_rom_inst(
-        .clock(clk),
-        .address(addrI),
-        .q(dataI));
+    // Unpack segmented addresses into segment and offset
+    wire [SegmentWidth-1:0] segmentA, segmentB, segmentW;
+    wire [OffsetWidth-1:0] offsetA, offsetB, offsetW;
+    assign
+      {segmentA, offsetA} = addrA,
+      {segmentB, offsetB} = addrB,
+      {segmentW, offsetW} = addrW;
 
-    wire[DWW-1:0] rfData;
+    // Assign read addresses
+    genvar i;
+    generate for (i=0; i<nSegments; i++) begin:readAddrs
+        assign readAddresses[i] = (segmentA == i) ? offsetA : offsetB;
+    end endgenerate
 
-    // Register file (segment 0)
-    register_file #(.REGADDR_WIDTH(uDAW), .DATA_WIDTH(36)) rf0(
-        .clk,
-        .readAddr(segmentA == 0 ? daA : daB), .writeAddr(daW),
-        .readData(rfData), .writeData(dataW),
-        .writeEnable(writeEn && (segmentW == 0)));
-
-    // Parameter memory (segment 2)
-    wire[DWW-1:0] pmemData;
-    parameter_memory pmem(
-        .clk(clk),
-        .addr({1'b0, (segmentA == 2 ? daA : daB)}),
-        .data(pmemData));
-    
-    // Input reading
-    logic[DWW-1:0] inputDataA, inputDataB;
-    always @(posedge clk) begin
-        inputDataA <= inputs[daA[2:0]];
-        inputDataB <= inputs[daB[2:0]];
-    end
+    // Assign write
+    assign writeAddress = offsetW;
+    assign writeData = dataW;
+    assign writeEnables = writeEn ? (1 << segmentW) : 'b0;
 
     // Read results are available the cycle after they are requested.
     // But we select combinatorially between the sources.
     // So register the segment addresses.
-    logic[SW-1:0] segmentA_out, segmentB_out;
+    logic[SegmentWidth-1:0] segmentA_out, segmentB_out;
     always @(posedge clk) begin
         segmentA_out <= segmentA;
         segmentB_out <= segmentB;
     end
-
-    // Data memory A and B controller
-    always_comb begin
-        unique case (segmentA_out)
-        0: // register file
-            dataA = rfData;
-        1: // IO
-            dataA = inputDataA;
-        2: // params
-            dataA = pmemData;
-        endcase
-        unique case (segmentB_out)
-        0: // rf, note that port A address has priority
-            dataB = rfData;
-        1: // IO
-            dataB = inputDataB;
-        2: // params, note that port A address has priority
-            dataB = pmemData;
-        endcase
-    end
     
-    // IO write controller
-    always @(posedge clk) begin
-        if ((segmentW == 1) && writeEn) outputs[daW[2:0]] <= dataW;
-    end
-    
+    // Read results
+    assign dataA = readDatas[segmentA_out], dataB = readDatas[segmentB_out];
+   
 endmodule

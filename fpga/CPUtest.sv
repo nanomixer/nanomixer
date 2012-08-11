@@ -9,7 +9,7 @@ initial clk=0;
 always #(CLK_PERIOD/2) clk = ~clk;
 
 logic reset = 0;
-logic start;
+logic start = 0;
 logic[36-1:0] inputs[8];
 wire[36-1:0] outputs[8];
 

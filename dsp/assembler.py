@@ -1,4 +1,4 @@
-OFFSET_WIDTH = 7
+OFFSET_WIDTH = 8
 
 def bin_(num, width):
     #s = bin(num)[2:]

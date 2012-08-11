@@ -2,20 +2,26 @@ module DSPCore #(
     // Current instruction ROM is 512 words => 9 bit address
     parameter IAW = 9,
     parameter IWW = 36,
-    // Current data memories are 128 words + 3-bit segment => 10 bit addresses
-    parameter DAW = 10,
+    parameter SegmentWidth = 2,
+    parameter OffsetWidth = 8,
+    parameter nSegments = 1 << SegmentWidth,
+    parameter DAW = SegmentWidth + OffsetWidth,
     parameter DWW = 36)
 (
     input wire clk,
     input wire reset,
     input wire start,
     input wire[DWW-1:0] inputs[8],
-    output wire[DWW-1:0] outputs[8]
+    output logic[DWW-1:0] outputs[8]
     );
 
-    // Instruction memory port
+    // Instruction memory
     wire[IAW-1:0] addrI;
     wire[IWW-1:0] dataI;
+    instruction_rom instruction_rom_inst(
+        .clock(clk),
+        .address(addrI),
+        .q(dataI));
         
     // Data memory ports
     wire[DAW-1:0] addrA, addrB, addrW;
@@ -28,13 +34,42 @@ module DSPCore #(
         .addrA, .dataA,
         .addrB, .dataB,
         .addrW, .dataW, .writeEn);
-        
+
+
+    wire[OffsetWidth-1:0] readAddresses[nSegments];
+    wire[DWW-1:0] readDatas[nSegments];
+    wire[OffsetWidth-1:0] writeAddress;
+    wire[DWW-1:0] writeData;
+    wire[nSegments-1:0] writeEnables;
+
+    // Register file (segment 0)
+    register_file #(.REGADDR_WIDTH(OffsetWidth), .DATA_WIDTH(DWW)) rf0(
+        .clk,
+        .readAddr(readAddresses[0]), .writeAddr(writeAddress),
+        .readData(readDatas[0]), .writeData(writeData),
+        .writeEnable(writeEnables[0]));
+
+    // Input memory (segment 1)
+    logic[DWW-1:0] inputData;
+    always @(posedge clk) begin
+        inputData <= inputs[readAddresses[1][2:0]];
+        if (writeEnables[1]) outputs[writeAddress] <= writeData;
+    end
+    assign readDatas[1] = inputData;
+
+    // Parameter memory (segment 2)
+    parameter_memory pmem(
+        .clk(clk),
+        .addr(readAddresses[2]),
+        .data(readDatas[2]));
+
     memCtl #(.IAW(IAW), .IWW(IWW), .DAW(DAW), .DWW(DWW)) mem (
         .clk,
-        .addrI, .dataI,
         .addrA, .dataA,
         .addrB, .dataB,
         .addrW, .dataW, .writeEn,
-        .inputs, .outputs);
+        .readAddresses, .readDatas,
+        .writeAddress, .writeData, .writeEnables);
+
 endmodule
     
