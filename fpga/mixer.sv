@@ -7,6 +7,9 @@ module mixer(
 	output wire[7:0] LED
 );
 
+logic slow_clk = 0;
+always @(posedge oversampling_bitclock) slow_clk <= ~slow_clk;
+
 wire data_request;
 
 logic signed [23:0] audio_out [0:7];
@@ -45,7 +48,7 @@ generate
 endgenerate
 
 DSPCore dsp0(
-    .clk(oversampling_bitclock),
+    .clk(slow_clk),
     .reset(0),
     .start(data_request),
     .inputs(dsp_in),
