@@ -97,22 +97,23 @@ module uDSP #(
     assign {mulOutHi, mulOutLo} = signed'(dataA_EXfwd) * signed'(dataB_EXfwd);
     
     // The Accumulator!
-    logic signed [35:0] HI;
-    logic[35:0] LO;
-    always @(posedge clk or posedge rst) begin
-        if (rst) {HI, LO} <= 0;
-        else begin
-            case (opcode_EX)
-            MulAcc: {HI, LO} <= {mulOutHi, mulOutLo} + signed'({HI, LO});
-            Mul: {HI, LO} <= {mulOutHi, mulOutLo};
-            AToHi: {HI, LO} <= {dataA_EXfwd, LO};
-            AToLo: {HI, LO} <= {HI, dataA_EXfwd};
-            default: begin
-                HI <= HI;
-                LO <= LO;
-            end
-            endcase
+    logic signed [35:0] HI_next;
+    logic[35:0] LO_next;
+    wire signed [35:0] HI;
+    wire [35:0] LO;
+    posedgeFF #(36) hi_ex(clk, rst, HI_next, HI);
+    posedgeFF #(36) lo_ex(clk, rst, LO_next, LO);
+    always_comb begin
+        case (opcode_EX)
+        MulAcc: {HI_next, LO_next} <= {mulOutHi, mulOutLo} + signed'({HI, LO});
+        Mul: {HI_next, LO_next} <= {mulOutHi, mulOutLo};
+        AToHi: {HI_next, LO_next} <= 0;//{HI, LO} <= {dataA_EXfwd, LO};
+        AToLo: {HI_next, LO_next} <= 0;//{HI, LO} <= {HI, dataA_EXfwd};
+        default: begin
+            HI_next <= HI;
+            LO_next <= LO;
         end
+        endcase
     end
 
     // Compute writeback

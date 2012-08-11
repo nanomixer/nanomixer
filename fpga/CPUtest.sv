@@ -20,27 +20,35 @@ DSPCore u1 (.clk, .reset, .start, .inputs, .outputs);
 `define ra 19:10
 `define rb  9:0
 
+bit [35:0] lastHI, lastLO;
 int i;
 int sample;
+real curInput;
 initial begin
-    for (i=0; i<8; i++) inputs[i] = (i+1)<<10;
-    
     $display("Asserting reset");
     reset = 1;
     @(posedge clk);
     @(posedge clk);
     reset = 0;
 
-    for (sample=0; sample<10; sample++) begin
-        inputs[0] <= inputs[0] + 'h100;
+    for (sample=0; sample<3; sample++) begin
+        curInput = $sin(2*3.1415926535*sample*4800/48000);
+        for (i=0; i<8; i++) inputs[i] = curInput*(1<<29);
+
         // Start of sample
-        $display("Asserting start of sample %d.", sample);
+        //$display("Asserting start of sample %d.", sample);
         @(posedge clk) start <= 1;
         @(posedge clk) start <= 0;
 
-        for (i=0; i<25; i++) begin
+        for (i=0; i<50; i++) begin
             @(posedge clk);
-            $display("%2d: %x | %x %x %d | %x %x %d | %x %x %d",
+            if (u1.dsp.HI_next != lastHI) begin
+                lastHI = u1.dsp.HI_next;
+                $display("%2d: HI=%x", i, lastHI);
+                $display(" EX a:(%x)=%x b:(%x)=%x",
+                    u1.dsp.Inst_EX[`ra], u1.dsp.dataA_EXfwd, u1.dsp.Inst_EX[`rb], u1.dsp.dataB_EXfwd);
+            end
+            /*$display("%2d: %x | %x %x %d | %x %x %d | %x %x %d",
                 i, u1.addrI,
                 u1.dsp.PC_RD, u1.dsp.Inst_RD, u1.dsp.opcode_RD,
                 u1.dsp.PC_EX, u1.dsp.Inst_EX, u1.dsp.opcode_EX,
@@ -50,8 +58,16 @@ initial begin
             if(u1.dsp.writeEn)
                 $display(" WB w: %x <= %x",
                     u1.dsp.addrW, u1.dsp.dataW);
-            $display("%x", outputs[0]);
+            $display("%x", outputs[0]);*/
         end
+        //$display("%2d: %d, %d, %f", sample, inputs[0], outputs[0], real'(outputs[0])/real'(1<<29));
+        $display("  xn=%x xn1=%x xn2=%x yn=%x yn1=%x yn2=%x",
+            u1.rf0.r[1],
+            u1.rf0.r[2],
+            u1.rf0.r[3],
+            u1.rf0.r[4],
+            u1.rf0.r[5],
+            u1.rf0.r[6]);
     end
     $stop;
 end

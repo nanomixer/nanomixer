@@ -81,6 +81,9 @@ def biquad(in_addr, buf_base, param_base, out_addr):
     b0, b1, b2, a1, a2, gain = [param_base+n for n in range(6)]
 
     return [
+        Nop(),
+        Nop(),
+        Nop(),
         # Zero the accumulator.
         AToHi(zero),
         AToLo(zero),
@@ -107,6 +110,13 @@ program = []
 for channel in range(8):
     program.extend(
         biquad(io(channel), reg(6*channel+1), param(6*channel), io(channel)))
+
+_program = [
+    AToHi(reg(0)), AToLo(reg(0)),
+    AToW(reg(2), reg(1)),
+    AToW(reg(1), io(0)),
+    MulAcc(reg(2), param(0)),
+    HiToW(io(0))]
 
 print "Program length:", len(program)
 

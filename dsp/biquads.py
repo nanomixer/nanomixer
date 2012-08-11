@@ -2,6 +2,7 @@ import numpy as np
 from numpy import sin, cos, sinh
 #import matplotlib.pyplot as plt
 #from scipy.signal import freqz
+from bitstring import BitArray
 
 # Based on http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
 
@@ -24,7 +25,9 @@ def get_pow(dBgain, is_shelving=False):
     return np.sqrt(np.power(10, dBgain/20.))
 
 def normalize(b, a):
-    return [b[0]/a[0], b[1]/a[0], b[2]/a[0]], [1, a[1]/a[0], a[2]/a[0]]
+    b = map(float, b)
+    a = map(float, a)
+    return [b[0]/a[0], b[1]/a[0], b[2]/a[0]], [1.0, a[1]/a[0], a[2]/a[0]]
 
 def lowpass(f0, dBgain, **kw):
     '''Pass either q, bw, or s.'''
@@ -80,11 +83,13 @@ def round_coeff(x, bits):
     return to_fixedpt(x, bits) / (1<<(bits-2))
 
 def biquad_to_param_mif(b, a, outfile):
-    from bitstring import BitArray
     b, a = normalize(b, a)
     assert abs(a[0] - 1.0) < 1e-5
+    biquad_to_param_mif_raw(b, a, outfile)
+
+def biquad_to_param_mif_raw(b, a, outfile):
     arr = [b[0], b[1], b[2],
-           a[1], a[2], 1.0]
+           -a[1], -a[2], 1.0]
     print >>outfile, "DEPTH = 256;"
     print >>outfile, "WIDTH = 36;"
     print >>outfile, "ADDRESS_RADIX = HEX;"
@@ -96,3 +101,27 @@ def biquad_to_param_mif(b, a, outfile):
             print >>outfile, '{:02x} : {};'.format(addr, BitArray(int=to_fixedpt(data, 36), length=36).hex)
             addr += 1
     print >>outfile, "END;"
+
+def to_word(data):
+    return BitArray(int=to_fixedpt(data, 36), length=36).hex
+
+
+import socket
+class Client(object):
+    def __init__(self, host = 'localhost', port = 2540):
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect(( host,port))
+
+    def set_biquad(self, b, a):
+        b, a = normalize(b, a)
+        self.set_biquad_raw(b, a)
+
+    def set_biquad_raw(self, b, a):
+        arr = [b[0], b[1], b[2],
+               -a[1], -a[2]][::-1]
+        content = ''.join(to_word(data) for data in arr)
+        self._setmem(0, content)
+        self._setmem(6, content)
+    
+    def _setmem(self, addr, content):
+        self.s.send('{:<10d}{:<10d}{}'.format(addr, len(content), content))

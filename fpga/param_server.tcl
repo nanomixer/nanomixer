@@ -54,8 +54,7 @@ proc ConnAccept {sock addr port} {
 
     fileevent $sock readable [list IncomingData $sock]
 
-    openport
-    device_lock -timeout 10000
+    OpenPort
 }
 
 
@@ -65,25 +64,23 @@ proc IncomingData {sock} {
     # Check end of file or abnormal connection drop,
     # then write the data to the vJTAG
 
-    if {[eof $sock] || [catch {gets $sock line}]} {
+    if {[eof $sock] || [catch {
+	set addr [expr [read $sock 10]]
+	set length [expr [read $sock 10]]
+	set content [read $sock $length]}]} {
 	close $sock
 	puts "Close $conn(addr,$sock)"
 	unset conn(addr,$sock)
-	closeport
+	ClosePort
     } else {
-	#Before the connection is closed we get an emtpy data transmission. Let's check for it and trap it
-	set data_len [string length $line]
-	if {$data_len != "0"} then {
-	    # Split address and data
-	    set addr [expr [string range $line 0 10]]
-	    set content [string range $line 11 [string length $line]]
-	    setMemContent $addr $content
-	}
+	setMemContent $addr $content
     }
 }
 
 
 proc OpenPort {} {
+    global usbblaster_name
+    global test_device
     begin_memory_edit -hardware_name $usbblaster_name -device_name $test_device
 }
 
@@ -92,8 +89,10 @@ proc ClosePort {} {
 }
 
 proc setMemContent {addr content} {
-    set content_words [expr [string length content] / 9]
-    write_content_to_memory -instance_index $instance_idx -start_address $addr -content $content -word_cont $content_words -content_in_hex
+    global instance_idx
+    set content_words [expr [string length $content] / 9]
+    puts "Setting $content_words at $addr to $content"
+    write_content_to_memory -instance_index $instance_idx -start_address $addr -content $content -word_count $content_words -content_in_hex
 }
 
 #Start thet Server at Port 2540
