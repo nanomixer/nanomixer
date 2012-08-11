@@ -30,7 +30,7 @@ adat_in adat_in_0(
         
         spdif_out spdif_out_0(
             .clk(adat_bitclock),
-            .ldatain(audio_in[0]), .rdatain(audio_in[1]),
+            .ldatain(audio_out[0]), .rdatain(audio_out[1]),
             .serialout(spdif_out));
 
 wire signed [35:0] dsp_in[8];
