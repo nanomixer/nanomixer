@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import sin, cos, sinh
-import matplotlib.pyplot as plt
-from scipy.signal import freqz
+#import matplotlib.pyplot as plt
+#from scipy.signal import freqz
 
 # Based on http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
 
