@@ -74,6 +74,8 @@ proc IncomingData {sock} {
 	ClosePort
     } else {
 	setMemContent $addr $content
+	puts -nonewline $sock "1"
+	flush $sock
     }
 }
 
