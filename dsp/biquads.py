@@ -137,29 +137,37 @@ class OSCServer(object):
         self.server = OSC.OSCServer(('0.0.0.0', port), None, port-1)
         for channel in range(1,6):
             self.server.addMsgHandler('/4/gain/{}'.format(channel), self.setGain)
-        self.server.addMsgHandler('/4/lofrq', self.setFreq)
+        self.server.addMsgHandler('/4/loslvfrq', self.setFreq)
 
         self.gains = np.zeros(6)
         self.freqs = np.zeros(6)
-        self.freqs[0] = 1000
+        self.freqs[0] = 50
 
     def setGain(self, addr, tags, data, client_addr):
         channel = int(addr.rsplit('/', 1)[1]) - 1
         gain = 40*(data[0]-.5)
         self.gains[channel] = gain
+        self._send()
+
+    def setFreq(self, addr, tags, data, client_addr):
+        print addr
+        freq = 20 * 2**(data[0]*5)
+        print freq
+        self.freqs[0] = freq
+        self._send()
+
+    def _send(self):
         self.server.socket.setblocking(False)
         try:
             dataReady = self.server.socket.recv(1, socket.MSG_PEEK)
         except:
             dataReady = False
         self.server.socket.setblocking(True)
-        if channel == 0 and not dataReady:
+        if not dataReady:
+            gain = self.gains[0]
             print gain, self.freqs[0]
-            self.client.set_biquad(*peaking(self.freqs[0], gain, bw=1.))
+            self.client.set_biquad(*peaking(self.freqs[0], gain, bw=1./2))
 
-    def setFreq(self, addr, tags, data, client_addr):
-        print addr
-        print data
 
     def serve_forever(self):
         try:
