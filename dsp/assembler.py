@@ -97,8 +97,6 @@ def biquad(in_addr, buf_base, param_base, out_addr):
         MulAcc(yn1, a1),
         MulAcc(yn2, a2),
         HiToW(yn),
-        # Write output
-        AToW(out_addr, yn)
         ]
 
 program = []
@@ -106,12 +104,14 @@ for channel in range(8):
     program.extend(
         biquad(io(channel), reg(6*channel+1), param(5*channel), io(channel)))
 
-_program = [
-    AToHi(reg(0)), AToLo(reg(0)),
-    AToW(reg(2), reg(1)),
-    AToW(reg(1), io(0)),
-    MulAcc(reg(2), param(0)),
-    HiToW(io(0))]
+# Downmix: params start at 5*8=40
+for out_channel in range(2):
+    program.append(AToHi(reg(0)))
+    for channel in range(8):
+        program.append(MulAcc(reg(6*channel+1+3), param(40+8*out_channel+channel)))
+    program.extend([
+            HiToW(io(out_channel))])
+        
 
 print "Program length:", len(program)
 
