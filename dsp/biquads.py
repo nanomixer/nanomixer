@@ -145,7 +145,7 @@ class OSCServer(object):
 
     def setGain(self, addr, tags, data, client_addr):
         channel = int(addr.rsplit('/', 1)[1]) - 1
-        gain = 20*(data[0]-.5)
+        gain = 40*(data[0]-.5)
         self.gains[channel] = gain
         self.server.socket.setblocking(False)
         try:
@@ -155,7 +155,7 @@ class OSCServer(object):
         self.server.socket.setblocking(True)
         if channel == 0 and not dataReady:
             print gain, self.freqs[0]
-            self.client.set_biquad(*peaking(self.freqs[0], gain, bw=1./3))
+            self.client.set_biquad(*peaking(self.freqs[0], gain, bw=1.))
 
     def setFreq(self, addr, tags, data, client_addr):
         print addr
