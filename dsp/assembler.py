@@ -81,12 +81,8 @@ def biquad(in_addr, buf_base, param_base, out_addr):
     b0, b1, b2, a1, a2, gain = [param_base+n for n in range(6)]
 
     return [
-        Nop(),
-        Nop(),
-        Nop(),
         # Zero the accumulator.
-        AToHi(zero),
-        AToLo(zero),
+        AToHi(zero), # actually does both.
         # Set up registers: move existing values
         AToW(xn2, xn1),
         AToW(xn1, xn),
@@ -101,7 +97,6 @@ def biquad(in_addr, buf_base, param_base, out_addr):
         MulAcc(yn1, a1),
         MulAcc(yn2, a2),
         HiToW(yn),
-        #MulToW(yn, yn, gain),
         # Write output
         AToW(out_addr, yn)
         ]
@@ -109,7 +104,7 @@ def biquad(in_addr, buf_base, param_base, out_addr):
 program = []
 for channel in range(8):
     program.extend(
-        biquad(io(channel), reg(6*channel+1), param(6*channel), io(channel)))
+        biquad(io(channel), reg(6*channel+1), param(5*channel), io(channel)))
 
 _program = [
     AToHi(reg(0)), AToLo(reg(0)),

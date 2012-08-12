@@ -89,7 +89,7 @@ def biquad_to_param_mif(b, a, outfile):
 
 def biquad_to_param_mif_raw(b, a, outfile):
     arr = [b[0], b[1], b[2],
-           -a[1], -a[2], 1.0]
+           -a[1], -a[2]]
     print >>outfile, "DEPTH = 256;"
     print >>outfile, "WIDTH = 36;"
     print >>outfile, "ADDRESS_RADIX = HEX;"
@@ -121,15 +121,15 @@ class Client(object):
                -a[1], -a[2]][::-1]
         content = ''.join(to_word(data) for data in arr)
         self._setmem(0, content)
-        self._setmem(6, content)
+        self._setmem(5, content)
     
     def _setmem(self, addr, content):
         self.s.send('{:<10d}{:<10d}{}'.format(addr, len(content), content))
         self.s.recv(2)
 
-import OSC
 class OSCServer(object):
     def __init__(self, client=None, port=7559):
+        import OSC
         if client is None:
             client = Client()
 
@@ -169,5 +169,3 @@ class OSCServer(object):
             self.client.s.close()
             raise
 
-if __name__ == '__main__':
-    server = OSCServer()
