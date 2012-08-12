@@ -162,7 +162,12 @@ class OSCServer(object):
         print data
 
     def serve_forever(self):
-        self.server.serve_forever()
+        try:
+            self.server.serve_forever()
+        except:
+            self.server.socket.close()
+            self.client.s.close()
+            raise
 
 if __name__ == '__main__':
     server = OSCServer()
