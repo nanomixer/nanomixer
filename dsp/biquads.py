@@ -125,3 +125,44 @@ class Client(object):
     
     def _setmem(self, addr, content):
         self.s.send('{:<10d}{:<10d}{}'.format(addr, len(content), content))
+        self.s.recv(2)
+
+import OSC
+class OSCServer(object):
+    def __init__(self, client=None, port=7559):
+        if client is None:
+            client = Client()
+
+        self.client = client
+        self.server = OSC.OSCServer(('0.0.0.0', port), None, port-1)
+        for channel in range(1,6):
+            self.server.addMsgHandler('/4/gain/{}'.format(channel), self.setGain)
+        self.server.addMsgHandler('/4/lofrq', self.setFreq)
+
+        self.gains = np.zeros(6)
+        self.freqs = np.zeros(6)
+        self.freqs[0] = 1000
+
+    def setGain(self, addr, tags, data, client_addr):
+        channel = int(addr.rsplit('/', 1)[1]) - 1
+        gain = 20*(data[0]-.5)
+        self.gains[channel] = gain
+        self.server.socket.setblocking(False)
+        try:
+            dataReady = self.server.socket.recv(1, socket.MSG_PEEK)
+        except:
+            dataReady = False
+        self.server.socket.setblocking(True)
+        if channel == 0 and not dataReady:
+            print gain, self.freqs[0]
+            self.client.set_biquad(*peaking(self.freqs[0], gain, bw=1./3))
+
+    def setFreq(self, addr, tags, data, client_addr):
+        print addr
+        print data
+
+    def serve_forever(self):
+        self.server.serve_forever()
+
+if __name__ == '__main__':
+    server = OSCServer()
