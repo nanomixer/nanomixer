@@ -118,12 +118,14 @@ class Client(object):
 
     def set_biquad_raw(self, b, a):
         arr = [b[0], b[1], b[2],
-               -a[1], -a[2]][::-1]
-        content = ''.join(to_word(data) for data in arr)
-        self._setmem(0, content)
-        self._setmem(5, content)
+               -a[1], -a[2]]
+        self._setmem(0, arr*8)
+
+    def set_gains(self, gains):
+        self._setmem(40, gains.ravel())
     
     def _setmem(self, addr, content):
+        content = ''.join(to_word(data) for data in reversed(content))
         self.s.send('{:<10d}{:<10d}{}'.format(addr, len(content), content))
         self.s.recv(2)
 
@@ -136,35 +138,50 @@ class OSCServer(object):
         self.client = client
         self.server = OSC.OSCServer(('0.0.0.0', port), None, port-1)
         for channel in range(1,6):
-            self.server.addMsgHandler('/4/gain/{}'.format(channel), self.setGain)
+            self.server.addMsgHandler('/4/gain/{}'.format(channel), self.setFiltGain)
         self.server.addMsgHandler('/4/loslvfrq', self.setFreq)
 
-        self.gains = np.zeros(6)
+        for channel in range(8):
+            self.server.addMsgHandler('/1/volume{}'.format(channel+1), self.setGain)
+
+        self.gains = np.zeros((8, 2))
+        self.filt_gains = np.zeros(6)
         self.freqs = np.zeros(6)
         self.freqs[0] = 50
 
     def setGain(self, addr, tags, data, client_addr):
+        channel = int(addr[-1])-1
+        self.gains[channel,:] = data[0]
+        print self.gains
+        if not self._data_ready():
+            self.client.set_gains(self.gains)
+
+    def setFiltGain(self, addr, tags, data, client_addr):
         channel = int(addr.rsplit('/', 1)[1]) - 1
         gain = 40*(data[0]-.5)
-        self.gains[channel] = gain
-        self._send()
+        self.filt_gains[channel] = gain
+        self._send_filt()
 
     def setFreq(self, addr, tags, data, client_addr):
         print addr
         freq = 20 * 2**(data[0]*5)
         print freq
         self.freqs[0] = freq
-        self._send()
+        self._send_filt()
 
-    def _send(self):
+    def _data_ready(self):
         self.server.socket.setblocking(False)
         try:
             dataReady = self.server.socket.recv(1, socket.MSG_PEEK)
         except:
             dataReady = False
         self.server.socket.setblocking(True)
+        return dataReady
+
+    def _send_filt(self):
+        dataReady = self._data_ready()
         if not dataReady:
-            gain = self.gains[0]
+            gain = self.filt_gains[0]
             print gain, self.freqs[0]
             self.client.set_biquad(*peaking(self.freqs[0], gain, bw=1./2))
 
