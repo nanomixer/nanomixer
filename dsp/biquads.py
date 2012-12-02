@@ -112,14 +112,14 @@ class Client(object):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect(( host,port))
 
-    def set_biquad(self, b, a):
+    def set_biquad(self, channel, b, a):
         b, a = normalize(b, a)
-        self.set_biquad_raw(b, a)
+        self.set_biquad_raw(channel, b, a)
 
-    def set_biquad_raw(self, b, a):
+    def set_biquad_raw(self, channel, b, a):
         arr = [b[0], b[1], b[2],
                -a[1], -a[2]]
-        self._setmem(0, arr*8)
+        self._setmem(5*channel, arr)
 
     def set_gains(self, gains):
         self._setmem(40, gains.ravel())
