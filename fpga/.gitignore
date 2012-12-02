@@ -12,3 +12,5 @@ incremental_db
 *.pin
 *.sof
 PLLJ_PLLSPE_INFO.txt
+simulation
+*.jdi
