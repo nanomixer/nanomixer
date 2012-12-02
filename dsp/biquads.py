@@ -122,7 +122,7 @@ class Client(object):
         self._setmem(5*channel, arr)
 
     def set_gains(self, gains):
-        self._setmem(40, gains.ravel())
+        self._setmem(40, gains.T.ravel())
     
     def _setmem(self, addr, content):
         content = ''.join(to_word(data) for data in reversed(content))
@@ -151,7 +151,7 @@ class OSCServer(object):
 
     def setGain(self, addr, tags, data, client_addr):
         channel = int(addr[-1])-1
-        self.gains[channel,:] = data[0]
+        self.gains[channel,channel % 2] = data[0]
         print self.gains
         if not self._data_ready():
             self.client.set_gains(self.gains)
@@ -164,7 +164,7 @@ class OSCServer(object):
 
     def setFreq(self, addr, tags, data, client_addr):
         print addr
-        freq = 20 * 2**(data[0]*5)
+        freq = 20 * 2**(data[0]*10)
         print freq
         self.freqs[0] = freq
         self._send_filt()
