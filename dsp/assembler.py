@@ -77,17 +77,12 @@ def param(n):
 def biquad(in_addr, buf_base, param_base, out_addr):
     # See http://www.earlevel.com/main/2003/02/28/biquads/ but note that it has A and B backwards.
     zero = reg(0)  # register 0 is always zero
-    xn, xn1, xn2, yn, yn1, yn2 = [buf_base+n for n in range(6)]
+    xn2, xn1, xn, yn2, yn1, yn = [buf_base+n for n in range(6)]
     b0, b1, b2, a1, a2, gain = [param_base+n for n in range(6)]
 
     return [
         # Zero the accumulator.
         AToHi(zero), # actually does both.
-        # Set up registers: move existing values
-        AToW(xn2, xn1),
-        AToW(xn1, xn),
-        AToW(yn2, yn1),
-        AToW(yn1, yn),
         # Read input
         AToW(xn, in_addr),
         # Run biquad

@@ -42,10 +42,20 @@ module DSPCore #(
     wire[DWW-1:0] writeData;
     wire[nSegments-1:0] writeEnables;
 
+    // Sample memory is a circular buffer
+    reg[OffsetWidth-1:0] sampleMemoryOffset;
+    always @(posedge clk or negedge reset_n) begin
+        if (~reset_n) sampleMemoryOffset <= 0;
+        else begin
+            if (start)
+                sampleMemoryOffset <= sampleMemoryOffset + 1;
+        end
+    end
+
     // Register file (segment 0)
     register_file #(.REGADDR_WIDTH(OffsetWidth), .DATA_WIDTH(DWW)) rf0(
         .clk,
-        .readAddr(readAddresses[0]), .writeAddr(writeAddress),
+        .readAddr(readAddresses[0] + sampleMemoryOffset), .writeAddr(writeAddress + sampleMemoryOffset),
         .readData(readDatas[0]), .writeData(writeData),
         .writeEnable(writeEnables[0]));
 
