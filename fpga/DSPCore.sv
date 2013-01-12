@@ -43,7 +43,7 @@ module DSPCore #(
     wire[nSegments-1:0] writeEnables;
 
     // Sample memory is a circular buffer
-    reg[OffsetWidth-1:0] sampleMemoryOffset;
+    logic[OffsetWidth-1:0] sampleMemoryOffset;
     always @(posedge clk or negedge reset_n) begin
         if (~reset_n) sampleMemoryOffset <= 0;
         else begin
