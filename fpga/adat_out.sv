@@ -1,59 +1,39 @@
-// Copyright (c) 2012 Martin Segado
+// Copyright (c) 2013 Martin Segado
 // All rights reserved (until we choose a license)
 
-`timescale 10ns/1ns
-
 module adat_out (
-	input bit clk, rst, // Requires a 12.288 MHz clock & syncronous reset
-	input bit timecode, midi, smux, // User bits per ADAT specification
-	input bit signed [23:0] audio_bus [0:7], // 8 channels @ 24 bits
-	output bit adat_bitstream, // ADAT bitstream output
-	output bit data_request // Asserted as soon as previous data has been loaded.
+   input logic clk, reset_n,                 // 256x oversample clock & asyncronous reset
+   input logic timecode, midi, smux,         // user bits per ADAT specification
+   input logic signed [23:0] audio_in [0:7], // 8 channels @ 24 bits
+   output logic bitstream_out                // ADAT bitstream output
 );
 
-bit [7:0] current_bit = 0;
-bit [0:255] adat_piso = 0;
+logic [255:0] shift_reg; // contains entire data frame (unencoded, with sync bits)
+logic [7:0] current_bit; // loops around every 256 clocks
 
-assign data_request = (current_bit == 0);
+always_ff @(posedge clk or negedge reset_n) begin
+   if (~reset_n) begin
+      shift_reg     <= '0;
+      current_bit   <= '0;
+      bitstream_out <= '0;
+   end
+   else begin
+      if (current_bit == 0) begin // load data into shift register (ready next clock)
+         shift_reg[255:245] <= {1'b1, 10'b0};                      // sync pattern
+         shift_reg[244:240] <= {1'b1, timecode, midi, smux, 1'b0}; // user bits (4th = 0)
+         for (int c = 0; c < 8; c++)
+            shiftreg[239-30*c -: 30] <= {1'b1, audio_in[c][23:20], // audio data
+               1'b1, audio_in[c][19:16],
+               1'b1, audio_in[c][15:12],
+               1'b1, audio_in[c][11:8],
+               1'b1, audio_in[c][ 7:4],
+               1'b1, audio_in[c][ 3:0]};
+      end
+   else shift_reg <= {shift_reg[254:0], 1'b0}; // shift data to the left
 
-always @(posedge clk) begin
-
-	if (current_bit == 0) begin // assemble ADAT stream
-	
-		// ADAT sync pattern
-		adat_piso[0] = ~adat_bitstream;
-		adat_piso[1:10] = {10{adat_piso[0]}};
-		
-		// User bits
-		adat_piso[11] = ~adat_piso[10]; // Sync bit
-		adat_piso[12] = adat_piso[11] ^ timecode;
-		adat_piso[13] = adat_piso[12] ^ midi;
-		adat_piso[14] = adat_piso[13] ^ smux;
-		adat_piso[15] = adat_piso[14]; // Reserved, always equals zero
-		
-		// Audio data
-		for (int c = 0; c <= 7; c++) begin	// Loop through 8 channels
-			for (int s = 0; s <= 5; s++) begin // Loop through 6 nibbles in each channel
-				adat_piso[16 + 30*c + 5*s] = ~adat_piso[15 + 30*c + 5*s]; // Sync bit
-				adat_piso[17 + 30*c + 5*s] = adat_piso[16 + 30*c + 5*s] ^ audio_bus[c][23 - 4*s];
-				adat_piso[18 + 30*c + 5*s] = adat_piso[17 + 30*c + 5*s] ^ audio_bus[c][22 - 4*s];
-				adat_piso[19 + 30*c + 5*s] = adat_piso[18 + 30*c + 5*s] ^ audio_bus[c][21 - 4*s];
-				adat_piso[20 + 30*c + 5*s] = adat_piso[19 + 30*c + 5*s] ^ audio_bus[c][20 - 4*s];
-			end
-		end
-	end
-
-	// Shift data out
-	adat_bitstream = adat_piso[0];
-	adat_piso = {adat_piso[1:255], 1'b0};
-	
-	current_bit = current_bit + 8'b1; // Loops around every 256 clocks
-
-	if (rst) begin // Synchronous reset mechanism
-		adat_bitstream = 0;
-		adat_piso = '0;
-		current_bit = 0;
-	end
+   current_bit   <= current_bit + 8'b1;             // increment bit counter
+   bitstream_out <= bitstream_out ^ shift_reg[255]; // output NZRI-encoded data (MSB first)
+   end
 end
 
-endmodule 
+endmodule
