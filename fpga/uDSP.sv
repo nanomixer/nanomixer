@@ -107,8 +107,10 @@ module uDSP #(
         case (opcode_EX)
         MulAcc: {HI_next, LO_next} <= {mulOutHi, mulOutLo} + signed'({HI, LO});
         Mul: {HI_next, LO_next} <= {mulOutHi, mulOutLo};
-        AToHi: {HI_next, LO_next} <= 0;//{HI, LO} <= {dataA_EXfwd, LO};
-        AToLo: {HI_next, LO_next} <= 0;//{HI, LO} <= {HI, dataA_EXfwd};
+        // NOTE HACK GOTCHA: both AToHi and AToLo actually zero the accumulator.
+        // The commented version would do what the instruction name suggests.
+        AToHi: {HI_next, LO_next} <= 0;//{HI_next, LO_next} <= {dataA_EXfwd, LO};
+        AToLo: {HI_next, LO_next} <= 0;//{HI_next, LO_next} <= {HI, dataA_EXfwd};
         default: begin
             HI_next <= HI;
             LO_next <= LO;
