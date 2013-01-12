@@ -49,7 +49,7 @@ endgenerate
 
 DSPCore dsp0(
     .clk(slow_clk),
-    .reset(0),
+    .reset_n(1),
     .start(data_request),
     .inputs(dsp_in),
     .outputs(dsp_out));

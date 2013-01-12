@@ -8,7 +8,7 @@ module uDSP #(
     parameter DWW = 36)
 (
     input wire clk,
-    input wire reset,
+    input wire reset_n,
     input wire start,
     
     // Instruction memory port
@@ -34,7 +34,7 @@ module uDSP #(
         AToHi=4, AToLo=5, HiToW=6, LoToW=7, AToW=8;
 
     wire rst; // global async reset.
-    assign rst = reset | start;
+    assign rst = ~reset_n | start;
     
     // Program Counter
     wire [IAW-1:0] PC_IF;

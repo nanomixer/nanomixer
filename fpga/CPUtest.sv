@@ -8,12 +8,12 @@ logic clk;
 initial clk=0;
 always #(CLK_PERIOD/2) clk = ~clk;
 
-logic reset = 0;
+logic reset_n = 1;
 logic start = 0;
 logic[36-1:0] inputs[8];
 wire[36-1:0] outputs[8];
 
-DSPCore u1 (.clk, .reset, .start, .inputs, .outputs);
+DSPCore u1 (.clk, .reset_n, .start, .inputs, .outputs);
 
 `define op 35:30
 `define rw 29:20
@@ -26,10 +26,10 @@ int sample;
 real curInput;
 initial begin
     $display("Asserting reset");
-    reset = 1;
+    reset_n = 0;
     @(posedge clk);
     @(posedge clk);
-    reset = 0;
+    reset_n = 1;
 
     for (sample=0; sample<3; sample++) begin
         curInput = $sin(2*3.1415926535*sample*4800/48000);

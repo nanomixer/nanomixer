@@ -9,7 +9,7 @@ module DSPCore #(
     parameter DWW = 36)
 (
     input wire clk,
-    input wire reset,
+    input wire reset_n,
     input wire start,
     input wire[DWW-1:0] inputs[8],
     output logic[DWW-1:0] outputs[8]
@@ -29,7 +29,7 @@ module DSPCore #(
     wire writeEn;
 
     uDSP #(.IAW(IAW), .IWW(IWW), .DAW(DAW), .DWW(DWW)) dsp (
-        .clk, .reset, .start, 
+        .clk, .reset_n, .start,
         .addrI, .dataI,
         .addrA, .dataA,
         .addrB, .dataB,
