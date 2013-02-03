@@ -1,0 +1,16 @@
+*.bak
+*.done
+greybox_tmp
+db
+*.rpt
+*.smsg
+*.summary
+*.map
+*.jic
+*.tis_db_list.ddb
+incremental_db
+*.pin
+*.sof
+PLLJ_PLLSPE_INFO.txt
+simulation
+*.jdi
