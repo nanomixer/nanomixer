@@ -1,4 +1,6 @@
-OFFSET_WIDTH = 8
+OPCODE_WIDTH = 6
+SAMPLE_ADDR_WIDTH = 10
+PARAM_ADDR_WIDTH = 10
 
 def bin_(num, width):
     #s = bin(num)[2:]
@@ -7,54 +9,45 @@ def bin_(num, width):
     return '{:0{width}b}'.format(num, width=width)
 
 class Instruction(object):
-    def __init__(self, w, a, b):
-        self.w = w
-        self.a = a
-        self.b = b
+    def __init__(self, sample_addr, param_or_io_addr):
+        self.sample_addr = sample_addr
+        self.param_or_io_addr = param_or_io_addr
     def assemble(self):
+        print self.__class__.__name__, self.sample_addr, self.param_or_io_addr
         return (
-            bin_(self.opcode, 6) +
-            bin_(self.w, 10) +
-            bin_(self.a, 10) +
-            bin_(self.b, 10))
+            bin_(self.opcode, OPCODE_WIDTH) +
+            bin_(self.sample_addr, SAMPLE_ADDR_WIDTH) +
+            bin_(self.param_or_io_addr, PARAM_ADDR_WIDTH))
 
 class Nop(Instruction):
     opcode = 0
     def __init__(self):
-        Instruction.__init__(self, w=0, a=0, b=0)
-class _MulInstruction(Instruction):
-    def __init__(self, a, b):
-        Instruction.__init__(self, w=0, a=a, b=b)
-class Mul(_MulInstruction):
+        Instruction.__init__(self, sample_addr=0, param_or_io_addr=0)
+class Mul(Instruction):
     opcode = 1
-class MulAcc(_MulInstruction):
+class Mac(Instruction):
     opcode = 2
-class MulToW(Instruction):
+class RotMac(Instruction):
     opcode = 3
-class AToHi(Instruction):
+class Store(Instruction):
     opcode = 4
-    def __init__(self, a):
-        Instruction.__init__(self, w=0, a=a, b=0)
-class AToLo(Instruction):
+    def __init__(self, dest_sample_addr):
+        Instruction.__init__(
+            self, sample_addr=dest_sample_addr, param_or_io_addr=0)
+class In(Instruction):
     opcode = 5
-    def __init__(self, a):
-        Instruction.__init__(self, w=0, a=a, b=0)
-class HiToW(Instruction):
+    def __init__(self, dest_sample_addr, io_addr):
+        Instruction.__init__(
+            self, sample_addr=dest_sample_addr, param_or_io_addr=io_addr)
+class Out(Instruction):
     opcode = 6
-    def __init__(self, w):
-        Instruction.__init__(self, w=w, a=0, b=0)
-class LoToW(Instruction):
-    opcode = 7
-    def __init__(self, w):
-        Instruction.__init__(self, w=w, a=0, b=0)
-class AToW(Instruction):
-    opcode = 8
-    def __init__(self, w, a):
-        Instruction.__init__(self, w=w, a=a, b=0)
+    def __init__(self, dest_io_addr):
+        Instruction.__init__(
+            self, sample_addr=0, param_or_io_addr=dest_io_addr)
 
 def assemble(instructions, outfile):
     print >>outfile, "DEPTH = 512;"
-    print >>outfile, "WIDTH = 36;"
+    print >>outfile, "WIDTH = {};".format(OPCODE_WIDTH + SAMPLE_ADDR_WIDTH + PARAM_ADDR_WIDTH)
     print >>outfile, "ADDRESS_RADIX = HEX;"
     print >>outfile, "DATA_RADIX = BIN;"
     print >>outfile, "CONTENT BEGIN"
@@ -62,50 +55,96 @@ def assemble(instructions, outfile):
         print >>outfile, '{:02x} : {};'.format(addr, inst.assemble())
     print >>outfile, "END;"
 
-def segmented_address(segment, offset):
-    return (segment << OFFSET_WIDTH) | offset
-
-def reg(n):
-    return segmented_address(0, n)
-
-def io(n):
-    return segmented_address(1, n)
-
-def param(n):
-    return segmented_address(2, n)
-
-def biquad(in_addr, buf_base, param_base, out_addr):
+def biquad_program(buf_base, param_base):
     # See http://www.earlevel.com/main/2003/02/28/biquads/ but note that it has A and B backwards.
-    xn2, xn1, xn, yn2, yn1, yn = [buf_base+n for n in range(6)]
+    xn, xn1, xn2, yn, yn1, yn2 = [buf_base+n for n in range(6)]
     b0, b1, b2, a1, a2, gain = [param_base+n for n in range(6)]
 
     return [
-        # Zero the accumulator.
-        AToHi(0), # NOTE GOTCHA: misnamed instruction, actually zeros the accumulator.
-        # Read input
-        AToW(xn, in_addr),
-        # Run biquad
-        MulAcc(xn, b0),
-        MulAcc(xn1, b1),
-        MulAcc(xn2, b2),
-        MulAcc(yn1, a1),
-        MulAcc(yn2, a2),
-        HiToW(yn),
+        Mul(xn, b0),
+        Mac(xn1, b1),
+        Mac(xn2, b2),
+        Mac(yn1, a1),
+        Mac(yn2, a2),
+        Store(yn)
         ]
 
-program = []
-for channel in range(8):
-    program.extend(
-        biquad(io(channel), reg(6*channel+1), param(5*channel), io(channel)))
+num_channels = 4
 
-# Downmix: params start at 5*8=40
-for out_channel in range(2):
-    program.append(AToHi(reg(0)))
-    for channel in range(8):
-        program.append(MulAcc(reg(6*channel+1+3), param(40+8*out_channel+channel)))
-    program.extend([
-            HiToW(io(out_channel))])
-        
+# channel strip
+num_biquads = 2
+params_per_biquad = 5
+total_biquad_params = num_biquads * params_per_biquad
+mem_per_channel = (num_biquads+1)*3
+params_per_channel = params_per_biquad*num_biquads
+total_channel_params = params_per_channel * num_channels
+
+# mixdown
+num_cores = 2
+num_busses_per_core = 1
+mixdown_base_address = total_channel_params
+
+def input_addr_for_biquad(n, channel):
+    return mem_per_channel*channel + 3*n
+
+def output_addr_for_biquad(n, channel):
+    return input_addr_for_biquad(n+1, channel)
+
+def parameter_base_addr_for_biquad(n, channel):
+    return params_per_channel*channel + params_per_biquad*n
+
+def address_for_mixdown_gain(channel, bus, core):
+    '''returns the parameter memory address for the gain for channel on bus.'''
+    num_mixdown_params_per_core = num_channels*num_busses_per_core
+    return (mixdown_base_address
+            + core * num_mixdown_params_per_core
+            + num_channels * bus
+            + channel)
+
+program = []
+
+# Read input into input for the zeroth biquad.
+for channel in range(num_channels):
+    program.append(In(io_addr=channel,
+                      dest_sample_addr=input_addr_for_biquad(n=0, channel=channel)))
+
+# Filter.
+#
+# Note that the read from the last channel will certainly be done by
+# the time we start running its biquads.
+#
+# Also note that doing it this way makes sure we don't data-race
+# against a store from the previous biquad.
+for biquad in range(num_biquads):
+    for channel in range(num_channels):
+        program.extend(biquad_program(
+                input_addr_for_biquad(n=biquad, channel=channel),
+                parameter_base_addr_for_biquad(n=biquad, channel=channel)))
+
+def sample_addr_post_channelstrip(channel):
+    return output_addr_for_biquad(n=num_biquads-1, channel=channel)
+
+# Downmix our channels.
+#
+# Again, the data will be ready by the time we need it.
+for core in range(num_cores):
+    # for bus in range(num_busses_per_core):
+    bus = 0
+    for channel in range(num_channels):
+        if core == 0 and channel == 0:
+            instr = Mul
+        elif core != 0 and channel == 0:
+            instr = RotMac
+        else:
+            instr = Mac
+        program.append(
+            instr(sample_addr_post_channelstrip(channel),
+                  address_for_mixdown_gain(channel, bus=bus, core=core)))
+
+
+# Done!
+program.append(Out(0))
+
 
 print "Program length:", len(program)
 
