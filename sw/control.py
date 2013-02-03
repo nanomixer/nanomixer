@@ -1,39 +1,92 @@
 import numpy as np
 from biquads import normalize, peaking
 from util import encode_signed_fixedpt
+from assembler import HARDWARE_PARAMS, parameter_base_addr_for_biquad
 
-PARAM_INT_BITS = 5
+PARAM_WIDTH = 5
 PARAM_FRAC_BITS = 30
 
-def to_param_word(x):
-    return encode_signed_fixedpt(
-        x, intbits=PARAM_INT_BITS, fracbits=PARAM_FRAC_BITS)
+core_param_mem_name = ['PM00', 'PM01']
 
+def to_param_word_as_hex(x):
+    return encode_signed_fixedpt_as_hex(
+        x, width=PARAM_WIDTH, fracbits=PARAM_FRAC_BITS)
+
+class MixerState(object):
+    def __init__(self, num_cores, num_busses_per_core,
+                 num_channels_per_core, num_biquads_per_channel):
+        # Biquad parameters
+        self.biquad_freq = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel))
+        self.biquad_gain = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel))
+        self.biquad_q = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel))
+
+        # Mixdown parameters
+        # (bus_core, bus, channel_core, channel)
+        # channels are always named by the core they come in on.
+        # busses are named by the core where they end up.
+        self.mixdown_gains = np.zeros((num_cores, num_busses_per_core, num_cores, num_channels_per_core))
+
+
+class Controler(object):
+    def __init__(self, memif_socket):
+        self.state = MixerState(**HARDWARE_PARAMS)
+        self.memif_socket = memif_socket
+
+    def set_biquad_freq(self, core, channel, biquad, freq):
+        self.state.biquad_freq[core, channel, biquad] = freq
+        self._update_biquad(core, channel, biquad)
+
+    def set_biquad_gain(self, core, channel, biquad, gain):
+        self.state.biquad_gain[core, channel, biquad] = gain
+        self._update_biquad(core, channel, biquad)
+
+    def set_biquad_q(self, core, channel, biquad, q):
+        self.state.biquad_q[core, channel, biquad] = q
+        self._update_biquad(core, channel, biquad)
+
+    def set_gain(self, bus_core, bus, channel_core, channel, gain):
+        self.state.mixdown_gains[bus_core, bus, channel_core, channel] = gain
+        self._set_parameter_memory(
+            core=channel_core,
+            addr=address_for_mixdown_gain(
+                core=(channel_core - bus_core + 1) % num_cores, # TODO: verify the +1.
+                channel=channel,
+                bus=bus),
+            data=[gain])
+        
+    def _update_biquad(self, core, channel, biquad):
+        b, a = peaking(freq=self.state.biquad_freq[core, channel, biquad],
+                       gain=self.state.biquad_gain[core, channel, biquad],
+                       q=self.state.biquad_q[core, channel, biquad])
+        b, a = normalize(b, a)
+        arr = [b[0], b[1], b[2], 
+               -a[1], -a[2]]
+        self._set_parameter_memory(
+            core=core,
+            addr=parameter_base_addr_for_biquad(channel, biquad),
+            data=arr)
+
+    def _set_parameter_memory(core, addr, data):
+        self.memory_interface.set_mem(
+            name=core_param_mem_name[core],
+            addr=addr,
+            data=data)
+        
 import socket
-class Client(object):
+class MemoryInterface(object):
     def __init__(self, host = 'localhost', port = 2540):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect(( host,port))
 
-    def set_biquad(self, channel, b, a):
-        b, a = normalize(b, a)
-        self.set_biquad_raw(channel, b, a)
-
-    def set_biquad_raw(self, channel, b, a):
-        arr = [b[0], b[1], b[2],
-               -a[1], -a[2]]
-        self._setmem(5*channel, arr)
-
-    def set_gains(self, gains):
-        self._setmem(40, gains.T.ravel())
-    
-    def _setmem(self, addr, content):
-        # Quartus strangely requests _words_ in backwards order!
-        content = list(reversed(content))
-        content = ''.join(to_param_word(data) for data in content)
-        self.s.send('{:<10d}{:<10d}{}'.format(addr, len(content), content))
+    def set_mem(self, name, addr, data):
+        # Quartus strangely requests _words_ in _backwards_ order!
+        content = list(reversed(data))
+        content = ''.join(to_param_word_as_hex(data) for data in content)
+        self.s.send(
+            '{:4s}{:<10d}{:<10d}{}'.format(name, addr, len(content), content))
         # Wait for confirmation.
         self.s.recv(2)
+
 
 class OSCServer(object):
     def __init__(self, client=None, port=7559):
@@ -50,10 +103,6 @@ class OSCServer(object):
         for channel in range(8):
             self.server.addMsgHandler('/1/volume{}'.format(channel+1), self.setGain)
 
-        self.gains = np.zeros((8, 2))
-        self.filt_gains = np.zeros(6)
-        self.freqs = np.zeros(6)
-        self.freqs[0] = 50
 
     def setGain(self, addr, tags, data, client_addr):
         channel = int(addr[-1])-1

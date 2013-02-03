@@ -22,13 +22,13 @@ foreach device_name [get_device_names -hardware_name $usbblaster_name] {
 }
 puts "Select device: $test_device.";
 
+set instance_indices [dict create];
 foreach instance [get_editable_mem_instances -hardware_name $usbblaster_name -device_name $test_device] {
-	set name [lindex $instance 5];
-	if { [string match "parm" $name] } {
-		set instance_idx [lindex $instance 0];
-	}
+    set index [lindex $instance 0];
+    set name [lindex $instance 5];
+    dict set instance_indices $name $index
 }
-puts "Instance $instance_idx";
+puts "Instance $instance_indices";
 
 proc Start_Server {port} {
 	set s [socket -server ConnAccept $port]
@@ -47,11 +47,9 @@ proc ConnAccept {sock addr port} {
 
     # Ensure that each "puts" by the server
     # results in a network transmission
-
     fconfigure $sock -buffering line
 
     # Set up a callback for when the client sends data
-
     fileevent $sock readable [list IncomingData $sock]
 
     OpenPort
@@ -65,9 +63,11 @@ proc IncomingData {sock} {
     # then write the data to the vJTAG
 
     if {[eof $sock] || [catch {
+	set mem_name [read $sock 4]
 	set addr [expr [read $sock 10]]
 	set length [expr [read $sock 10]]
 	set content [read $sock $length]}]} {
+
 	close $sock
 	puts "Close $conn(addr,$sock)"
 	unset conn(addr,$sock)

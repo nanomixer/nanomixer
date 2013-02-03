@@ -84,6 +84,13 @@ num_cores = 2
 num_busses_per_core = 1
 mixdown_base_address = total_channel_params
 
+HARDWARE_PARAMS = dict(
+    num_cores=num_cores,
+    num_busses_per_core=num_busses_per_core,
+    num_channels_per_core=num_channels,
+    num_biquads_per_channel=num_biquads)
+
+
 def input_addr_for_biquad(n, channel):
     return mem_per_channel*channel + 3*n
 
@@ -139,14 +146,15 @@ for core in range(num_cores):
             instr = Mac
         program.append(
             instr(sample_addr_post_channelstrip(channel),
-                  address_for_mixdown_gain(channel, bus=bus, core=core)))
+                  address_for_mixdown_gain(channel=channel, bus=bus, core=core)))
 
 
 # Done!
 program.append(Out(0))
 
 
-print "Program length:", len(program)
+if __name__ == '__main__':
+    print "Program length:", len(program)
 
-with open('../fpga/instr.mif', 'w') as f:
-    assemble(program, f)
+    with open('../fpga/instr.mif', 'w') as f:
+        assemble(program, f)
