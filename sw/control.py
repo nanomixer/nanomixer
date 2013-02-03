@@ -1,11 +1,13 @@
 import numpy as np
-from bitstring import BitArray
 from biquads import normalize, peaking
-from util import to_fixedpt
+from util import encode_signed_fixedpt
 
-def to_word(data):
-    return BitArray(int=to_fixedpt(data, 36), length=36).hex
+PARAM_INT_BITS = 5
+PARAM_FRAC_BITS = 30
 
+def to_param_word(x):
+    return encode_signed_fixedpt(
+        x, intbits=PARAM_INT_BITS, fracbits=PARAM_FRAC_BITS)
 
 import socket
 class Client(object):
@@ -26,8 +28,11 @@ class Client(object):
         self._setmem(40, gains.T.ravel())
     
     def _setmem(self, addr, content):
-        content = ''.join(to_word(data) for data in reversed(content))
+        # Quartus strangely requests _words_ in backwards order!
+        content = list(reversed(content))
+        content = ''.join(to_param_word(data) for data in content)
         self.s.send('{:<10d}{:<10d}{}'.format(addr, len(content), content))
+        # Wait for confirmation.
         self.s.recv(2)
 
 class OSCServer(object):
