@@ -5,18 +5,18 @@ module dsp_core #(
    LFSR_POLYNOMIAL = 36'h80000003B,
 
    SAMPLE_WIDTH = 36,   SAMPLE_FRACTIONAL_PART_WIDTH = 30, 
-   COEFF_WIDTH  = 36,   COEFF_FRACTIONAL_PART_WIDTH  = 30,
+   PARAM_WIDTH  = 36,   PARAM_FRACTIONAL_PART_WIDTH  = 30,
    IO_WIDTH     = 24,   IO_FRACTIONAL_PART_WIDTH     = 20,
 
    INSTR_ADDR_WIDTH  = 10,
    SAMPLE_ADDR_WIDTH = 10,
-   COEFF_ADDR_WIDTH  = 10,
    OFFSET_WIDTH = 10
+   PARAM_ADDR_WIDTH  = 10,
 ) (
    input logic clk, reset_n, // CPU clock & asyncronous reset
    interface instr_mem, 
    interface sample_mem,
-   interface coeff_mem,
+   interface param_mem,
    interface io_mem,
    input  logic signed [ACCUM_WIDTH-1:0] ring_bus_in,  // intercore communication
    output logic signed [ACCUM_WIDTH-1:0] ring_bus_out, // intercore communication
@@ -25,7 +25,7 @@ module dsp_core #(
    output logic signed [35:0] test_out
 );
  
-localparam ACCUM_WIDTH = SAMPLE_WIDTH + COEFF_WIDTH;
+localparam ACCUM_WIDTH = SAMPLE_WIDTH + PARAM_WIDTH;
 localparam LFSR_WIDTH = $size(LFSR_POLYNOMIAL);
 
 
@@ -41,7 +41,7 @@ typedef struct {
    logic                         sample_offset_en;
    logic [SAMPLE_ADDR_WIDTH-1:0] sample_addr;
    logic                         coeff_offset_en;
-   logic [COEFF_ADDR_WIDTH-1:0]  coeff_addr;
+   logic [PARAM_ADDR_WIDTH-1:0]  param_addr;
    logic [7:0]                   filler_bits; // TODO: remove once interface bit widths are set properly =P
 } instr_t;
 
@@ -84,10 +84,10 @@ always_comb begin
       decoded_control.sample_addr = instr.sample_addr;            // TODO: rotate (and offset?) logic
       
       sample_mem.rd_addr = instr.sample_addr + (instr.sample_offset_en ? offset : 0);
-      coeff_mem.rd_addr  = instr.coeff_addr  + (instr.coeff_offset_en  ? offset : 0);     
+      param_mem.rd_addr  = instr.param_addr  + (instr.param_offset_en  ? offset : 0);     
       
       // Execute #1:
-      next_M = sample_mem.rd_data * coeff_mem.rd_data; // Multiply! TODO: add other ops
+      next_M = sample_mem.rd_data * param_mem.rd_data; // Multiply! TODO: add other ops
       
       // Execute #2:
       next_A = M + A; // Accumulate! TODO: add other ops
@@ -98,7 +98,7 @@ always_comb begin
          next_lfsr = (lfsr >> 1);
       
       // Saturation & Writeback:
-      saturated_A = A[COEFF_FRACTIONAL_PART_WIDTH + SAMPLE_WIDTH-1 -: SAMPLE_WIDTH];  
+      saturated_A = A[PARAM_FRACTIONAL_PART_WIDTH + SAMPLE_WIDTH-1 -: SAMPLE_WIDTH];  
             // TODO: currently *truncates*; add saturation logic
       
       sample_mem.wr_addr = writeback_control.sample_addr;  // TODO: assumes offset fixed at decode... change?
