@@ -100,6 +100,8 @@ always_comb begin
          next_lfsr = (lfsr >> 1);
       
       // Saturation & Writeback:
+      ring_bus_out = A; // inter-dsp communication output
+      
       saturated_A = A[PARAM_FRACTIONAL_PART_WIDTH + SAMPLE_WIDTH-1 -: SAMPLE_WIDTH];  
             // TODO: currently *truncates*; add saturation logic
       
