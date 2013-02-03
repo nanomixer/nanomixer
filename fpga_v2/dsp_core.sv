@@ -56,27 +56,18 @@ logic [LFSR_WIDTH-1:0] lfsr, next_lfsr;   // LFSR register and next-state variab
 
 logic signed [SAMPLE_WIDTH-1:0] saturated_A; // saturator output
 
-instr_t   instr;
-control_t decoded_control;
-control_t ex1_control,
-          ex2_control, 
-          writeback_control;
+instr_t read_instr,
+        ex1_instr,
+        ex2_instr, 
+        writeback_instr;
 
 
 /***** COMBINATORIAL LOGIC: *****/
 
 always_comb begin
-      // Instruction Request:
-      instr_mem.rd_addr = PC;
-      
-      // Instruction Decode & Data Request:
-      instr = instr_t'(instr_mem.rd_data); // TODO: make sure bit widths match!!
-      
-      decoded_control.opcode = instr.opcode;
-      decoded_control.sample_addr = instr.sample_addr;            // TODO: rotate logic
-      
-      sample_mem.rd_addr = instr.sample_addr;
-      param_mem.rd_addr  = instr.param_addr;
+      // Data Request:
+      sample_mem.rd_addr = read_instr.sample_addr;
+      param_mem.rd_addr  = read_instr.param_addr;
       
       // Execute #1:
       next_M = sample_mem.rd_data * param_mem.rd_data; // Multiply! TODO: add other ops
@@ -93,8 +84,8 @@ always_comb begin
       saturated_A = A[PARAM_FRACTIONAL_PART_WIDTH + SAMPLE_WIDTH-1 -: SAMPLE_WIDTH];  
             // TODO: currently *truncates*; add saturation logic
       
-      sample_mem.wr_addr = writeback_control.sample_addr;
-      sample_mem.wr_en   = writeback_control.sample_wr_en;
+      sample_mem.wr_addr = writeback_instr.sample_addr;
+      sample_mem.wr_en   = writeback_instr.sample_wr_en;
 end
  
 assign test_out = lfsr; // TODO: Remove once testing is complete
@@ -112,9 +103,10 @@ always_ff @(posedge clk or negedge reset_n) begin
    else begin
       PC <= PC + 1'b1;
       
-      ex1_control <= decoded_control;   // propagate control information
-      ex2_control <= ex1_control;
-      writeback_control <= ex2_control;
+      read_instr <= instr_in;  // register instruction input
+      ex1_instr <= read_instr; // propagate control information
+      ex2_instr <= ex1_instr;
+      writeback_instr <= ex2_instr;
       
       M <= next_M;
       A <= next_A;
