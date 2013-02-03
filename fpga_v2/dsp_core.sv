@@ -9,7 +9,6 @@ module dsp_core #(
    IO_WIDTH     = 24,   IO_FRACTIONAL_PART_WIDTH     = 20,
 
    SAMPLE_ADDR_WIDTH = 10,
-   OFFSET_WIDTH = 10
    PARAM_ADDR_WIDTH  = 10,
 ) (
    input logic clk, reset_n, // CPU clock & asyncronous reset
@@ -38,9 +37,7 @@ typedef enum logic [5:0] {   // define opcode type with explicit encoding
 
 typedef struct {
    opcode_t                      opcode;
-   logic                         sample_offset_en;
    logic [SAMPLE_ADDR_WIDTH-1:0] sample_addr;
-   logic                         coeff_offset_en;
    logic [PARAM_ADDR_WIDTH-1:0]  param_addr;
    logic [7:0]                   filler_bits; // TODO: remove once interface bit widths are set properly =P
 } instr_t;
@@ -58,8 +55,6 @@ logic [INSTR_ADDR_WIDTH-1:0] PC;          // program counter
 logic signed [ACCUM_WIDTH-1:0] M, next_M, // data registers & next-state variables
                                A, next_A;
 logic [LFSR_WIDTH-1:0] lfsr, next_lfsr;   // LFSR register and next-state variable
-
-logic signed [OFFSET_WIDTH-1:0] offset;
 
 logic signed [SAMPLE_WIDTH-1:0] saturated_A; // saturator output
 
@@ -80,11 +75,10 @@ always_comb begin
       instr = instr_t'(instr_mem.rd_data); // TODO: make sure bit widths match!!
       
       decoded_control.opcode = instr.opcode;
-      decoded_control.sample_offset_en = instr.sample_offset_en;  // TODO: remove if offset applied here
-      decoded_control.sample_addr = instr.sample_addr;            // TODO: rotate (and offset?) logic
+      decoded_control.sample_addr = instr.sample_addr;            // TODO: rotate logic
       
-      sample_mem.rd_addr = instr.sample_addr + (instr.sample_offset_en ? offset : 0);
-      param_mem.rd_addr  = instr.param_addr  + (instr.param_offset_en  ? offset : 0);     
+      sample_mem.rd_addr = instr.sample_addr;
+      param_mem.rd_addr  = instr.param_addr;
       
       // Execute #1:
       next_M = sample_mem.rd_data * param_mem.rd_data; // Multiply! TODO: add other ops
@@ -101,7 +95,7 @@ always_comb begin
       saturated_A = A[PARAM_FRACTIONAL_PART_WIDTH + SAMPLE_WIDTH-1 -: SAMPLE_WIDTH];  
             // TODO: currently *truncates*; add saturation logic
       
-      sample_mem.wr_addr = writeback_control.sample_addr;  // TODO: assumes offset fixed at decode... change?
+      sample_mem.wr_addr = writeback_control.sample_addr;
       sample_mem.wr_en   = writeback_control.sample_wr_en;
 end
  
