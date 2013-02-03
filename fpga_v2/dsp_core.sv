@@ -49,7 +49,6 @@ typedef struct {
 
 /***** VARIABLE DECLARATIONS: *****/
 
-logic [INSTR_ADDR_WIDTH-1:0] PC;          // program counter
 logic signed [ACCUM_WIDTH-1:0] M, next_M, // data registers & next-state variables
                                A, next_A;
 logic [LFSR_WIDTH-1:0] lfsr, next_lfsr;   // LFSR register and next-state variable
@@ -101,8 +100,6 @@ always_ff @(posedge clk or negedge reset_n) begin
       lfsr <= LFSR_POLYNOMIAL; // initialize LFSR with non-zero value to prevent lockup
    end
    else begin
-      PC <= PC + 1'b1;
-      
       read_instr <= instr_in;  // register instruction input
       ex1_instr <= read_instr; // propagate control information
       ex2_instr <= ex1_instr;
