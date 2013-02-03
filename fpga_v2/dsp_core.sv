@@ -40,7 +40,7 @@ typedef enum logic [5:0] {   // define opcode type with explicit encoding
    OUT    = 6'h06
 } opcode_t;
 
-typedef struct {
+typedef struct packed {
    opcode_t                      opcode;
    logic [SAMPLE_ADDR_WIDTH-1:0] sample_addr;
    logic [PARAM_ADDR_WIDTH-1:0]  param_addr;
@@ -118,13 +118,18 @@ assign test_out = lfsr; // TODO: Remove once testing is complete
 
 always_ff @(posedge clk or negedge reset_n) begin
    if (~reset_n) begin         // TODO: finish reset logic once registers are all declared
+      read_instr <= '0;
+      ex1_instr <= '0;
+      ex2_instr <= '0;
+      writeback_instr <= '0;
+      
       M <= '0;
       A <= '0;
       lfsr <= LFSR_POLYNOMIAL; // initialize LFSR with non-zero value to prevent lockup
    end
    else begin
-      read_instr <= instruction;  // register instruction input
-      ex1_instr <= read_instr; // propagate control information
+      read_instr <= instruction; // register instruction input
+      ex1_instr <= read_instr;   // propagate control information
       ex2_instr <= ex1_instr;
       writeback_instr <= ex2_instr;
       
