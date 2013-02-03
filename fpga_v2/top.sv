@@ -15,9 +15,8 @@ module top (
 placeholder_interface my_bus();
 dsp_core my_dsp(.clk, 
                 .reset_n,
-                .instr_mem(my_bus),
                 .sample_mem(my_bus),
-                .coeff_mem(my_bus),
+                .param_mem(my_bus),
                 .io_mem(my_bus),
                 .test_out);
 endmodule

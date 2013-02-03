@@ -9,14 +9,14 @@ module dsp_core #(
    IO_WIDTH     = 24,   IO_FRACTIONAL_PART_WIDTH     = 20,
 
    SAMPLE_ADDR_WIDTH = 10,
-   PARAM_ADDR_WIDTH  = 10,
+   PARAM_ADDR_WIDTH  = 10
 ) (
    input logic clk, reset_n, // CPU clock & asyncronous reset
    interface sample_mem,
    interface param_mem,
    interface io_mem,
    
-   input  instr_t instr_in,
+   input  instr_t instruction,
    input  logic signed [ACCUM_WIDTH-1:0] ring_bus_in,  // intercore communication
    output logic signed [ACCUM_WIDTH-1:0] ring_bus_out, // intercore communication
    
@@ -51,28 +51,48 @@ typedef struct {
 
 logic signed [ACCUM_WIDTH-1:0] M, next_M, // data registers & next-state variables
                                A, next_A;
+                               
 logic [LFSR_WIDTH-1:0] lfsr, next_lfsr;   // LFSR register and next-state variable
 
-logic signed [SAMPLE_WIDTH-1:0] saturated_A; // saturator output
+logic signed [SAMPLE_WIDTH-1:0] saturated_A, // saturator output
+                                mult_in1;    // first multiplier input
 
+logic signed [PARAM_WIDTH-1:0] mult_in2;     // second multiplier input
+                                
 instr_t read_instr,
         ex1_instr,
         ex2_instr, 
         writeback_instr;
 
-
+        
 /***** COMBINATORIAL LOGIC: *****/
 
 always_comb begin
       // Data Request:
       sample_mem.rd_addr = read_instr.sample_addr;
       param_mem.rd_addr  = read_instr.param_addr;
-      
+      io_mem.rd_addr     = read_instr.param_addr;
+
       // Execute #1:
-      next_M = sample_mem.rd_data * param_mem.rd_data; // Multiply! TODO: add other ops
+      case (ex1_instr.opcode)  // set first input to multiplier
+         IN      : mult_in1 = 1'b1 << SAMPLE_FRACTIONAL_PART_WIDTH;
+         default : mult_in1 = sample_mem.rd_data;
+      endcase
+      
+      case (ex1_instr.opcode)  // set second input to multiplier (align decimals for input!)
+         IN      : mult_in2 = signed'(io_mem.rd_data) << (PARAM_FRACTIONAL_PART_WIDTH - IO_FRACTIONAL_PART_WIDTH);
+         default : mult_in2 = param_mem.rd_data;
+      endcase
+
+      next_M = mult_in1 * mult_in2; // multiply!
       
       // Execute #2:
-      next_A = M + A; // Accumulate! TODO: add other ops
+      case (ex2_instr.opcode)  // handle accumulator inputs
+         MUL, IN : next_A = M;
+         MAC     : next_A = M + A;
+         ROTMAC  : next_A = M + ring_bus_in;
+         default : next_A = A;
+      endcase
       
       if (lfsr[0] == 1)
          next_lfsr = (lfsr >> 1) ^ LFSR_POLYNOMIAL; // Galois LFSR logic
@@ -84,7 +104,11 @@ always_comb begin
             // TODO: currently *truncates*; add saturation logic
       
       sample_mem.wr_addr = writeback_instr.sample_addr;
-      sample_mem.wr_en   = writeback_instr.sample_wr_en;
+      
+      case (writeback_instr.opcode)  // handle accumulator inputs
+         IN, STORE : sample_mem.wr_en = 1'b1;
+         default   : sample_mem.wr_en = 1'b0;
+      endcase
 end
  
 assign test_out = lfsr; // TODO: Remove once testing is complete
@@ -94,13 +118,12 @@ assign test_out = lfsr; // TODO: Remove once testing is complete
 
 always_ff @(posedge clk or negedge reset_n) begin
    if (~reset_n) begin         // TODO: finish reset logic once registers are all declared
-      PC <= '0;
       M <= '0;
       A <= '0;
       lfsr <= LFSR_POLYNOMIAL; // initialize LFSR with non-zero value to prevent lockup
    end
    else begin
-      read_instr <= instr_in;  // register instruction input
+      read_instr <= instruction;  // register instruction input
       ex1_instr <= read_instr; // propagate control information
       ex2_instr <= ex1_instr;
       writeback_instr <= ex2_instr;
