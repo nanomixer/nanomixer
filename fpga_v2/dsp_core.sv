@@ -31,23 +31,21 @@ localparam LFSR_WIDTH = $size(LFSR_POLYNOMIAL);
 /***** TYPE DEFINITIONS: *****/
 
 typedef enum logic [5:0] {   // define opcode type with explicit encoding
-   NOP = 6'h00,
-   MAC = 6'h01  // *TODO*: complete this list
+   NOP    = 6'h00,
+   MUL    = 6'h01,
+   MAC    = 6'h02,
+   ROTMAC = 6'h03,
+   STORE  = 6'h04,
+   IN     = 6'h05,
+   OUT    = 6'h06
 } opcode_t;
 
 typedef struct {
    opcode_t                      opcode;
    logic [SAMPLE_ADDR_WIDTH-1:0] sample_addr;
    logic [PARAM_ADDR_WIDTH-1:0]  param_addr;
-   logic [7:0]                   filler_bits; // TODO: remove once interface bit widths are set properly =P
 } instr_t;
 
-typedef struct {
-   opcode_t                      opcode;
-   logic                         sample_offset_en;
-   logic                         sample_wr_en;
-   logic [SAMPLE_ADDR_WIDTH-1:0] sample_addr;
-} control_t;                        // TODO: update this (replace opcode)
 
 /***** VARIABLE DECLARATIONS: *****/
 
