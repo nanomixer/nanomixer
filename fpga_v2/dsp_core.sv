@@ -8,16 +8,16 @@ module dsp_core #(
    PARAM_WIDTH  = 36,   PARAM_FRACTIONAL_PART_WIDTH  = 30,
    IO_WIDTH     = 24,   IO_FRACTIONAL_PART_WIDTH     = 20,
 
-   INSTR_ADDR_WIDTH  = 10,
    SAMPLE_ADDR_WIDTH = 10,
    OFFSET_WIDTH = 10
    PARAM_ADDR_WIDTH  = 10,
 ) (
    input logic clk, reset_n, // CPU clock & asyncronous reset
-   interface instr_mem, 
    interface sample_mem,
    interface param_mem,
    interface io_mem,
+   
+   input  instr_t instr_in,
    input  logic signed [ACCUM_WIDTH-1:0] ring_bus_in,  // intercore communication
    output logic signed [ACCUM_WIDTH-1:0] ring_bus_out, // intercore communication
    
