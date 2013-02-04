@@ -3,34 +3,36 @@
 
 module dsp_core #(
    LFSR_POLYNOMIAL = 36'h80000003B,
+   LFSR_WIDTH = $size(LFSR_POLYNOMIAL),
 
    SAMPLE_WIDTH = 36,   SAMPLE_FRACTIONAL_PART_WIDTH = 30, 
    PARAM_WIDTH  = 36,   PARAM_FRACTIONAL_PART_WIDTH  = 30,
    IO_WIDTH     = 24,   IO_FRACTIONAL_PART_WIDTH     = 20,
 
+   OPCODE_WIDTH = 6,
    SAMPLE_ADDR_WIDTH = 10,
-   PARAM_ADDR_WIDTH  = 10
+   PARAM_ADDR_WIDTH  = 10,
+   
+   ACCUM_WIDTH = SAMPLE_WIDTH + PARAM_WIDTH,
+   INSTR_WIDTH = OPCODE_WIDTH + SAMPLE_ADDR_WIDTH + PARAM_ADDR_WIDTH
 ) (
    input logic clk, reset_n, // CPU clock & asyncronous reset
    interface sample_mem,
    interface param_mem,
    interface io_mem,
    
-   input  instr_t instruction,
+   input  logic [INSTR_WIDTH-1:0] instruction,
    input  logic signed [ACCUM_WIDTH-1:0] ring_bus_in,  // intercore communication
    output logic signed [ACCUM_WIDTH-1:0] ring_bus_out, // intercore communication
    
    input  logic signed [35:0] test_in,
    output logic signed [35:0] test_out
 );
- 
-localparam ACCUM_WIDTH = SAMPLE_WIDTH + PARAM_WIDTH;
-localparam LFSR_WIDTH = $size(LFSR_POLYNOMIAL);
 
 
 /***** TYPE DEFINITIONS: *****/
 
-typedef enum logic [5:0] {   // define opcode type with explicit encoding
+typedef enum logic [OPCODE_WIDTH-1:0] {   // define opcode type with explicit encoding
    NOP    = 6'h00,
    MUL    = 6'h01,
    MAC    = 6'h02,
@@ -59,7 +61,8 @@ logic signed [SAMPLE_WIDTH-1:0] saturated_A, // saturator output
 
 logic signed [PARAM_WIDTH-1:0] mult_in2;     // second multiplier input
                                 
-instr_t read_instr,
+instr_t decode_instr,
+        read_instr,
         ex1_instr,
         ex2_instr, 
         writeback_instr;
@@ -68,6 +71,9 @@ instr_t read_instr,
 /***** COMBINATORIAL LOGIC: *****/
 
 always_comb begin
+      // Instruction "Decode":
+      decode_instr = instr_t'(instruction);
+
       // Data Request:
       sample_mem.rd_addr = read_instr.sample_addr;
       param_mem.rd_addr  = read_instr.param_addr;
@@ -130,8 +136,8 @@ always_ff @(posedge clk or negedge reset_n) begin
       lfsr <= LFSR_POLYNOMIAL; // initialize LFSR with non-zero value to prevent lockup
    end
    else begin
-      read_instr <= instruction; // register instruction input
-      ex1_instr <= read_instr;   // propagate control information
+      read_instr <= decode_instr; // propagate control information
+      ex1_instr <= read_instr;
       ex2_instr <= ex1_instr;
       writeback_instr <= ex2_instr;
       
