@@ -5,15 +5,16 @@ module dsp_core #(
    LFSR_POLYNOMIAL = 36'h80000003B,
    LFSR_WIDTH = $size(LFSR_POLYNOMIAL),
 
-   SAMPLE_WIDTH = 36,   SAMPLE_FRACTIONAL_PART_WIDTH = 30, 
-   PARAM_WIDTH  = 36,   PARAM_FRACTIONAL_PART_WIDTH  = 30,
-   IO_WIDTH     = 24,   IO_FRACTIONAL_PART_WIDTH     = 20,
+   SAMPLE_WIDTH = 36,   SAMPLE_FRAC_BITS = 30, 
+   PARAM_WIDTH  = 36,   PARAM_FRAC_BITS  = 30,
+   IO_WIDTH     = 24,   IO_FRAC_BITS     = 20,
 
    OPCODE_WIDTH = 6,
    SAMPLE_ADDR_WIDTH = 10,
    PARAM_ADDR_WIDTH  = 10,
    
    ACCUM_WIDTH = SAMPLE_WIDTH + PARAM_WIDTH,
+   ACCUM_FRAC_BITS = SAMPLE_FRAC_BITS + PARAM_FRAC_BITS,
    INSTR_WIDTH = OPCODE_WIDTH + SAMPLE_ADDR_WIDTH + PARAM_ADDR_WIDTH
 ) (
    input logic clk, reset_n, // CPU clock & asyncronous reset
@@ -81,12 +82,12 @@ always_comb begin
 
       // Execute #1:
       case (ex1_instr.opcode)  // set first input to multiplier
-         IN      : mult_in1 = 1'b1 << SAMPLE_FRACTIONAL_PART_WIDTH;
+         IN      : mult_in1 = 1'b1 << SAMPLE_FRAC_BITS;
          default : mult_in1 = sample_mem.rd_data;
       endcase
       
       case (ex1_instr.opcode)  // set second input to multiplier (align decimals for input!)
-         IN      : mult_in2 = signed'(io_mem.rd_data) << (PARAM_FRACTIONAL_PART_WIDTH - IO_FRACTIONAL_PART_WIDTH);
+         IN      : mult_in2 = signed'(io_mem.rd_data) << (PARAM_FRAC_BITS - IO_FRAC_BITS);
          default : mult_in2 = param_mem.rd_data;
       endcase
 
@@ -108,7 +109,7 @@ always_comb begin
       // Saturation & Writeback:
       ring_bus_out = A; // inter-dsp communication output
       
-      saturated_A = A[PARAM_FRACTIONAL_PART_WIDTH + SAMPLE_WIDTH-1 -: SAMPLE_WIDTH];  
+      saturated_A = A[PARAM_FRAC_BITS + SAMPLE_WIDTH-1 -: SAMPLE_WIDTH];  
             // TODO: currently *truncates*; add saturation logic
       
       sample_mem.wr_addr = writeback_instr.sample_addr;
