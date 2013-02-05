@@ -1,7 +1,7 @@
 import numpy as np
 from biquads import normalize, peaking
-from util import encode_signed_fixedpt
-from assembler import HARDWARE_PARAMS, parameter_base_addr_for_biquad
+from util import encode_signed_fixedpt_as_hex
+from assembler import HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain
 
 PARAM_WIDTH = 5
 PARAM_FRAC_BITS = 30
@@ -27,6 +27,11 @@ class PeakingBiquad(object):
 class MixerState(object):
     def __init__(self, num_cores, num_busses_per_core,
                  num_channels_per_core, num_biquads_per_channel):
+        self.num_cores = num_cores
+        self.num_busses_per_core = num_busses_per_core
+        self.num_channels_per_core = num_channels_per_core
+        self.num_biquads_per_channel = num_biquads_per_channel
+
         # Biquads parameters
         self.biquads = np.empty((num_cores, num_channels_per_core, num_biquads_per_channel), dtype=np.object)
         for core, channel, biquad in np.nditer(self.biquads.shape):
@@ -61,7 +66,7 @@ class Controler(object):
         self._set_parameter_memory(
             core=channel_core,
             addr=address_for_mixdown_gain(
-                core=(channel_core - bus_core + 1) % num_cores, # TODO: verify the +1.
+                core=(channel_core - bus_core + 1) % self.state.num_cores, # TODO: verify the +1.
                 channel=channel,
                 bus=bus),
             data=[gain])
@@ -75,7 +80,7 @@ class Controler(object):
             addr=parameter_base_addr_for_biquad(channel, biquad),
             data=arr)
 
-    def _set_parameter_memory(core, addr, data):
+    def _set_parameter_memory(self, core, addr, data):
         self.memory_interface.set_mem(
             name=core_param_mem_name[core],
             addr=addr,
