@@ -66,7 +66,7 @@ class Controler(object):
         self._set_parameter_memory(
             core=channel_core,
             addr=address_for_mixdown_gain(
-                core=(channel_core - bus_core + 1) % self.state.num_cores, # TODO: verify the +1.
+                core=(channel_core - bus_core - 1) % self.state.num_cores,
                 channel=channel,
                 bus=bus),
             data=[gain])
