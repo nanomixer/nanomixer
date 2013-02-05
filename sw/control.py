@@ -5,6 +5,7 @@ from assembler import HARDWARE_PARAMS, parameter_base_addr_for_biquad
 
 PARAM_WIDTH = 5
 PARAM_FRAC_BITS = 30
+DEFAULT_FREQS = [150., 300., 2000., 5000.]
 
 core_param_mem_name = ['PM00', 'PM01']
 
@@ -12,13 +13,24 @@ def to_param_word_as_hex(x):
     return encode_signed_fixedpt_as_hex(
         x, width=PARAM_WIDTH, fracbits=PARAM_FRAC_BITS)
 
+class PeakingBiquad(object):
+    def __init__(self, freq, gain, q):
+        self.freq = float(freq)
+        self.gain = float(gain)
+        self.q = float(q)
+
+    def get_coefficients(self):
+        b, a = peaking(freq=self.freq, gain=self.gain, q=self.q)
+        b, a = normalize(b, a)
+        return b, a
+
 class MixerState(object):
     def __init__(self, num_cores, num_busses_per_core,
                  num_channels_per_core, num_biquads_per_channel):
-        # Biquad parameters
-        self.biquad_freq = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel))
-        self.biquad_gain = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel))
-        self.biquad_q = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel))
+        # Biquads parameters
+        self.biquads = np.empty((num_cores, num_channels_per_core, num_biquads_per_channel), dtype=np.object)
+        for core, channel, biquad in np.nditer(self.biquads.shape):
+            self.biquads[core, channel, biquad] = PeakingBiquad(freq=DEFAULT_FREQS[biquad], gain=0., q=1.)
 
         # Mixdown parameters
         # (bus_core, bus, channel_core, channel)
@@ -33,15 +45,15 @@ class Controler(object):
         self.memif_socket = memif_socket
 
     def set_biquad_freq(self, core, channel, biquad, freq):
-        self.state.biquad_freq[core, channel, biquad] = freq
+        self.state.biquads[core, channel, biquad].freq = freq
         self._update_biquad(core, channel, biquad)
 
     def set_biquad_gain(self, core, channel, biquad, gain):
-        self.state.biquad_gain[core, channel, biquad] = gain
+        self.state.biquads[core, channel, biquad].gain = gain
         self._update_biquad(core, channel, biquad)
 
     def set_biquad_q(self, core, channel, biquad, q):
-        self.state.biquad_q[core, channel, biquad] = q
+        self.state.biquads[core, channel, biquad].q = q
         self._update_biquad(core, channel, biquad)
 
     def set_gain(self, bus_core, bus, channel_core, channel, gain):
@@ -53,13 +65,10 @@ class Controler(object):
                 channel=channel,
                 bus=bus),
             data=[gain])
-        
+
     def _update_biquad(self, core, channel, biquad):
-        b, a = peaking(freq=self.state.biquad_freq[core, channel, biquad],
-                       gain=self.state.biquad_gain[core, channel, biquad],
-                       q=self.state.biquad_q[core, channel, biquad])
-        b, a = normalize(b, a)
-        arr = [b[0], b[1], b[2], 
+        b, a = self.state.biquads[core, channel, biquad].get_coefficients()
+        arr = [b[0], b[1], b[2],
                -a[1], -a[2]]
         self._set_parameter_memory(
             core=core,
@@ -71,7 +80,7 @@ class Controler(object):
             name=core_param_mem_name[core],
             addr=addr,
             data=data)
-        
+
 import socket
 class MemoryInterface(object):
     def __init__(self, host = 'localhost', port = 2540):
