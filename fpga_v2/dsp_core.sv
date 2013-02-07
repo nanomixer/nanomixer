@@ -105,7 +105,11 @@ always_comb begin
       sample_mem.rd_addr = read_instr.sample_addr;
       param_mem.rd_addr  = read_instr.param_addr;
       io_mem.rd_addr     = read_instr.param_addr;
-
+      
+      sample_mem.rd_en   = 1'b1;  // always read for now
+      param_mem.rd_en    = 1'b1;
+      io_mem.rd_en       = 1'b1;
+      
       // Execute #1:
       case (ex1_instr.opcode)  // set first input to multiplier
          IN      : mult_in1 = 1'b1 << SAMPLE_FRAC_BITS;
