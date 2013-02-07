@@ -75,7 +75,26 @@ logic [ACCUM_SINT_BITS - SAMPLE_SINT_BITS-1 : 0] sample_truncated_MSBs;
 logic io_sign_bit, io_is_saturated,
       sample_sign_bit, sample_is_saturated;
       
-        
+      
+/***** MODULE INSTANTIATION & CONNECTIONS: *****/
+      
+// Connect a saturator between accumulator and sample memory write port
+fixed_point_saturator #(.IN_WIDTH(ACCUM_WIDTH),
+                        .IN_FRAC_BITS(ACCUM_FRAC_BITS),
+                        .OUT_WIDTH(SAMPLE_WIDTH),
+                        .OUT_FRAC_BITS(SAMPLE_FRAC_BITS)) 
+                     sample_saturator (.data_in(A),
+                                       .data_out(sample_mem.wr_data));
+
+// Connect a saturator between accumulator and io memory write port
+fixed_point_saturator #(.IN_WIDTH(ACCUM_WIDTH),
+                        .IN_FRAC_BITS(ACCUM_FRAC_BITS),
+                        .OUT_WIDTH(IO_WIDTH),
+                        .OUT_FRAC_BITS(IO_FRAC_BITS)) 
+                     io_saturator (.data_in(A),
+                                   .data_out(io_mem.wr_data));
+
+
 /***** COMBINATORIAL LOGIC: *****/
 
 always_comb begin
@@ -113,39 +132,19 @@ always_comb begin
       else              
          next_lfsr = (lfsr >> 1);
       
-      // Saturation & Writeback:
-      io_truncated_MSBs = A[ACCUM_WIDTH-1 : ACCUM_FRAC_BITS + IO_SINT_BITS];
-      io_sign_bit       = A[ACCUM_FRAC_BITS + IO_SINT_BITS-1];      
-      io_is_saturated   = signed'(io_truncated_MSBs) != signed'(io_sign_bit);
-
-      sample_truncated_MSBs = A[ACCUM_WIDTH-1 : ACCUM_FRAC_BITS + SAMPLE_SINT_BITS];
-      sample_sign_bit       = A[ACCUM_FRAC_BITS + SAMPLE_SINT_BITS-1];
-      sample_is_saturated   = signed'(sample_truncated_MSBs) != signed'(sample_sign_bit);
-      
-      case (writeback_instr.opcode)
-         OUT     : if (io_is_saturated)
-                         saturator_out = signed'({A[ACCUM_WIDTH-1], {(IO_WIDTH-1){~A[ACCUM_WIDTH-1]}} });
-                   else  saturator_out = A[ACCUM_FRAC_BITS + SAMPLE_SINT_BITS-1 -: SAMPLE_WIDTH];
-
-         default : if (sample_is_saturated)
-                        saturator_out = signed'({A[ACCUM_WIDTH-1], {(SAMPLE_WIDTH-1){~A[ACCUM_WIDTH-1]}} });
-                   else saturator_out = A[ACCUM_FRAC_BITS + SAMPLE_SINT_BITS-1 -: SAMPLE_WIDTH];
-      endcase
-      
-      io_mem.wr_data = saturator_out[SAMPLE_FRAC_BITS + IO_SINT_BITS-1 -: IO_WIDTH];
+      // Saturation & Writeback (note that saturation is handled by modules above):
       io_mem.wr_addr = writeback_instr.param_addr;
       case (writeback_instr.opcode)
          OUT     : io_mem.wr_en = 1'b1;
          default : io_mem.wr_en = 1'b0;
       endcase
       
-      sample_mem.wr_data = saturator_out;
       sample_mem.wr_addr = writeback_instr.sample_addr;
       case (writeback_instr.opcode)
          IN, STORE : sample_mem.wr_en = 1'b1;
          default   : sample_mem.wr_en = 1'b0;
       endcase
-
+      
       ring_bus_out = A; // inter-dsp communication output
 end
  
