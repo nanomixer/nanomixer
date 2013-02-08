@@ -42,7 +42,7 @@ proc openport {} {
 
 foreach instance [get_editable_mem_instances -hardware_name $usbblaster_name -device_name $test_device] {
 	set name [lindex $instance 5];
-	if { [string match "inst" $name] } {
+	if { [string match "imem" $name] } {
 		set instance_idx [lindex $instance 0];
 	}
 }
