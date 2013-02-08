@@ -8,9 +8,11 @@ PARAM_FRAC_BITS = 30
 
 core_param_mem_name = ['PM00', 'PM01']
 
+
 def to_param_word_as_hex(x):
     return encode_signed_fixedpt_as_hex(
         x, width=PARAM_WIDTH, fracbits=PARAM_FRAC_BITS)
+
 
 class MixerState(object):
     def __init__(self, num_cores, num_busses_per_core,
@@ -83,9 +85,9 @@ class Controler(object):
 
 import socket
 class MemoryInterface(object):
-    def __init__(self, host = 'localhost', port = 2540):
+    def __init__(self, host='localhost', port=2540):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.connect(( host,port))
+        self.s.connect((host,port))
 
     def set_mem(self, name, addr, data):
         # Quartus strangely requests _words_ in _backwards_ order!
@@ -96,65 +98,62 @@ class MemoryInterface(object):
         # Wait for confirmation.
         self.s.recv(2)
 
+    def close(self):
+        self.s.close()
 
+
+## Views
 class OSCServer(object):
-    def __init__(self, client=None, port=7559):
+    def __init__(self, controller, osc_port=7559):
         import OSC
-        if client is None:
-            client = Client()
-
-        self.client = client
-        self.server = OSC.OSCServer(('0.0.0.0', port), None, port-1)
-        for channel in range(1,6):
-            self.server.addMsgHandler('/4/gain/{}'.format(channel), self.setFiltGain)
-        self.server.addMsgHandler('/4/loslvfrq', self.setFreq)
+        self.controller = controller
+        self.osc_server = OSC.OSCServer(('0.0.0.0', osc_port), None, osc_port - 1)
+        for channel in range(1, 6):
+            self.osc_server.addMsgHandler('/4/gain/{}'.format(channel), self.setFiltGain)
+        self.osc_server.addMsgHandler('/4/loslvfrq', self.setFreq)
 
         for channel in range(8):
-            self.server.addMsgHandler('/1/volume{}'.format(channel+1), self.setGain)
+            self.osc_server.addMsgHandler('/1/volume{}'.format(channel+1), self.setGain)
 
 
     def setGain(self, addr, tags, data, client_addr):
+        # Ignore this if we'd just overwrite it in a moment
+        # TODO: improve this logic!
+        if self._data_ready():
+            return
         channel = int(addr[-1])-1
-        self.gains[channel,channel % 2] = data[0]
-        print self.gains
-        if not self._data_ready():
-            self.client.set_gains(self.gains)
+        gain = data[0]
+        self.controller.set_gain(0, 0, 0, channel, gain)
 
     def setFiltGain(self, addr, tags, data, client_addr):
+        if self._data_ready():
+            return
         channel = int(addr.rsplit('/', 1)[1]) - 1
         gain = 40*(data[0]-.5)
-        self.filt_gains[channel] = gain
-        self._send_filt()
+        self.controller.set_biquad_gain(0, channel, 0, gain)
 
     def setFreq(self, addr, tags, data, client_addr):
+        if self._data_ready():
+            return
         print addr
         freq = 20 * 2**(data[0]*10)
+        channel = 0
         print freq
-        self.freqs[0] = freq
-        self._send_filt()
+        self.controller.set_biquad_freq(0, channel, 0, freq)
 
     def _data_ready(self):
-        self.server.socket.setblocking(False)
+        self.osc_server.socket.setblocking(False)
         try:
-            dataReady = self.server.socket.recv(1, socket.MSG_PEEK)
+            dataReady = self.osc_server.socket.recv(1, socket.MSG_PEEK)
         except:
             dataReady = False
-        self.server.socket.setblocking(True)
+        self.osc_server.socket.setblocking(True)
         return dataReady
-
-    def _send_filt(self):
-        dataReady = self._data_ready()
-        if not dataReady:
-            gain = self.filt_gains[0]
-            print gain, self.freqs[0]
-            self.client.set_biquad(*peaking(self.freqs[0], gain, bw=1./2))
-
 
     def serve_forever(self):
         try:
-            self.server.serve_forever()
+            self.osc_server.serve_forever()
         except:
-            self.server.socket.close()
-            self.client.s.close()
+            self.osc_server.socket.close()
+            self.controller.memif_socket.close()
             raise
-
