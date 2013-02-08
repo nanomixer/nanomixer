@@ -87,7 +87,7 @@ import socket
 class MemoryInterface(object):
     def __init__(self, host='localhost', port=2540):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.connect((host,port))
+        self.s.connect((host, port))
 
     def set_mem(self, name, addr, data):
         # Quartus strangely requests _words_ in _backwards_ order!
