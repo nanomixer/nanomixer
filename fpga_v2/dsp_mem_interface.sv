@@ -21,7 +21,7 @@ interface dsp_mem_interface #(
    output logic                        param_rd_en,
    
    input  logic [IO_WIDTH-1:0] audio_inputs  [0:7],
-   output logic [IO_WIDTH-1:0] audio_outputs [0:7],
+   output logic [IO_WIDTH-1:0] audio_outputs [0:7]
 );
 
 
@@ -46,7 +46,7 @@ modport dsp_sample_bus (
 modport dsp_param_bus (
    input  .rd_data(param_rd_data),
    output .rd_addr(param_rd_addr),
-   output .rd_en(param_rd_en),
+   output .rd_en(param_rd_en)
    );
 
 modport dsp_io_bus (
