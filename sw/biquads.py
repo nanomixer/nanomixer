@@ -1,6 +1,5 @@
 import numpy as np
 from numpy import sin, cos, sinh
-from util import to_fixedpt
 
 # Based on http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
 
@@ -60,16 +59,3 @@ def plot_freqz(b, a, *args, **kw):
     f = np.logspace(1, np.log(Fs/2)/np.log(10), 512)
     w, h = freqz(b, a, f*twoPiOverFs)
     plt.loglog(f, np.abs(h), *args, **kw)
-
-def plot_rounded_freqz(b, a, bits):
-    plot_freqz(b, a, 'b')
-    
-    b, a = normalize(b, a)
-
-    b = [round_coeff(x, bits) for x in b]
-    a = [round_coeff(x, bits) for x in a]
-    
-    plot_freqz(b, a, 'r')
-
-def round_coeff(x, bits):
-    return to_fixedpt(x, bits) / (1<<(bits-2))
