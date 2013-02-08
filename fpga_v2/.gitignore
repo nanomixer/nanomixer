@@ -14,3 +14,4 @@ incremental_db
 PLLJ_PLLSPE_INFO.txt
 simulation
 *.jdi
+*.qws
