@@ -20,8 +20,8 @@ interface dsp_mem_interface #(
    output logic [PARAM_ADDR_WIDTH-1:0] param_rd_addr,
    output logic                        param_rd_en,
    
-   input  logic [IO_WIDTH-1:0] audio_inputs[8],
-   output logic [IO_WIDTH-1:0] audio_outputs[8],
+   input  logic [IO_WIDTH-1:0] audio_inputs  [0:7],
+   output logic [IO_WIDTH-1:0] audio_outputs [0:7],
 );
 
 
