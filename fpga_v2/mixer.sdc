@@ -19,7 +19,7 @@
 ## PROGRAM "Quartus II"
 ## VERSION "Version 12.1 Build 177 11/07/2012 SJ Web Edition"
 
-## DATE    "Sat Feb  9 11:27:29 2013"
+## DATE    "Sat Feb  9 14:02:38 2013"
 
 ##
 ## DEVICE  "EP4CE22F17C6"
@@ -39,15 +39,15 @@ set_time_format -unit ns -decimal_places 3
 #**************************************************************
 
 create_clock -name {altera_reserved_tck} -period 100.000 -waveform { 0.000 50.000 } [get_ports {altera_reserved_tck}]
-create_clock -name {GPIO_0_IN[0]} -period 40.690 -waveform { 0.000 20.345 } [get_ports {GPIO_0_IN[0]}]
+create_clock -name {GPIO_0_IN_0} -period 40.690 -waveform { 0.000 20.345 } [get_ports {GPIO_0_IN_0}]
 
 
 #**************************************************************
 # Create Generated Clock
 #**************************************************************
 
-create_generated_clock -name {inst1|altpll_component|auto_generated|pll1|clk[0]} -source [get_pins {inst1|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 4 -master_clock {GPIO_0_IN[0]} [get_pins {inst1|altpll_component|auto_generated|pll1|clk[0]}] 
-create_generated_clock -name {inst1|altpll_component|auto_generated|pll1|clk[1]} -source [get_pins {inst1|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 1 -divide_by 2 -master_clock {GPIO_0_IN[0]} [get_pins {inst1|altpll_component|auto_generated|pll1|clk[1]}] 
+create_generated_clock -name {inst1|altpll_component|auto_generated|pll1|clk[0]} -source [get_pins {inst1|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 4 -master_clock {GPIO_0_IN_0} [get_pins {inst1|altpll_component|auto_generated|pll1|clk[0]}] 
+create_generated_clock -name {inst1|altpll_component|auto_generated|pll1|clk[1]} -source [get_pins {inst1|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 1 -divide_by 2 -master_clock {GPIO_0_IN_0} [get_pins {inst1|altpll_component|auto_generated|pll1|clk[1]}] 
 
 
 #**************************************************************
@@ -78,6 +78,8 @@ create_generated_clock -name {inst1|altpll_component|auto_generated|pll1|clk[1]}
 # Set Clock Groups
 #**************************************************************
 
+set_clock_groups -asynchronous -group [get_clocks {altera_reserved_tck}] 
+set_clock_groups -asynchronous -group [get_clocks {altera_reserved_tck}] 
 set_clock_groups -asynchronous -group [get_clocks {altera_reserved_tck}] 
 
 

@@ -23,7 +23,7 @@ applicable agreement for further details.
 	(input)
 	(rect -56 80 120 96)
 	(text "INPUT" (rect 133 0 162 10)(font "Arial" (font_size 6)))
-	(text "GPIO_0_IN[0]" (rect 5 0 75 11)(font "Arial" ))
+	(text "GPIO_0_IN_0" (rect 5 0 75 11)(font "Arial" ))
 	(pt 176 8)
 	(drawing
 		(line (pt 92 12)(pt 117 12))
@@ -34,12 +34,13 @@ applicable agreement for further details.
 		(line (pt 117 12)(pt 121 8))
 	)
 	(text "VCC" (rect 136 7 157 17)(font "Arial" (font_size 6)))
+	(annotation_block (location)(rect -112 96 -56 112))
 )
 (pin
 	(input)
 	(rect -48 216 120 232)
 	(text "INPUT" (rect 125 0 154 10)(font "Arial" (font_size 6)))
-	(text "GPIO_032" (rect 5 0 57 11)(font "Arial" ))
+	(text "GPIO_0_32" (rect 5 0 62 11)(font "Arial" ))
 	(pt 168 8)
 	(drawing
 		(line (pt 84 12)(pt 109 12))
@@ -55,7 +56,7 @@ applicable agreement for further details.
 	(output)
 	(rect 272 272 448 288)
 	(text "OUTPUT" (rect 1 0 41 10)(font "Arial" (font_size 6)))
-	(text "GPIO_0[4]" (rect 90 0 141 11)(font "Arial" ))
+	(text "GPIO_0_4" (rect 90 0 141 11)(font "Arial" ))
 	(pt 0 8)
 	(drawing
 		(line (pt 0 8)(pt 52 8))
@@ -66,12 +67,13 @@ applicable agreement for further details.
 		(line (pt 82 8)(pt 78 12))
 		(line (pt 78 12)(pt 82 8))
 	)
+	(annotation_block (location)(rect 448 288 504 304))
 )
 (pin
 	(output)
 	(rect 272 296 448 312)
 	(text "OUTPUT" (rect 1 0 41 10)(font "Arial" (font_size 6)))
-	(text "GPIO_0[5]" (rect 90 0 141 11)(font "Arial" ))
+	(text "GPIO_0_5" (rect 90 0 141 11)(font "Arial" ))
 	(pt 0 8)
 	(drawing
 		(line (pt 0 8)(pt 52 8))
@@ -82,12 +84,13 @@ applicable agreement for further details.
 		(line (pt 82 8)(pt 78 12))
 		(line (pt 78 12)(pt 82 8))
 	)
+	(annotation_block (location)(rect 448 312 504 328))
 )
 (pin
 	(output)
 	(rect 272 320 448 336)
 	(text "OUTPUT" (rect 1 0 41 10)(font "Arial" (font_size 6)))
-	(text "GPIO_00" (rect 90 0 136 11)(font "Arial" ))
+	(text "GPIO_0_0" (rect 90 0 141 11)(font "Arial" ))
 	(pt 0 8)
 	(drawing
 		(line (pt 0 8)(pt 52 8))
@@ -103,7 +106,7 @@ applicable agreement for further details.
 	(output)
 	(rect 504 16 680 32)
 	(text "OUTPUT" (rect 1 0 41 10)(font "Arial" (font_size 6)))
-	(text "LED[7]" (rect 90 0 124 11)(font "Arial" ))
+	(text "LED_7" (rect 90 0 124 11)(font "Arial" ))
 	(pt 0 8)
 	(drawing
 		(line (pt 0 8)(pt 52 8))
@@ -114,12 +117,13 @@ applicable agreement for further details.
 		(line (pt 82 8)(pt 78 12))
 		(line (pt 78 12)(pt 82 8))
 	)
+	(annotation_block (location)(rect 680 32 736 48))
 )
 (pin
 	(output)
 	(rect 784 80 960 96)
 	(text "OUTPUT" (rect 1 0 41 10)(font "Arial" (font_size 6)))
-	(text "GPIO_033" (rect 90 0 141 11)(font "Arial" ))
+	(text "GPIO_0_33" (rect 90 0 147 11)(font "Arial" ))
 	(pt 0 8)
 	(drawing
 		(line (pt 0 8)(pt 52 8))
