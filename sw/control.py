@@ -51,9 +51,9 @@ class MixerState(object):
         self.mixdown_gains = np.zeros((num_cores, num_busses_per_core, num_cores, num_channels_per_core))
 
     def get_biquad_coefficients(self, core, channel, biquad):
-        b, a = peaking(freq=self.state.biquad_freq[core, channel, biquad],
-                       gain=self.state.biquad_gain[core, channel, biquad],
-                       q=self.state.biquad_q[core, channel, biquad])
+        b, a = peaking(f0=self.biquad_freq[core, channel, biquad],
+                       dBgain=self.biquad_gain[core, channel, biquad],
+                       q=self.biquad_q[core, channel, biquad])
         b, a = normalize(b, a)
         return b, a
 
