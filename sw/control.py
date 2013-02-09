@@ -58,7 +58,7 @@ class MixerState(object):
         return b, a
 
 
-class Controler(object):
+class Controller(object):
     def __init__(self, memif_socket):
         self.state = MixerState(**HARDWARE_PARAMS)
         self.memif_socket = memif_socket
