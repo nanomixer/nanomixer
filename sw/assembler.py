@@ -69,7 +69,7 @@ def biquad_program(buf_base, param_base):
         Store(yn)
         ]
 
-num_channels = 4
+num_channels = 8
 
 # channel strip
 num_biquads = 2
@@ -80,8 +80,8 @@ params_per_channel = params_per_biquad*num_biquads
 total_channel_params = params_per_channel * num_channels
 
 # mixdown
-num_cores = 2
-num_busses_per_core = 1
+num_cores = 1
+num_busses_per_core = 2
 mixdown_base_address = total_channel_params
 
 HARDWARE_PARAMS = dict(
@@ -156,5 +156,5 @@ program.append(Out(0))
 if __name__ == '__main__':
     print "Program length:", len(program)
 
-    with open('../fpga/instr.mif', 'w') as f:
+    with open('instr.mif', 'w') as f:
         assemble(program, f)
