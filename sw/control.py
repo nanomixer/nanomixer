@@ -40,9 +40,9 @@ class MixerState(object):
         self.num_biquads_per_channel = num_biquads_per_channel
 
         # Biquad parameters
-        self.biquad_freq = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel))
+        self.biquad_freq = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel)) + 1000.
         self.biquad_gain = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel))
-        self.biquad_q = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel))
+        self.biquad_q = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel)) + 1.
 
         # Mixdown parameters
         # (bus_core, bus, channel_core, channel)
