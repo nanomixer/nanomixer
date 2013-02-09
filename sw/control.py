@@ -8,6 +8,23 @@ PARAM_FRAC_BITS = 30
 
 core_param_mem_name = ['PM00', 'PM01']
 
+# Channel name -> (core, channel)
+channel_map = {
+    '1': (0, 0),
+    '2': (0, 1),
+    '3': (0, 2),
+    '4': (0, 3),
+    '5': (1, 0),
+    '6': (1, 1),
+    '7': (1, 2),
+    '8': (1, 3),
+}
+
+bus_map = {
+    'L': (0, 0),
+    'R': (0, 1)
+}
+
 
 def to_param_word_as_hex(x):
     return encode_signed_fixedpt_as_hex(
@@ -46,19 +63,24 @@ class Controler(object):
         self.state = MixerState(**HARDWARE_PARAMS)
         self.memif_socket = memif_socket
 
-    def set_biquad_freq(self, core, channel, biquad, freq):
-        self.state.biquad_freq[core, channel, biquad] = freq
-        self._update_biquad(core, channel, biquad)
+    def set_biquad_freq(self, channel, biquad, freq):
+        core, ch = channel_map[channel]
+        self.state.biquad_freq[core, ch, biquad] = freq
+        self._update_biquad(core, ch, biquad)
 
-    def set_biquad_gain(self, core, channel, biquad, gain):
-        self.state.biquad_gain[core, channel, biquad] = gain
-        self._update_biquad(core, channel, biquad)
+    def set_biquad_gain(self, channel, biquad, gain):
+        core, ch = channel_map[channel]
+        self.state.biquad_gain[core, ch, biquad] = gain
+        self._update_biquad(core, ch, biquad)
 
-    def set_biquad_q(self, core, channel, biquad, q):
+    def set_biquad_q(self, channel, biquad, q):
+        core, ch = channel_map[channel]
         self.state.biquad_q[core, channel, biquad] = q
         self._update_biquad(core, channel, biquad)
 
-    def set_gain(self, bus_core, bus, channel_core, channel, gain):
+    def set_gain(self, bus, channel, gain):
+        bus_core, b = bus_map[bus]
+        channel_core, ch = channel_map[channel]
         self.state.mixdown_gains[bus_core, bus, channel_core, channel] = gain
         self._set_parameter_memory(
             core=channel_core,
