@@ -74,9 +74,9 @@ class Controller(object):
         self._update_biquad(core, ch, biquad)
 
     def set_biquad_q(self, channel, biquad, q):
-        core, ch = channel_map[channel]
-        self.state.biquad_q[core, channel, biquad] = q
-        self._update_biquad(core, channel, biquad)
+        core, channel_idx = channel_map[channel]
+        self.state.biquad_q[core, channel_idx, biquad] = q
+        self._update_biquad(core, channel_idx, biquad)
 
     def set_gain(self, bus, channel, gain):
         bus_core, bus_idx = bus_map[bus]
