@@ -3,7 +3,7 @@ from biquads import normalize, peaking
 from util import encode_signed_fixedpt_as_hex
 from assembler import HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain
 
-PARAM_WIDTH = 5
+PARAM_WIDTH = 36
 PARAM_FRAC_BITS = 30
 
 core_param_mem_name = ['PM00', 'PM01']
@@ -59,9 +59,9 @@ class MixerState(object):
 
 
 class Controller(object):
-    def __init__(self, memif_socket):
+    def __init__(self, memory_interface):
         self.state = MixerState(**HARDWARE_PARAMS)
-        self.memif_socket = memif_socket
+        self.memory_interface = memory_interface
 
     def set_biquad_freq(self, channel, biquad, freq):
         core, ch = channel_map[channel]

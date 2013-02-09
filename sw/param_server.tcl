@@ -1,6 +1,6 @@
 global usbblaster_name
 global test_device
-global instance_idx
+global instance_indices
 # List all available programming hardwares, and select the USBBlaster.
 # (Note: this example assumes only one USBBlaster connected.)
 # Programming Hardwares:
@@ -22,10 +22,10 @@ foreach device_name [get_device_names -hardware_name $usbblaster_name] {
 }
 puts "Select device: $test_device.";
 
-set instance_indices [dict create];
+set instance_indices [dict create]
 foreach instance [get_editable_mem_instances -hardware_name $usbblaster_name -device_name $test_device] {
-    set index [lindex $instance 0];
-    set name [lindex $instance 5];
+    set index [lindex $instance 0]
+    set name [lindex $instance 5]
     dict set instance_indices $name $index
 }
 puts "Instance $instance_indices";
@@ -73,7 +73,7 @@ proc IncomingData {sock} {
 	unset conn(addr,$sock)
 	ClosePort
     } else {
-	setMemContent $addr $content
+	setMemContent $mem_name $addr $content
 	puts -nonewline $sock "1"
 	flush $sock
     }
@@ -90,10 +90,11 @@ proc ClosePort {} {
     end_memory_edit
 }
 
-proc setMemContent {addr content} {
-    global instance_idx
+proc setMemContent {mem_name addr content} {
+	 global instance_indices
+    set instance_idx [dict get $instance_indices $mem_name]
     set content_words [expr [string length $content] / 9]
-    puts "Setting $content_words at $addr to $content"
+    puts "Setting $content_words at $mem_name:$addr to $content"
     write_content_to_memory -instance_index $instance_idx -start_address $addr -content $content -word_count $content_words -content_in_hex
 }
 
