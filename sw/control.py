@@ -58,7 +58,7 @@ class MixerState(object):
         return b, a
 
 
-class Controler(object):
+class Controller(object):
     def __init__(self, memif_socket):
         self.state = MixerState(**HARDWARE_PARAMS)
         self.memif_socket = memif_socket
@@ -79,15 +79,15 @@ class Controler(object):
         self._update_biquad(core, channel, biquad)
 
     def set_gain(self, bus, channel, gain):
-        bus_core, b = bus_map[bus]
-        channel_core, ch = channel_map[channel]
-        self.state.mixdown_gains[bus_core, bus, channel_core, channel] = gain
+        bus_core, bus_idx = bus_map[bus]
+        channel_core, channel_idx = channel_map[channel]
+        self.state.mixdown_gains[bus_core, bus_idx, channel_core, channel_idx] = gain
         self._set_parameter_memory(
             core=channel_core,
             addr=address_for_mixdown_gain(
                 core=(channel_core - bus_core - 1) % self.state.num_cores,
-                channel=channel,
-                bus=bus),
+                channel=channel_idx,
+                bus=bus_idx),
             data=[gain])
 
     def _update_biquad(self, core, channel, biquad):
