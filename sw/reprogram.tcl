@@ -1,7 +1,4 @@
 #!/usr/bin/env quartus_stp -t
-##############################################################################################
-############################# Basic vJTAG Interface ##########################################
-##############################################################################################
 
 #This portion of the script is derived from some of the examples from Altera
 
@@ -42,7 +39,7 @@ proc openport {} {
 
 foreach instance [get_editable_mem_instances -hardware_name $usbblaster_name -device_name $test_device] {
 	set name [lindex $instance 5];
-	if { [string match "imem" $name] } {
+	if { [string match "IMEM" $name] } {
 		set instance_idx [lindex $instance 0];
 	}
 }
