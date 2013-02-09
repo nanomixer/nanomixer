@@ -104,7 +104,7 @@ always_comb begin
       // Data Request:
       sample_mem.rd_addr = decode_instr.sample_addr;
       param_mem.rd_addr  = decode_instr.param_addr;
-      io_mem.rd_addr     = decode_instr.param_addr;
+      io_mem.rd_addr     = read_instr.param_addr; // TODO
       /* WARNING: It turns out inputs to altsyncram blocks are registered, but not outputs.
          This is causing problems with timing since the memory read and multiply occur
          in the same clock cycle. For now, then, I'm (1) sending the request to memory one
