@@ -96,7 +96,7 @@ class Controller(object):
                -a[1], -a[2]]
         self._set_parameter_memory(
             core=core,
-            addr=parameter_base_addr_for_biquad(channel, biquad),
+            addr=parameter_base_addr_for_biquad(channel=channel, biquad=biquad),
             data=arr)
 
     def _set_parameter_memory(self, core, addr, data):

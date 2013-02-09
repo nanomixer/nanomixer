@@ -91,14 +91,14 @@ HARDWARE_PARAMS = dict(
     num_biquads_per_channel=num_biquads)
 
 
-def input_addr_for_biquad(n, channel):
-    return mem_per_channel*channel + 3*n
+def input_addr_for_biquad(biquad, channel):
+    return mem_per_channel*channel + 3*biquad
 
-def output_addr_for_biquad(n, channel):
-    return input_addr_for_biquad(n+1, channel)
+def output_addr_for_biquad(biquad, channel):
+    return input_addr_for_biquad(biquad+1, channel)
 
-def parameter_base_addr_for_biquad(n, channel):
-    return params_per_channel*channel + params_per_biquad*n
+def parameter_base_addr_for_biquad(biquad, channel):
+    return params_per_channel*channel + params_per_biquad*biquad
 
 def address_for_mixdown_gain(channel, bus, core):
     '''returns the parameter memory address for the gain for channel on bus.'''
@@ -113,7 +113,7 @@ program = []
 # Read input into input for the zeroth biquad.
 for channel in range(num_channels):
     program.append(In(io_addr=channel,
-                      dest_sample_addr=input_addr_for_biquad(n=0, channel=channel)))
+                      dest_sample_addr=input_addr_for_biquad(biquad=0, channel=channel)))
 
 # Filter.
 #
