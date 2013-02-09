@@ -125,32 +125,28 @@ for channel in range(num_channels):
 for biquad in range(num_biquads):
     for channel in range(num_channels):
         program.extend(biquad_program(
-                input_addr_for_biquad(n=biquad, channel=channel),
-                parameter_base_addr_for_biquad(n=biquad, channel=channel)))
+                input_addr_for_biquad(biquad=biquad, channel=channel),
+                parameter_base_addr_for_biquad(biquad=biquad, channel=channel)))
 
 def sample_addr_post_channelstrip(channel):
-    return output_addr_for_biquad(n=num_biquads-1, channel=channel)
+    return output_addr_for_biquad(biquad=num_biquads-1, channel=channel)
 
 # Downmix our channels.
 #
 # Again, the data will be ready by the time we need it.
 for core in range(num_cores):
-    # for bus in range(num_busses_per_core):
-    bus = 0
-    for channel in range(num_channels):
-        if core == 0 and channel == 0:
-            instr = Mul
-        elif core != 0 and channel == 0:
-            instr = RotMac
-        else:
-            instr = Mac
-        program.append(
-            instr(sample_addr_post_channelstrip(channel),
-                  address_for_mixdown_gain(channel=channel, bus=bus, core=core)))
-
-
-# Done!
-program.append(Out(0))
+    for bus in range(num_busses_per_core):
+        for channel in range(num_channels):
+            if core == 0 and channel == 0:
+                instr = Mul
+            elif core != 0 and channel == 0:
+                instr = RotMac
+            else:
+                instr = Mac
+            program.append(
+                instr(sample_addr_post_channelstrip(channel),
+                      address_for_mixdown_gain(channel=channel, bus=bus, core=core)))
+        program.append(Out(bus))
 
 
 if __name__ == '__main__':
