@@ -12,8 +12,10 @@ class Instruction(object):
     def __init__(self, sample_addr, param_or_io_addr):
         self.sample_addr = sample_addr
         self.param_or_io_addr = param_or_io_addr
+    def __repr__(self):
+        return '{}({}, {})'.format(self.__class__.__name__, self.sample_addr, self.param_or_io_addr)
     def assemble(self):
-        print self.__class__.__name__, self.sample_addr, self.param_or_io_addr
+        print repr(self)
         return (
             bin_(self.opcode, OPCODE_WIDTH) +
             bin_(self.sample_addr, SAMPLE_ADDR_WIDTH) +
@@ -23,6 +25,7 @@ class Nop(Instruction):
     opcode = 0
     def __init__(self):
         Instruction.__init__(self, sample_addr=0, param_or_io_addr=0)
+    def __repr__(self): return '{}()'.format(self.__class__.__name__)
 class Mul(Instruction):
     opcode = 1
 class Mac(Instruction):
@@ -34,6 +37,7 @@ class Store(Instruction):
     def __init__(self, dest_sample_addr):
         Instruction.__init__(
             self, sample_addr=dest_sample_addr, param_or_io_addr=0)
+    def __repr__(self): return '{}({})'.format(self.__class__.__name__, self.sample_addr)
 class In(Instruction):
     opcode = 5
     def __init__(self, dest_sample_addr, io_addr):
@@ -44,11 +48,13 @@ class Out(Instruction):
     def __init__(self, dest_io_addr):
         Instruction.__init__(
             self, sample_addr=0, param_or_io_addr=dest_io_addr)
+    def __repr__(self): return '{}({})'.format(self.__class__.__name__, self.param_or_io_addr)
 class Spin(Instruction):
     opcode = 7
     def __init__(self, spin_amount):
         Instruction.__init__(
             self, sample_addr=spin_amount, param_or_io_addr=0)
+    def __repr__(self): return '{}({})'.format(self.__class__.__name__, self.sample_addr)
 
 def assemble(instructions, outfile):
     print >>outfile, "DEPTH = 512;"
