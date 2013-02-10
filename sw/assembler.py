@@ -163,7 +163,7 @@ for core in range(num_cores):
 program.append(Spin(1))
 
 if __name__ == '__main__':
-    print "Program length:", len(program)
-
     with open('instr.mif', 'w') as f:
         assemble(program, f)
+        
+    print "Program length:", len(program)
