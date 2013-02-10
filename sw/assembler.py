@@ -44,6 +44,11 @@ class Out(Instruction):
     def __init__(self, dest_io_addr):
         Instruction.__init__(
             self, sample_addr=0, param_or_io_addr=dest_io_addr)
+class Spin(Instruction):
+    opcode = 7
+    def __init__(self, spin_amount):
+        Instruction.__init__(
+            self, sample_addr=spin_amount, param_or_io_addr=0)
 
 def assemble(instructions, outfile):
     print >>outfile, "DEPTH = 512;"
@@ -148,6 +153,8 @@ for core in range(num_cores):
                       address_for_mixdown_gain(channel=channel, bus=bus, core=core)))
         program.append(Out(bus))
 
+# Rotate sample memory by one (positive spins shift *data* to higher addresses)
+program.append(Spin(1))
 
 if __name__ == '__main__':
     print "Program length:", len(program)

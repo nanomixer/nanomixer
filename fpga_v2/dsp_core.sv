@@ -42,7 +42,8 @@ typedef enum logic [OPCODE_WIDTH-1:0] {   // define opcode type with explicit en
    ROTMAC = 6'h03,
    STORE  = 6'h04,
    IN     = 6'h05,
-   OUT    = 6'h06
+   OUT    = 6'h06,
+   SPIN   = 6'h07
 } opcode_t;
 
 typedef struct packed {
@@ -70,6 +71,8 @@ instr_t decode_instr,
         ex2_instr, 
         writeback_instr;
 
+logic [SAMPLE_ADDR_WIDTH-1:0] spin_pointer, next_spin_pointer;
+        
 logic [ACCUM_SINT_BITS - IO_SINT_BITS-1 : 0] io_truncated_MSBs;
 logic [ACCUM_SINT_BITS - SAMPLE_SINT_BITS-1 : 0] sample_truncated_MSBs;
 logic io_sign_bit, io_is_saturated,
@@ -101,6 +104,14 @@ always_comb begin
       // Instruction "Decode":
       decode_instr = instr_t'(instruction);
 
+      case (decode_instr.opcode)
+         // Note: *positive* spin shifts data to *higher* addresses by *reducing* pointer:
+         SPIN    : next_spin_pointer = spin_pointer - decode_instr.sample_addr;
+         default : next_spin_pointer = spin_pointer;
+      endcase
+      
+      decode_instr.sample_addr += spin_pointer;
+      
       // Data Request:
       sample_mem.rd_addr = decode_instr.sample_addr;
       param_mem.rd_addr  = decode_instr.param_addr;
@@ -164,6 +175,8 @@ assign test_out = lfsr; // TODO: Remove once testing is complete
 
 always_ff @(posedge clk or negedge reset_n) begin
    if (~reset_n) begin         // TODO: finish reset logic once registers are all declared
+      spin_pointer <= '0;
+   
       read_instr <= '0;
       ex1_instr <= '0;
       ex2_instr <= '0;
@@ -174,6 +187,8 @@ always_ff @(posedge clk or negedge reset_n) begin
       lfsr <= LFSR_POLYNOMIAL; // initialize LFSR with non-zero value to prevent lockup
    end
    else begin
+      spin_pointer <= next_spin_pointer;
+   
       read_instr <= decode_instr; // propagate control information
       ex1_instr <= read_instr;
       ex2_instr <= ex1_instr;
