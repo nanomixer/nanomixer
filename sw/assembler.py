@@ -126,13 +126,14 @@ for channel in range(num_channels):
     program.append(In(io_addr=channel,
                       dest_sample_addr=input_addr_for_biquad(biquad=0, channel=channel)))
 
+# Note that with the current pipelining, the read from the first channel may not be done by
+# the time we start running the first channel's biquads; so, let's add a few NOPs for now.
+program.extend([Nop()]*3)
+
 # Filter.
 #
-# Note that the read from the last channel will certainly be done by
-# the time we start running its biquads.
-#
-# Also note that doing it this way makes sure we don't data-race
-# against a store from the previous biquad.
+# Note that doing the biquads in channel-order makes sure we don't data-race
+# against a store from the previous biquad in a given channel.
 for biquad in range(num_biquads):
     for channel in range(num_channels):
         program.extend(biquad_program(
