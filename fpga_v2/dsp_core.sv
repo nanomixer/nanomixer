@@ -43,7 +43,8 @@ typedef enum logic [OPCODE_WIDTH-1:0] {   // define opcode type with explicit en
    STORE  = 6'h04,
    IN     = 6'h05,
    OUT    = 6'h06,
-   SPIN   = 6'h07
+   SPIN   = 6'h07,
+   AMAC   = 6'h08
 } opcode_t;
 
 typedef struct packed {
@@ -132,6 +133,7 @@ always_comb begin
       
       case (ex1_instr.opcode)  // set second input to multiplier (align decimals for input!)
          IN      : mult_in2 = signed'(io_mem.rd_data) << (PARAM_FRAC_BITS - IO_FRAC_BITS);
+         AMAC    : mult_in2 = sample_saturator_out;
          default : mult_in2 = param_mem.rd_data;
       endcase
 
