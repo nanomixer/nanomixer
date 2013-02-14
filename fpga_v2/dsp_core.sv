@@ -61,7 +61,7 @@ logic signed [ACCUM_WIDTH-1:0] M, next_M, // data registers & next-state variabl
 logic [LFSR_WIDTH-1:0] lfsr, next_lfsr;   // LFSR register and next-state variable
 
 logic signed [SAMPLE_WIDTH-1:0] mult_in1, // first multiplier input
-                                saturator_out;
+                                sample_saturator_out;
 
 logic signed [PARAM_WIDTH-1:0] mult_in2;  // second multiplier input
                                 
@@ -75,8 +75,6 @@ logic [SAMPLE_ADDR_WIDTH-1:0] spin_pointer, next_spin_pointer;
         
 logic [ACCUM_SINT_BITS - IO_SINT_BITS-1 : 0] io_truncated_MSBs;
 logic [ACCUM_SINT_BITS - SAMPLE_SINT_BITS-1 : 0] sample_truncated_MSBs;
-logic io_sign_bit, io_is_saturated,
-      sample_sign_bit, sample_is_saturated;
       
       
 /***** MODULE INSTANTIATION & CONNECTIONS: *****/
@@ -87,7 +85,7 @@ fixed_point_saturator #(.IN_WIDTH(ACCUM_WIDTH),
                         .OUT_WIDTH(SAMPLE_WIDTH),
                         .OUT_FRAC_BITS(SAMPLE_FRAC_BITS)) 
                      sample_saturator (.data_in(A),
-                                       .data_out(sample_mem.wr_data));
+                                       .data_out(sample_saturator_out));
 
 // Connect a saturator between accumulator and io memory write port
 fixed_point_saturator #(.IN_WIDTH(ACCUM_WIDTH),
@@ -159,6 +157,7 @@ always_comb begin
          default : io_mem.wr_en = 1'b0;
       endcase
       
+      sample_mem.wr_data = sample_saturator_out;
       sample_mem.wr_addr = writeback_instr.sample_addr;
       case (writeback_instr.opcode)
          IN, STORE : sample_mem.wr_en = 1'b1;
