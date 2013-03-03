@@ -3,6 +3,8 @@ from biquads import normalize, peaking
 from util import encode_signed_fixedpt_as_hex
 from assembler import HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain
 
+MEMIF_SERVER_PORT = 2540
+
 PARAM_WIDTH = 36
 PARAM_FRAC_BITS = 30
 
@@ -107,7 +109,7 @@ class Controller(object):
 
 import socket
 class MemoryInterface(object):
-    def __init__(self, host='localhost', port=2540):
+    def __init__(self, host='localhost', port=MEMIF_SERVER_PORT):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect((host, port))
 
