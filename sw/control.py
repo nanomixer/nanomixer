@@ -68,6 +68,10 @@ class Controller(object):
         self.state = MixerState(**HARDWARE_PARAMS)
         self.memory_interface = memory_interface
 
+    def handle_message(self, message, args):
+        logger.info('handle_message(%r, %r)', message, args)
+        getattr(self, message)(**args)
+
     def set_biquad_freq(self, channel, biquad, freq):
         core, ch = channel_map[channel]
         self.state.biquad_freq[core, ch, biquad] = freq
@@ -127,3 +131,6 @@ class MemoryInterface(object):
 
     def close(self):
         self.s.close()
+
+memif = MemoryInterface()
+controller = Controller(memif)

@@ -11,7 +11,7 @@ $(document).ready(function() {
 
   socket.on('connect', function() {
     status('connected');
-    socket.emit('ping', "Hello World!");
+    //socket.emit('ping', "Hello World!");
   });
   socket.on('reconnect', function () {
     status('reconnected');
