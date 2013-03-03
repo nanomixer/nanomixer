@@ -2,6 +2,7 @@ from gevent import monkey; monkey.patch_socket()
 from flask import Flask, request, send_file
 from socketio import socketio_manage
 from resource import Resource
+import logging
 
 # Flask routes
 app = Flask(__name__)
@@ -15,6 +16,7 @@ def run_socketio(path):
     socketio_manage(request.environ, {'': Resource})
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     print 'Listening on http://localhost:8080'
     app.debug = True
     import os

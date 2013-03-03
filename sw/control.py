@@ -2,6 +2,9 @@ import numpy as np
 from biquads import normalize, peaking
 from util import encode_signed_fixedpt_as_hex
 from assembler import HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain
+import logging
+
+logger = logging.getLogger(__name__)
 
 MEMIF_SERVER_PORT = 2540
 
