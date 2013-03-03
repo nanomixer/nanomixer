@@ -39,6 +39,10 @@ logic                        param_rd_en;
 logic [IO_WIDTH-1:0] audio_inputs  [0:7];
 logic [IO_WIDTH-1:0] audio_outputs [0:7];
 
+logic [IO_WIDTH-1:0] meter_wr_data;
+logic [7:0]          meter_wr_addr;
+logic                meter_wr_en;
+
 logic [PC_WIDTH-1:0] pc;
 logic [INSTR_WIDTH-1:0] instruction;
 
@@ -53,6 +57,11 @@ dsp_core my_dsp(.clk(dsp_clk),
                 .param_mem(my_dsp_bus.dsp_param_bus),
                 .io_mem(my_dsp_bus.dsp_io_bus),
                 .instruction);
+
+metering_buffer my_meter(.clock(dsp_clk),
+                         .address(meter_wr_addr), 
+                         .data   (meter_wr_data),
+                         .wren   (meter_wr_en));
                 
 adat_in my_adat_in(.clk(adat_in_clk),
                    .adat_async(adat_async_in),
