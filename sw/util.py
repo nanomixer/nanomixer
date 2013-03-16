@@ -8,3 +8,7 @@ def encode_signed_fixedpt_as_hex(x, width, fracbits):
     except bitstring.CreationError:
         raise ValueError("Overflow! %s doesn't fit into %d bits with %d frac bits",
                          x, width, fracbits)
+
+def decode_signed_fixedpt_from_hex(x, fracbits):
+    shift = 1 << fracbits
+    return float(bitstring.BitArray(hex=x).int) / shift

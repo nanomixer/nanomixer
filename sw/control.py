@@ -1,15 +1,25 @@
 import numpy as np
 from biquads import normalize, peaking
-from util import encode_signed_fixedpt_as_hex
-from dsp_program import HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain
+from util import encode_signed_fixedpt_as_hex, decode_signed_fixedpt_from_hex
+from dsp_program import (
+    HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain,
+    constants_base, constants)
 import logging
 
 logger = logging.getLogger(__name__)
 
 MEMIF_SERVER_PORT = 2540
+METER_SOCKET_PORT = 2541
 
+# Number formats
 PARAM_WIDTH = 36
 PARAM_FRAC_BITS = 30
+METER_WIDTH = 24
+METER_WIDTH_BYTES = METER_WIDTH / 8
+METER_FRAC_BITS = 20
+
+METERING_CHANNELS = 8
+METERING_PACKET_SIZE = METERING_CHANNELS * METER_WIDTH_BYTES
 
 core_param_mem_name = ['PM00', 'PM01']
 
@@ -35,6 +45,8 @@ def to_param_word_as_hex(x):
     return encode_signed_fixedpt_as_hex(
         x, width=PARAM_WIDTH, fracbits=PARAM_FRAC_BITS)
 
+def from_metering_word_as_hex(x):
+    return decode_signed_fixedpt_from_hex(x, fracbits=METER_FRAC_BITS)
 
 class MixerState(object):
     def __init__(self, num_cores, num_busses_per_core,
@@ -91,6 +103,10 @@ class Controller(object):
         bus_core, bus_idx = bus_map[bus]
         channel_core, channel_idx = channel_map[channel]
         self.state.mixdown_gains[bus_core, bus_idx, channel_core, channel_idx] = gain
+        self._update_gain(bus_core, bus_idx, channel_core, channel_idx)
+
+    def _update_gain(self, bus_core, bus_idx, channel_core, channel_idx):
+        gain = self.state.mixdown_gains[bus_core, bus_idx, channel_core, channel_idx]
         self._set_parameter_memory(
             core=channel_core,
             addr=address_for_mixdown_gain(
@@ -108,13 +124,33 @@ class Controller(object):
             addr=parameter_base_addr_for_biquad(channel=channel, biquad=biquad),
             data=arr)
 
+    def dump_state_to_mixer(self):
+        for core in xrange(HARDWARE_PARAMS['num_cores']):
+            # Set constants.
+            self._set_parameter_memory(
+                core=core,
+                addr=constants_base,
+                data=constants)
+
+            # Update all biquads
+            for channel in xrange(HARDWARE_PARAMS['num_channels_per_core']):
+                for biquad in xrange(HARDWARE_PARAMS['num_biquads_per_channel']):
+                    self._update_biquad(core, channel, biquad)
+
+            # Update all gains.
+            for bus_core in xrange(HARDWARE_PARAMS['num_cores']):
+                for bus_idx in xrange(HARDWARE_PARAMS['num_busses_per_core']):
+                    for channel_idx in xrange(HARDWARE_PARAMS['num_channels_per_core']):
+                        self._update_gain(bus_core, bus_idx, core, channel_idx)
+
     def _set_parameter_memory(self, core, addr, data):
         self.memory_interface.set_mem(
             name=core_param_mem_name[core],
             addr=addr,
             data=data)
 
-import socket
+import gevent
+from gevent import socket
 class MemoryInterface(object):
     def __init__(self, host='localhost', port=MEMIF_SERVER_PORT):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -131,6 +167,24 @@ class MemoryInterface(object):
 
     def close(self):
         self.s.close()
+
+class MeteringInterface(object):
+    def __init__(self, host='localhost', port=METER_SOCKET_PORT):
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect((host, port))
+        self.meter_values = None
+        gevent.spawn(self._updater)
+
+    def _updater(self):
+        '''Greenlet that continually gets metering data.'''
+        while True:
+            metering_packet = self.s.recv(METERING_PACKET_SIZE)
+            print "Got metering packet."
+            chunks = [
+                metering_packet[idx:idx+METER_WIDTH_BYTES]
+                for idx in range(0, METERING_PACKET_SIZE, METER_WIDTH_BYTES)]
+            # As far as we're concerned, the chunks are backwards again.
+            self.meter_values = [from_metering_word_as_hex(chunk) for chunk in reversed(chunks)]
 
 memif = MemoryInterface()
 controller = Controller(memif)
