@@ -55,6 +55,12 @@ class Spin(Instruction):
         Instruction.__init__(
             self, sample_addr=spin_amount, param_or_io_addr=0)
     def __repr__(self): return '{}({})'.format(self.__class__.__name__, self.sample_addr)
+class AMac(Instruction):
+    opcode = 8
+    def __init__(self, sample_addr):
+        Instruction.__init__(
+            self, sample_addr=sample_addr, param_or_io_addr=0)
+    def __repr__(self): return '{}({})'.format(self.__class__.__name__, self.sample_addr)
 
 def assemble(instructions, outfile):
     print >>outfile, "DEPTH = 512;"
