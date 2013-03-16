@@ -184,7 +184,8 @@ class MeteringInterface(object):
                 metering_packet[idx:idx+METER_WIDTH_BYTES]
                 for idx in range(0, METERING_PACKET_SIZE, METER_WIDTH_BYTES)]
             # As far as we're concerned, the chunks are backwards again.
-            self.meter_values = [from_metering_word_as_hex(chunk) for chunk in reversed(chunks)]
+            decoded = np.array([from_metering_word_as_hex(chunk) for chunk in reversed(chunks)])
+            self.meter_values = 20 * np.log10(np.sqrt(decoded * 2**8))
 
 memif = MemoryInterface()
 controller = Controller(memif)
