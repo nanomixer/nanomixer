@@ -51,7 +51,7 @@ proc AcceptMeteringConnection { sock addr port} {
 
 proc WriteMeteringData {sock} {
     global metering_instance
-    set metering_data [read_content_from_memory -content_in_hex -instance_index metering_instance -start_address 0 -word_count 8]
+    set metering_data [read_content_from_memory -content_in_hex -instance_index $metering_instance -start_address 0 -word_count 8]
     puts -nonewline $sock $metering_data
     flush $sock
 }
@@ -90,7 +90,7 @@ set meterServerPort 2541
 socket -server AcceptParamServerConnection $paramServerPort
 socket -server AcceptMeteringConnection $meterServerPort
 
-puts "Started Socket Server on port $paramServerPort"
+puts "Started param server on port $paramServerPort and metering server on $meterServerPort."
 vwait forever
 
 end_memory_edit
