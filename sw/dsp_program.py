@@ -1,3 +1,11 @@
+#
+# Sample Memory Layout:
+#
+# [channel biquad state] [metering biquad state]
+#
+# Param Memory Layout:
+# [[channel biquad params] * num_channels] [[mixdown gains]] [[metering biquad params]]
+
 from assembler import Nop, Mul, Mac, RotMac, Store, In, Out, Spin, AMac, assemble
 
 def biquad_program(buf_base, param_base):
@@ -20,7 +28,8 @@ num_channels = 8
 num_biquads = 2
 params_per_biquad = 5
 total_biquad_params = num_biquads * params_per_biquad
-mem_per_channel = (num_biquads+1)*3
+# Each biquad only stores its own input sample values. To leave space for the outputs, we need one additional "biquad" worth of storage.
+mem_per_channel = num_biquads * 3 + 3
 params_per_channel = params_per_biquad*num_biquads
 total_channel_params = params_per_channel * num_channels
 
@@ -37,9 +46,12 @@ HARDWARE_PARAMS = dict(
 
 
 def input_addr_for_biquad(biquad, channel):
+    # Each biquad stores the current and two previous input sample values.
+    # Outputs, and delayed outputs, are considered to belong to the following biquad in sequence.
     return mem_per_channel*channel + 3*biquad
 
 def output_addr_for_biquad(biquad, channel):
+    # Outputs, and delayed outputs, are considered to belong to the following biquad in sequence.
     return input_addr_for_biquad(biquad+1, channel)
 
 def parameter_base_addr_for_biquad(biquad, channel):
