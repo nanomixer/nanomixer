@@ -7,7 +7,6 @@
 # [[channel biquad params] * num_channels] [[mixdown gains]] [metering biquad params] [constants]
 #
 constants = [
-    1.,
     0.,
     2**-8
 ]
