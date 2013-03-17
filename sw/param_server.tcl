@@ -67,7 +67,6 @@ proc IncomingParamData {sock} {
 	set content [read $sock $length]}]} {
 
 	close $sock
-	ClosePort
     } else {
 	setMemContent $mem_name $addr $content
     # Read metering memory contents.
