@@ -141,10 +141,10 @@ always_comb begin
       
       // Execute #2:
       case (ex2_instr.opcode)  // handle accumulator inputs
-         MUL, IN : next_A = M;
-         MAC     : next_A = M + A;
-         ROTMAC  : next_A = M + ring_bus_in;
-         default : next_A = A;
+         MUL, IN   : next_A = M;
+         MAC, AMAC : next_A = M + A;
+         ROTMAC    : next_A = M + ring_bus_in;
+         default   : next_A = A;
       endcase
       
       if (lfsr[0] == 1)
