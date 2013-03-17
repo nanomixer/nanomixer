@@ -94,6 +94,19 @@ def make_mems():
 
 param, sample = make_mems()
 
+
+##
+## Exports
+##
+def parameter_base_addr_for_biquad(channel, biquad):
+    return param.biquad[channel][biquad][0].addr
+
+def address_for_mixdown_gain(core, channel, bus):
+    return param.mixdown_gain[core][channel][bus].addr
+
+constants_base = param.constant[0].addr
+meter_biquad_param_base = param.meter_biquad[0].addr
+
 def addr_for_constant(constant):
     if constant in constants:
         return param.constant[constants.index(constant)]
