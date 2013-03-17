@@ -6,7 +6,10 @@ def bin_(num, width):
     #s = bin(num)[2:]
     #assert len(s) <= width
     #return '0'*(width-len(s)) + s
-    return '{:0{width}b}'.format(num, width=width)
+    s = '{:0{width}b}'.format(num, width=width)
+    if len(s) != width:
+        raise ValueError("Number too wide: %r can't fit in %s bits" % (num, width))
+    return s
 
 class Instruction(object):
     def __init__(self, sample_addr, param_or_io_addr):
