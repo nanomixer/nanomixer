@@ -1,11 +1,4 @@
-#
-# Sample Memory Layout:
-#
-# [[channel biquad state] * num_biquads] * num_channels + [metering biquad state]
-#
-# Param Memory Layout:
-# [[channel biquad params] * num_channels] [[mixdown gains]] [metering biquad params] [constants]
-#
+
 constants = [
     0.,
     2**-8
@@ -23,11 +16,9 @@ def make_biquad_storage():
 def make_biquad_params():
     return BiquadParams._make([Addr() for i in xrange(5)])
 
-def n_addrs(n):
-    return [Addr() for i in xrange(n)]
-
 def biquad_program(input_storage, output_storage, params):
     # See http://www.earlevel.com/main/2003/02/28/biquads/ but note that it has A and B backwards.
+    # Also note that 'a' values are negative relative to the usual formulas.
     # Read the old values first, so that we basically never have to stall the pipeline to wait for xn.
     return [
         Mul(output_storage.xn2, params.a2),
@@ -42,20 +33,10 @@ num_channels = 8
 
 # channel strip
 num_biquads = 2
-params_per_biquad = 5
-total_biquad_params = num_biquads * params_per_biquad
-# Each biquad only stores its own input sample values. To leave space for the outputs,
-# we need additional storage for the output sample and its two delayed values.
-mem_per_channel = 3*num_biquads + 3
-params_per_channel = params_per_biquad*num_biquads
-total_channel_params = params_per_channel * num_channels
 
 # mixdown
 num_cores = 1
 num_busses_per_core = 2
-mixdown_base_address = total_channel_params
-num_mixdown_params_per_core = num_channels*num_busses_per_core
-num_mixdown_params = num_cores * num_mixdown_params_per_core
 sample_mem_per_bus = 0 # for now.
 
 HARDWARE_PARAMS = dict(
