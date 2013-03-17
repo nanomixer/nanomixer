@@ -7,25 +7,36 @@
 # [[channel biquad params] * num_channels] [[mixdown gains]] [metering biquad params] [constants]
 #
 constants = [
+    1.,
     0.,
     2**-8
 ]
 
-from assembler import Nop, Mul, Mac, RotMac, Store, In, Out, Spin, AMac, assemble
+from assembler import Nop, Mul, Mac, RotMac, Store, In, Out, Spin, AMac, assemble, Addr, assign_addresses
+from collections import namedtuple
 
-def biquad_program(buf_base, param_base):
+BiquadStorage = namedtuple('BiquadStorage', 'xn, xn1, xn2')
+BiquadParams = namedtuple('BiquadParams', 'b0, b1, b2, a1, a2')
+
+def make_biquad_storage():
+    return BiquadStorage._make([Addr() for i in xrange(3)])
+
+def make_biquad_params():
+    return BiquadParams._make([Addr() for i in xrange(5)])
+
+def n_addrs(n):
+    return [Addr() for i in xrange(n)]
+
+def biquad_program(input_storage, output_storage, params):
     # See http://www.earlevel.com/main/2003/02/28/biquads/ but note that it has A and B backwards.
-    xn, xn1, xn2, yn, yn1, yn2 = [buf_base+n for n in range(6)]
-    b0, b1, b2, a1, a2, gain = [param_base+n for n in range(6)]
-
     # Read the old values first, so that we basically never have to stall the pipeline to wait for xn.
     return [
-        Mul(yn2, a2),
-        Mac(yn1, a1),
-        Mac(xn2, b2),
-        Mac(xn1, b1),
-        Mac(xn, b0),
-        Store(yn)
+        Mul(output_storage.xn2, params.a2),
+        Mac(output_storage.xn1, params.a1),
+        Mac(input_storage.xn2, params.b2),
+        Mac(input_storage.xn1, params.b1),
+        Mac(input_storage.xn, params.b0),
+        Store(output_storage.xn)
         ]
 
 num_channels = 8
@@ -54,53 +65,39 @@ HARDWARE_PARAMS = dict(
     num_channels_per_core=num_channels,
     num_biquads_per_channel=num_biquads)
 
+meter_outputs = [Addr() for channel in range(num_channels)]
+assign_addresses(meter_outputs, start_address=512)
 
-def input_addr_for_biquad(biquad, channel):
-    # Each biquad stores the current and two previous input sample values.
-    # Outputs, and delayed outputs, are considered to belong to the following biquad in sequence.
-    return mem_per_channel*channel + 3*biquad
+ParamMem = namedtuple('ParamMem', 'biquad mixdown_gain meter_biquad constant')
+SampleMem = namedtuple('SampleMem', 'biquad meter_biquad')
 
-def output_addr_for_biquad(biquad, channel):
-    # Outputs, and delayed outputs, are considered to belong to the following biquad in sequence.
-    return input_addr_for_biquad(biquad+1, channel)
+def make_mems():
+    param = ParamMem(
+        biquad=[
+            [make_biquad_params() for biquad in range(num_biquads)]
+            for channel in range(num_channels)],
+        mixdown_gain=[
+            [[Addr() for channel in range(num_channels)]
+             for bus in range(num_busses_per_core)]
+            for core in range(num_cores)],
+        meter_biquad=make_biquad_params(),
+        constant=[Addr() for i in range(len(constants))])
+    assign_addresses(param, 0)
 
-def parameter_base_addr_for_biquad(biquad, channel):
-    return params_per_channel*channel + params_per_biquad*biquad
+    sample = SampleMem(
+        biquad=[
+            [make_biquad_storage() for biquad in range(num_biquads+1)] # extra biquad for the final output
+            for channel in range(num_channels)],
+        meter_biquad=[[make_biquad_storage() for biquad in range(2)] for channel in range(num_channels)])
+    assign_addresses(sample, 0)
 
-def address_for_mixdown_gain(channel, bus, core):
-    '''returns the parameter memory address for the gain for channel on bus.'''
-    return (mixdown_base_address
-            + core * num_mixdown_params_per_core
-            + num_channels * bus
-            + channel)
+    return param, sample
 
+param, sample = make_mems()
 
-# metering params
-meter_biquad_param_base = mixdown_base_address + num_mixdown_params
-num_meter_biquad_params = 6
-
-# metering storage
-metering_storage_base = num_channels * mem_per_channel + num_busses_per_core * sample_mem_per_bus
-def input_addr_for_channel_metering_biquad(channel):
-    num_biquad_storage_addresses = 6
-    return metering_storage_base + num_biquad_storage_addresses*channel
-
-def output_addr_for_channel_metering_biquad(channel):
-    return input_addr_for_channel_metering_biquad(channel) + 3
-
-# metering output
-meter_out_base = 512
-def meter_out_addr_for_input_channel(channel):
-    return meter_out_base + channel
-
-def meter_out_addr_for_output_bus(bus):
-    return meter_out_base + num_channels + bus
-
-
-constants_base = meter_biquad_param_base + num_meter_biquad_params
 def addr_for_constant(constant):
     if constant in constants:
-        return constants_base + constants.index(constant)
+        return param.constant[constants.index(constant)]
     else:
         raise ValueError("Constant %r not defined" % constant)
 
@@ -109,7 +106,7 @@ program = []
 # Read input into input for the zeroth biquad.
 for channel in range(num_channels):
     program.append(In(io_addr=channel,
-                      dest_sample_addr=input_addr_for_biquad(biquad=0, channel=channel)))
+                      dest_sample_addr=sample.biquad[channel][0].xn))
 
 # Note that with the current pipelining, the read from the first channel may not be done by
 # the time we start running the first channel's biquads; so, let's add a few NOPs for now.
@@ -122,11 +119,12 @@ program.extend([Nop()]*3)
 for biquad in range(num_biquads):
     for channel in range(num_channels):
         program.extend(biquad_program(
-                input_addr_for_biquad(biquad=biquad, channel=channel),
-                parameter_base_addr_for_biquad(biquad=biquad, channel=channel)))
+            input_storage=sample.biquad[channel][biquad],
+            output_storage=sample.biquad[channel][biquad+1],
+            params=param.biquad[channel][biquad]))
 
 def sample_addr_post_channelstrip(channel):
-    return output_addr_for_biquad(biquad=num_biquads-1, channel=channel)
+    return sample.biquad[channel][-1].xn
 
 # Downmix our channels.
 #
@@ -142,14 +140,14 @@ for core in range(num_cores):
                 instr = Mac
             program.append(
                 instr(sample_addr_post_channelstrip(channel),
-                      address_for_mixdown_gain(channel=channel, bus=bus, core=core)))
+                      param.mixdown_gain[core][bus][channel]))
         program.append(Out(bus))
 
 # Meter.
 for channel in range(num_channels):
     # square the channel value
-    channel_value_addr = input_addr_for_biquad(biquad=0, channel=channel)
-    squared_value_addr = input_addr_for_channel_metering_biquad(channel)
+    channel_value_addr = sample.biquad[channel][0].xn
+    squared_value_addr = sample.meter_biquad[channel][0].xn
     program.extend([
         Mul(channel_value_addr, addr_for_constant(2**-8)), # shift down to give room for squaring not to overflow.
         Mul(0, addr_for_constant(0)), # HACK to clear the accumulator. First arg doesn't matter.
@@ -157,10 +155,11 @@ for channel in range(num_channels):
         Store(squared_value_addr)
         ])
     program.extend(biquad_program(
-        squared_value_addr,
-        meter_biquad_param_base))
+        input_storage=sample.meter_biquad[channel][0],
+        output_storage=sample.meter_biquad[channel][1],
+        params=param.meter_biquad))
     # biquad ends with Store(yn), which preserves the accumulator, which currently contains the filtered squared value.
-    program.append(Out(meter_out_addr_for_input_channel(channel)))
+    program.append(Out(meter_outputs[channel]))
 
 
 # Rotate sample memory by one (positive spins shift *data* to higher addresses)

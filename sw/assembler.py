@@ -11,10 +11,30 @@ def bin_(num, width):
         raise ValueError("Number too wide: %r can't fit in %s bits" % (num, width))
     return s
 
+class Addr(object):
+    def __init__(self):
+        self.addr = None
+    def __repr__(self):
+        return str(self.addr)
+
+def assign_addresses(seq, start_address):
+    if hasattr(seq, 'addr'):
+        # Base case: single Addr object.
+        seq.addr = start_address
+        return start_address + 1
+    if hasattr(seq, 'values'):
+        seq = seq.values()
+    for item in seq:
+        start_address = assign_addresses(item, start_address)
+    return start_address
+
+def get_addr(addr):
+    return getattr(addr, 'addr', addr)
+
 class Instruction(object):
     def __init__(self, sample_addr, param_or_io_addr):
-        self.sample_addr = sample_addr
-        self.param_or_io_addr = param_or_io_addr
+        self.sample_addr = get_addr(sample_addr)
+        self.param_or_io_addr = get_addr(param_or_io_addr)
     def __repr__(self):
         return '{}({}, {})'.format(self.__class__.__name__, self.sample_addr, self.param_or_io_addr)
     def assemble(self):
