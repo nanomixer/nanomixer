@@ -26,11 +26,9 @@ def normalize(b, a):
     a = map(float, a)
     return [b[0]/a[0], b[1]/a[0], b[2]/a[0]], [1.0, a[1]/a[0], a[2]/a[0]]
 
-def lowpass(f0, dBgain, **kw):
-    '''Pass either q, bw, or s.'''
-    A = get_pow(dBgain)
+def lowpass(f0, q):
     w0 = f0*twoPiOverFs
-    alpha = get_alpha(w0, A=A, **kw)
+    alpha = get_alpha(w0, q=q)
     cosw0 = cos(w0)
     b = [(1-cosw0)/2,
          1-cosw0,

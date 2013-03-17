@@ -1,12 +1,16 @@
 import numpy as np
-from biquads import normalize, peaking
+from biquads import normalize, peaking, lowpass
 from util import encode_signed_fixedpt_as_hex, decode_signed_fixedpt_from_hex
 from dsp_program import (
     HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain,
-    constants_base, constants)
+    constants_base, constants, meter_biquad_param_base)
 import logging
 
 logger = logging.getLogger(__name__)
+
+METERING_LPF_PARAMS = dict(
+    f0=10.,
+    q=np.sqrt(2.)/2.)
 
 MEMIF_SERVER_PORT = 2540
 METER_SOCKET_PORT = 2541
@@ -47,6 +51,9 @@ def to_param_word_as_hex(x):
 
 def from_metering_word_as_hex(x):
     return decode_signed_fixedpt_from_hex(x, fracbits=METER_FRAC_BITS)
+
+def pack_biquad_coeffs(b, a):
+    return [b[0], b[1], b[2], -a[1], -a[2]]
 
 class MixerState(object):
     def __init__(self, num_cores, num_busses_per_core,
@@ -117,12 +124,10 @@ class Controller(object):
 
     def _update_biquad(self, core, channel, biquad):
         b, a = self.state.get_biquad_coefficients(core, channel, biquad)
-        arr = [b[0], b[1], b[2],
-               -a[1], -a[2]]
         self._set_parameter_memory(
             core=core,
             addr=parameter_base_addr_for_biquad(channel=channel, biquad=biquad),
-            data=arr)
+            data=pack_biquad_coeffs(b, a))
 
     def dump_state_to_mixer(self):
         for core in xrange(HARDWARE_PARAMS['num_cores']):
@@ -137,11 +142,17 @@ class Controller(object):
                 for biquad in xrange(HARDWARE_PARAMS['num_biquads_per_channel']):
                     self._update_biquad(core, channel, biquad)
 
+            # Special metering biquad.
+            self._set_parameter_memory(core=core, addr=meter_biquad_param_base,
+                data=pack_biquad_coeffs(*self.get_metering_biquad_coef()))
             # Update all gains.
             for bus_core in xrange(HARDWARE_PARAMS['num_cores']):
                 for bus_idx in xrange(HARDWARE_PARAMS['num_busses_per_core']):
                     for channel_idx in xrange(HARDWARE_PARAMS['num_channels_per_core']):
                         self._update_gain(bus_core, bus_idx, core, channel_idx)
+
+    def get_metering_biquad_coef(self):
+        return normalize(*lowpass(**METERING_LPF_PARAMS))
 
     def _set_parameter_memory(self, core, addr, data):
         self.memory_interface.set_mem(
