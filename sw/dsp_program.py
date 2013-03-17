@@ -89,7 +89,7 @@ def output_addr_for_channel_metering_biquad(channel):
     return input_addr_for_channel_metering_biquad(channel) + 3
 
 # metering output
-meter_out_base = 1024
+meter_out_base = 512
 def meter_out_addr_for_input_channel(channel):
     return meter_out_base + channel
 
