@@ -19,11 +19,11 @@ METER_SOCKET_PORT = 2541
 PARAM_WIDTH = 36
 PARAM_FRAC_BITS = 30
 METER_WIDTH = 24
-METER_WIDTH_BYTES = METER_WIDTH / 8
+METER_WIDTH_NIBBLES = METER_WIDTH / 4
 METER_FRAC_BITS = 20
 
 METERING_CHANNELS = 8
-METERING_PACKET_SIZE = METERING_CHANNELS * METER_WIDTH_BYTES
+METERING_PACKET_SIZE = METERING_CHANNELS * METER_WIDTH_NIBBLES
 
 core_param_mem_name = ['PM00', 'PM01']
 
@@ -192,8 +192,8 @@ class MeteringInterface(object):
             metering_packet = self.s.recv(METERING_PACKET_SIZE)
             print "Got metering packet."
             chunks = [
-                metering_packet[idx:idx+METER_WIDTH_BYTES]
-                for idx in range(0, METERING_PACKET_SIZE, METER_WIDTH_BYTES)]
+                metering_packet[idx:idx+METER_WIDTH_NIBBLES]
+                for idx in range(0, METERING_PACKET_SIZE, METER_WIDTH_NIBBLES)]
             # As far as we're concerned, the chunks are backwards again.
             decoded = np.array([from_metering_word_as_hex(chunk) for chunk in reversed(chunks)])
             self.meter_values = 20 * np.log10(np.sqrt(decoded * 2**8))
