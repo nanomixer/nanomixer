@@ -1,33 +1,139 @@
-
-constants = [
-    0.,
-    2**-8
-]
+# Throughout, doing things in channel order makes sure that the data for every
+# individual channel will be ready by the time we need it. If a core is ever
+# processing just a single channel, NOTE that this may need to be revised.
 
 from assembler import Nop, Mul, Mac, RotMac, Store, In, Out, Spin, AMac, assemble, Addr, assign_addresses
+from util import flattened, roundrobin
 from collections import namedtuple
 
-BiquadStorage = namedtuple('BiquadStorage', 'xn, xn1, xn2')
-BiquadParams = namedtuple('BiquadParams', 'b0, b1, b2, a1, a2')
 
-def make_biquad_storage():
-    return BiquadStorage._make([Addr() for i in xrange(3)])
+class Component(object):
+    # Components have storage, params, and program.
+    pass
 
-def make_biquad_params():
-    return BiquadParams._make([Addr() for i in xrange(5)])
 
-def biquad_program(input_storage, output_storage, params):
-    # See http://www.earlevel.com/main/2003/02/28/biquads/ but note that it has A and B backwards.
-    # Also note that 'a' values are negative relative to the usual formulas.
-    # Read the old values first, so that we basically never have to stall the pipeline to wait for xn.
-    return [
-        Mul(output_storage.xn2, params.a2),
-        Mac(output_storage.xn1, params.a1),
-        Mac(input_storage.xn2, params.b2),
-        Mac(input_storage.xn1, params.b1),
-        Mac(input_storage.xn, params.b0),
-        Store(output_storage.xn)
-        ]
+class Constants(Component):
+    def __init__(self, constants):
+        self.constants = constants
+        self.storage = []
+        self.params = [Addr() for i in range(len(constants))]
+        self.program = []
+        self.base = self.params[0]
+
+    def addr_for(self, constant):
+        if constant in self.constants:
+            return self.params[self.constants.index(constant)]
+        else:
+            # TODO: add it!
+            raise ValueError("Constant %r not defined" % constant)
+
+
+class Nops(Component):
+    def __init__(self, n):
+        self.storage = self.params = []
+        self.program = [Nop()] * n
+
+class Input(Component):
+    def __init__(self, channel, dest):
+        self.storage = self.params = []
+        self.program = [In(io_addr=channel, dest_sample_addr=dest)]
+
+
+class BiquadChain(Component):
+    Storage = namedtuple('BiquadStorage', 'xn, xn1, xn2')
+    Params = namedtuple('BiquadParams', 'b0, b1, b2, a1, a2')
+
+    def __init__(self, n, params=None):
+        # Params can be passed to share parameter memory.
+        self.storage = [self.make_storage() for i in xrange(n + 1)]
+        self.params = params or [self.make_params() for i in xrange(n)]
+        self.input = self.storage[0].xn
+        self.output = self.storage[-1].xn
+
+        # See http://www.earlevel.com/main/2003/02/28/biquads/ but note that it has A and B backwards.
+        # Also note that 'a' values are negative relative to the usual formulas.
+        # Read the old values first, so that we basically never have to stall the pipeline to wait for xn.
+        program = []
+        for input_storage, output_storage, params in zip(self.storage[:-1], self.storage[1:], self.params):
+            program.append([
+                Mul(output_storage.xn2, params.a2),
+                Mac(output_storage.xn1, params.a1),
+                Mac(input_storage.xn2, params.b2),
+                Mac(input_storage.xn1, params.b1),
+                Mac(input_storage.xn, params.b0),
+                Store(output_storage.xn)
+            ])
+        self.program = program
+
+    @classmethod
+    def make_storage(cls):
+        return cls.Storage._make([Addr() for i in xrange(3)])
+
+    @classmethod
+    def make_params(cls):
+        return cls.Params._make([Addr() for i in xrange(5)])
+
+
+class SingleBiquad(Component):
+    def __init__(self, params=None):
+        self.chain = BiquadChain(1, params=None if params is None else [params])
+        self.input = self.chain.input
+        self.output = self.chain.output
+        self.storage = self.chain.storage
+        self.params = self.chain.params[0]
+        self.program = self.chain.program
+
+
+class RoundRobin(Component):
+    def __init__(self, components):
+        self.params = pluck('params', components)
+        self.storage = pluck('storage', components)
+        program_parts = pluck('program', components)
+        self.program = list(roundrobin(*program_parts))
+
+
+class Downmix(object):
+    storage = []
+
+    def __init__(self, channel_samples):
+        self.gain = [
+            [[Addr() for channel in range(num_channels)]
+             for bus in range(num_busses_per_core)]
+            for core in range(num_cores)]
+        self.params = self.gain
+        program = []
+        # FIXME: I think bus needs to be the outer loop.
+        for core in range(num_cores):
+            for bus in range(num_busses_per_core):
+                for channel in range(num_channels):
+                    if core == 0 and channel == 0:
+                        instr = Mul
+                    elif core != 0 and channel == 0:
+                        instr = RotMac
+                    else:
+                        instr = Mac
+                    program.append(
+                        instr(channel_samples[channel],
+                              self.gain[core][bus][channel]))
+                program.append(Out(bus))
+        self.program = program
+
+
+class Meter(object):
+    def __init__(self, input, output, params):
+        self.biquad = SingleBiquad(params=params)
+        self.storage = self.biquad.storage
+        self.params = self.biquad.params
+        self.output = output
+        self.program = [
+            Mul(input, constants.addr_for(2**-8)), # shift down to give room for squaring not to overflow.
+            Mul(0, constants.addr_for(0)), # HACK to clear the accumulator. First arg doesn't matter.
+            AMac(input),
+            Store(self.biquad.input)
+        ] + self.biquad.program
+        # biquad ends with Store(yn), which preserves the accumulator, which currently contains the filtered squared value.
+        self.program.append(Out(self.output))
+
 
 num_channels = 8
 
@@ -48,118 +154,56 @@ HARDWARE_PARAMS = dict(
 meter_outputs = [Addr() for channel in range(num_channels)]
 assign_addresses(meter_outputs, start_address=512)
 
-ParamMem = namedtuple('ParamMem', 'biquad mixdown_gain meter_biquad constant')
-SampleMem = namedtuple('SampleMem', 'biquad meter_biquad')
+constants = Constants([0., 2**-8])
 
-def make_mems():
-    param = ParamMem(
-        biquad=[
-            [make_biquad_params() for biquad in range(num_biquads)]
-            for channel in range(num_channels)],
-        mixdown_gain=[
-            [[Addr() for channel in range(num_channels)]
-             for bus in range(num_busses_per_core)]
-            for core in range(num_cores)],
-        meter_biquad=make_biquad_params(),
-        constant=[Addr() for i in range(len(constants))])
-    assign_addresses(param, 0)
+class Mixer(Component):
+    def __init__(self):
+        biquads = self.biquads = [BiquadChain(num_biquads) for channel in range(num_channels)]
+        inputs = self.inputs = [Input(channel, biquads[channel].input) for channel in range(num_channels)]
 
-    sample = SampleMem(
-        biquad=[
-            [make_biquad_storage() for biquad in range(num_biquads+1)] # extra biquad for the final output
-            for channel in range(num_channels)],
-        meter_biquad=[[make_biquad_storage() for biquad in range(2)] for channel in range(num_channels)])
-    assign_addresses(sample, 0)
+        # FIXME: will probably become by bus.
+        downmix = self.downmix = Downmix([biquads[channel].output for channel in range(num_channels)])
 
-    return param, sample
+        # Meter.
+        meter_biquad_params = self.meter_biquad_params = BiquadChain.make_params()
+        meters = self.meters = [Meter(biquads[channel].input, meter_outputs[channel], meter_biquad_params) for channel in range(num_channels)]
 
-param, sample = make_mems()
+        components = [inputs, Nops(3), RoundRobin(biquads), downmix, meters, constants]
+        flat_components = list(flattened(components))
+
+        self.program = list(flattened(pluck('program', flat_components)))
+        # Rotate sample memory by one (positive spins shift *data* to higher addresses)
+        self.program.append(Spin(1))
+        self.params = pluck('params', flat_components)
+        self.storage = pluck('storage', flat_components)
+
+
+def pluck(attr, lst):
+    return [getattr(item, attr) for item in lst]
+
+
+mixer = Mixer()
+
+next_param_addr = assign_addresses(mixer.params, 0)
+next_sample_addr = assign_addresses(mixer.storage, 0)
 
 
 ##
 ## Exports
 ##
 def parameter_base_addr_for_biquad(channel, biquad):
-    return param.biquad[channel][biquad][0].addr
+    return mixer.biquads[channel].params[biquad][0].addr
 
 def address_for_mixdown_gain(core, channel, bus):
-    return param.mixdown_gain[core][channel][bus].addr
+    return mixer.downmix.gain[core][channel][bus].addr
 
-constants_base = param.constant[0].addr
-meter_biquad_param_base = param.meter_biquad[0].addr
+constants_base = constants.base
+meter_biquad_param_base = mixer.meter_biquad_params[0].addr
 
-def addr_for_constant(constant):
-    if constant in constants:
-        return param.constant[constants.index(constant)]
-    else:
-        raise ValueError("Constant %r not defined" % constant)
-
-program = []
-
-# Read input into input for the zeroth biquad.
-for channel in range(num_channels):
-    program.append(In(io_addr=channel,
-                      dest_sample_addr=sample.biquad[channel][0].xn))
-
-# Note that with the current pipelining, the read from the first channel may not be done by
-# the time we start running the first channel's biquads; so, let's add a few NOPs for now.
-program.extend([Nop()]*3)
-
-# Filter.
-#
-# Note that doing the biquads in channel-order makes sure we don't data-race
-# against a store from the previous biquad in a given channel.
-for biquad in range(num_biquads):
-    for channel in range(num_channels):
-        program.extend(biquad_program(
-            input_storage=sample.biquad[channel][biquad],
-            output_storage=sample.biquad[channel][biquad+1],
-            params=param.biquad[channel][biquad]))
-
-def sample_addr_post_channelstrip(channel):
-    return sample.biquad[channel][-1].xn
-
-# Downmix our channels.
-#
-# Again, the data will be ready by the time we need it.
-for core in range(num_cores):
-    for bus in range(num_busses_per_core):
-        for channel in range(num_channels):
-            if core == 0 and channel == 0:
-                instr = Mul
-            elif core != 0 and channel == 0:
-                instr = RotMac
-            else:
-                instr = Mac
-            program.append(
-                instr(sample_addr_post_channelstrip(channel),
-                      param.mixdown_gain[core][bus][channel]))
-        program.append(Out(bus))
-
-# Meter.
-for channel in range(num_channels):
-    # square the channel value
-    channel_value_addr = sample.biquad[channel][0].xn
-    squared_value_addr = sample.meter_biquad[channel][0].xn
-    program.extend([
-        Mul(channel_value_addr, addr_for_constant(2**-8)), # shift down to give room for squaring not to overflow.
-        Mul(0, addr_for_constant(0)), # HACK to clear the accumulator. First arg doesn't matter.
-        AMac(channel_value_addr),
-        Store(squared_value_addr)
-        ])
-    program.extend(biquad_program(
-        input_storage=sample.meter_biquad[channel][0],
-        output_storage=sample.meter_biquad[channel][1],
-        params=param.meter_biquad))
-    # biquad ends with Store(yn), which preserves the accumulator, which currently contains the filtered squared value.
-    program.append(Out(meter_outputs[channel]))
-
-
-# Rotate sample memory by one (positive spins shift *data* to higher addresses)
-program.append(Spin(1))
 
 if __name__ == '__main__':
     with open('instr.mif', 'w') as f:
-        assemble(program, f)
+        assemble(mixer.program, f)
 
-    print "Program length:", len(program)
+    print "Program length:", len(mixer.program)
+    print "Used", next_param_addr, "params and", next_sample_addr, "sample memory addresses."

@@ -17,11 +17,16 @@ class Addr(object):
     def __repr__(self):
         return str(self.addr)
 
+
 def assign_addresses(seq, start_address):
     if hasattr(seq, 'addr'):
         # Base case: single Addr object.
-        seq.addr = start_address
-        return start_address + 1
+        if seq.addr is None:
+            seq.addr = start_address
+            return start_address + 1
+        else:
+            # already assigned.
+            return start_address
     if hasattr(seq, 'values'):
         seq = seq.values()
     for item in seq:
@@ -33,16 +38,16 @@ def get_addr(addr):
 
 class Instruction(object):
     def __init__(self, sample_addr, param_or_io_addr):
-        self.sample_addr = get_addr(sample_addr)
-        self.param_or_io_addr = get_addr(param_or_io_addr)
+        self.sample_addr = sample_addr
+        self.param_or_io_addr = param_or_io_addr
     def __repr__(self):
         return '{}({}, {})'.format(self.__class__.__name__, self.sample_addr, self.param_or_io_addr)
     def assemble(self):
         print repr(self)
         return (
             bin_(self.opcode, OPCODE_WIDTH) +
-            bin_(self.sample_addr, SAMPLE_ADDR_WIDTH) +
-            bin_(self.param_or_io_addr, PARAM_ADDR_WIDTH))
+            bin_(get_addr(self.sample_addr), SAMPLE_ADDR_WIDTH) +
+            bin_(get_addr(self.param_or_io_addr), PARAM_ADDR_WIDTH))
 
 class Nop(Instruction):
     opcode = 0
