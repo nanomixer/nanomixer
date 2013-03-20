@@ -27,6 +27,10 @@ METERING_PACKET_SIZE = METERING_CHANNELS * METER_WIDTH_NIBBLES
 
 core_param_mem_name = ['PM00', 'PM01']
 
+MEM_CONFIG = [
+    ['PM00', 1024, np.float64],
+    ['PM01', 1024, np.float64]]
+
 # Channel name -> (core, channel)
 channel_map = {
     '1': (0, 0),
@@ -160,12 +164,49 @@ class Controller(object):
             addr=addr,
             data=data)
 
-import gevent
+class Memory(object):
+    def __init__(self, on_changed, size, dtype=np.float64):
+        self._on_changed = on_changed
+        self.contents = np.zeros(size, dtype=dtype)
+        self.dirty = np.ones(size, dtype=np.bool)
+
+    def __getitem__(self, indices):
+        return self.contents[indices]
+
+    def __setitem__(self, indices, values):
+        self.contents[indices] = values
+        self.dirty[indices] = True
+        self._on_changed()
+
+    def is_dirty(self):
+        return np.any(self.dirty)
+
+    def mark_clean(self, indices=None):
+        if indices is None:
+            self.dirty.fill(False)
+        else:
+            self.dirty[indices] = False
+
+
+import gevent.event
 from gevent import socket
 class MemoryInterface(object):
-    def __init__(self, host='localhost', port=MEMIF_SERVER_PORT):
+    def __init__(self, host='localhost', port=MEMIF_SERVER_PORT, mem_config=MEM_CONFIG):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect((host, port))
+        self.changed_event = gevent.event.Event()
+        self.memories = dict((name, Memory(self.changed_event.set, size, dtype=dtype))
+            for name, size, dtype in mem_config)
+        self.updater_greenlet = gevent.spawn(self._updater)
+
+    def _updater(self):
+        while True:
+            self.changed_event.wait()
+            for name, mem in self.memories.items():
+                if mem.is_dirty():
+                    self.set_mem(name, 0, mem.contents)
+                    mem.mark_clean()
+            self.changed_event.clear()
 
     def set_mem(self, name, addr, data):
         # Quartus strangely requests _words_ in _backwards_ order!
@@ -177,6 +218,7 @@ class MemoryInterface(object):
         self.s.recv(2)
 
     def close(self):
+        # TODO: shutdown updater greenlet
         self.s.close()
 
 class MeteringInterface(object):
