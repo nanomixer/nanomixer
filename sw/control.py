@@ -202,11 +202,14 @@ class MemoryInterface(object):
     def _updater(self):
         while True:
             self.changed_event.wait()
+            # Clear the event before we do anything that could block,
+            # to avoid a race against another greenlet changing memory
+            # while we're blocking. (Getting extra changed events is harmless.)
+            self.changed_event.clear()
             for name, mem in self.memories.items():
                 if mem.is_dirty():
                     self.set_mem(name, 0, mem.contents)
                     mem.mark_clean()
-            self.changed_event.clear()
 
     def set_mem(self, name, addr, data):
         # Quartus strangely requests _words_ in _backwards_ order!
