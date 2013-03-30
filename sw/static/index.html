@@ -8,14 +8,30 @@
 	<meta name="description" content="">
 	<meta name="author" content="">
 
-	<meta name="viewport" content="width=device-width">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 	<link rel="stylesheet" href="css/bootstrap.min.css">
 	<style>
-	body {
-	  padding-top: 60px;
-	  padding-bottom: 40px;
-	}
+.gainView {
+  display: inline-block;
+  border: 1px solid black;
+  position: relative;
+  width: 25px;
+  height: 200px;
+  background: white;
+}
+.gainView .fader {
+  position: absolute;
+  background: gray;
+  width: 23px;
+  height: 25px;
+}
+.gainView .fader .label {
+  background: black;
+  color: white;
+  text-align: right;
+  padding: 2px 0;
+}
 	</style>
 	<link rel="stylesheet" href="css/bootstrap-responsive.min.css">
 	<link rel="stylesheet" href="css/style.css">
@@ -24,26 +40,7 @@
 	<script src="js/libs/modernizr-2.5.3-respond-1.1.0.min.js"></script>
 </head>
 <body>
-    <div class="navbar navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container-fluid">
-          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </a>
-          <a class="brand" href="#">App Title</a>
-          <div class="nav-collapse">
-            <ul class="nav">
-              <li class="active"><a href="#">Home</a></li>
-              <li><a href="#about">About</a></li>
-              <li><a href="#contact">Contact</a></li>
-            </ul>
-          </div><!--/.nav-collapse -->
-        </div>
-      </div>
-    </div>
-
+  <div id="filterbank"></div>
     <div class="container-fluid">
       <div class="row-fluid">
         <div class="span3">Side</div>
@@ -52,12 +49,13 @@
       </div>
     </div> <!-- /container-fluid -->
     <div id="status"></div>
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.js"></script>
-<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.2.js"><\/script>')</script>
-<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.js"></script>
-<script src="https://raw.github.com/brandonaaron/jquery-mousewheel/master/jquery.mousewheel.js"></script>
+<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.9.1.js"><\/script>')</script>
 <script src="js/libs/bootstrap/bootstrap.min.js"></script>
 <script src="js/libs/socket.io.js"></script>
+<script src="js/libs/underscore.js"></script>
+<script src="js/libs/backbone.js"></script>
+<script src="js/libs/d3.v3.js"></script>
 <script src="js/script.js"></script>
 </body>
 </html>
