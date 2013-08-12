@@ -1,7 +1,5 @@
 fader-height = 576px
 fader-width = 50px
-groove-width = 4px
-grip-width = 20px
 name-height = 16px
 
 *
@@ -19,16 +17,16 @@ html, body
     position relative
     .groove
         background #112
-        width groove-width
+        width 4px
         height (fader-height - name-height)
         position absolute
-        left ((fader-width - groove-width) / 2)
+        left ((fader-width - @width) / 2)
 
     .grip
-        width grip-width
+        width 20px
         height 30px
         position absolute
-        left ((fader-width - grip-width) / 2)
+        left ((fader-width - @width) / 2)
 
         // http://www.colorzilla.com/gradient-editor/#959595+0,0d0d0d+46,010101+50,0a0a0a+53,959595+100;Custom
         background: #959595;
