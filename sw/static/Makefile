@@ -23,7 +23,7 @@ css: src/*.styl
 	$(STYLUS) -o build/css "$<"
 
 js: src/*.coffee
-	$(COFFEE) -o build/js "$<"
+	$(COFFEE) -b -o build/js "$<"
 
 jslibs: lib/*
-	cp -a "$<" build/js
+	cp -a lib/* build/js

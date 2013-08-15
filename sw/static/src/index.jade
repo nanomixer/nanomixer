@@ -4,12 +4,14 @@ html
         title test
         meta(name="viewport", content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no")
         script(type='text/javascript', src='js/knockout-3.0.0beta.debug.js')
+        script(type='text/javascript', src='js/d3.v3.js')
+        script(type='text/javascript', src='js/underscore.js')
         link(rel="stylesheet", href="css/main.css")
     body
         #faders(data-bind="foreach: activeBus().faders")
-            .fader
+            .fader(data-bind="fader: level")
                 .groove
-                .grip
+                .grip(data-bind='roundedText: {value: level, digits: 2}')
                 input.name(data-bind="value: name")
 
         script(type='text/javascript', src='js/main.js')
