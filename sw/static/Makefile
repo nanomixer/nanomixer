@@ -20,7 +20,7 @@ html: src/*.jade
 	$(JADE) -o build "$<"
 
 css: src/*.styl
-	$(STYLUS) -o build/css "$<"
+	$(STYLUS) -U -o build/css "$<"
 
 js: src/*.coffee
 	$(COFFEE) -b -o build/js "$<"
