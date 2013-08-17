@@ -18,17 +18,26 @@ cumSum = (arr) ->
     for item in arr
         accum += item
 
+MIN_FADER = -180
+
 faderPositionToDb = d3.scale.linear()
-    .range([-70, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10])
+    .range([MIN_FADER, -80, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10])
 
 faderDomain = (max=1) ->
     scale = max / 60
-    (item * scale for item in cumSum([0, 2.75, 3, 3, 6.75, 6.75, 7.4, 7.4, 7.5, 7.5, 7.6]))
+    (item * scale for item in cumSum([0, 1, 1.75, 3, 3, 6.75, 6.75, 7.4, 7.4, 7.5, 7.5, 7.6]))
 
-ko.bindingHandlers.roundedText = {
+faderLevelToText = (value) ->
+    if value == MIN_FADER
+        '-∞'
+    else 
+        d3.round(value, 1)
+
+ko.bindingHandlers.faderLevelText = {
     update: (element, valueAccessor) ->
-        {value, digits} = valueAccessor()
-        ko.bindingHandlers.text.update(element, -> d3.round(value(), digits))
+        value = valueAccessor()
+        text = faderLevelToText value()
+        ko.bindingHandlers.text.update(element, -> text)
 }
 
 class Channel
@@ -52,6 +61,7 @@ mixer = {channels, buses}
 
 class FaderView
     constructor: (@element, @model) ->
+        @name = @model.name
         @level = @model.level
         @posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain(@grooveHeight))
         @posToPixel = d3.scale.linear()
@@ -65,9 +75,7 @@ class FaderView
         @dragBehavior = d3.behavior.drag()
             .on('drag', @drag)
             .origin( =>
-                y = @posToPixel(@posToDb.invert(@level()))
-                debug 'origin', y
-                {x: 0, y: y})
+                {x: 0, y: @posToPixel(@posToDb.invert(@level()))})
         @grip.call(@dragBehavior)
 
         @resize()
@@ -75,9 +83,7 @@ class FaderView
 
     drag: =>
         y = d3.event.y
-        console.log "y=#{y}"
         newVal = @posToDb(@posToPixel.invert(y))
-        console.log 'drag to', newVal
         @level newVal
 
     resize: ->
@@ -86,15 +92,22 @@ class FaderView
         @posToPixel
             .domain([0, 1])
             .range([@grooveHeight+@gripHeight/2, @gripHeight/2])
-        debug '0 is at', @posToPixel(0)
-        debug '1 is at', @posToPixel(1)
         @setPosition @level()
+
+        scale = @elt.append('svg').attr('class', 'scale')
+            .attr('width', 20)
+            .attr('height', @grooveHeight + @gripHeight)
+            .append('g').attr('transform', 'translate(10, 0)')
+        ticks = scale.selectAll('.ticks').data([MIN_FADER, -80, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10])
+        ticks.enter().append('line').attr('class', 'tick')
+            .attr('x1', -5).attr('x2', 0)
+            .attr('y1', (dB) => @posToPixel(@posToDb.invert(dB)))
+            .attr('y2', (dB) => @posToPixel(@posToDb.invert(dB)))
 
     gripTopForDb: (dB) ->
         Math.round(@posToPixel(@posToDb.invert(dB)) - @gripHeight/2)
 
     setPosition: (dB) ->
-        console.log 'setPosition', dB
         y = @gripTopForDb dB
         @grip.style('top', "#{y}px")
 
@@ -119,7 +132,7 @@ class FaderSection
 
 faderTemplate = """
 <div class="groove"></div>
-<div class="grip" data-bind='roundedText: {value: level, digits: 2}'>
+<div class="grip" data-bind='faderLevelText: level'></div>
 <input class="name" data-bind="value: name">
 """
 
