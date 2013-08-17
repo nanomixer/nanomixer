@@ -94,15 +94,25 @@ class FaderView
             .range([@grooveHeight+@gripHeight/2, @gripHeight/2])
         @setPosition @level()
 
+        @elt.selectAll('svg.scale').remove()
         scale = @elt.append('svg').attr('class', 'scale')
             .attr('width', 20)
             .attr('height', @grooveHeight + @gripHeight)
-            .append('g').attr('transform', 'translate(10, 0)')
-        ticks = scale.selectAll('.ticks').data([MIN_FADER, -80, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10])
-        ticks.enter().append('line').attr('class', 'tick')
-            .attr('x1', -5).attr('x2', 0)
-            .attr('y1', (dB) => @posToPixel(@posToDb.invert(dB)))
-            .attr('y2', (dB) => @posToPixel(@posToDb.invert(dB)))
+            .append('g').attr('transform', 'translate(20, 0)')
+        faderTicks = [MIN_FADER, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10]
+        faderLabels = ['∞', '60', '50', '40', '30', '20', '10', '5', 'U', '5', '10']
+
+        for [dB, label] in _.zip(faderTicks, faderLabels)
+            y = @posToPixel(@posToDb.invert(dB))
+            scale.append('line')
+                .attr('x1', -5).attr('x2', 0)
+                .attr('y1', y).attr('y2', y)
+            scale.append('text')
+                .attr('dy', '.35em')
+                .attr('text-anchor', 'end')
+                .attr('x', -8)
+                .attr('y', y)
+                .text(label)
 
     gripTopForDb: (dB) ->
         Math.round(@posToPixel(@posToDb.invert(dB)) - @gripHeight/2)

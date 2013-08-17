@@ -5,7 +5,7 @@ name-height = 16px
 grip-height = 30px
 
 bg-color = #303030
-text-color = #dbdbdb
+text-color = darken(#dbdbdb, 40)
 
 *
     -moz-box-sizing border-box
@@ -39,10 +39,13 @@ html, body
         background-size: contain // https://developer.mozilla.org/en-US/docs/Web/Guide/CSS/Scaling_background_images
 
     .scale
-        line.tick
+        line
             stroke text-color
-            stroke-width 1px
-            shape-rendering crispEdges
+            stroke-width 1.5px
+        text
+            font-size 10px
+            font-family sans-serif
+            fill text-color
 
     .name
         width fader-width
