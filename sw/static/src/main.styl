@@ -1,6 +1,8 @@
-fader-height = 576px
+//fader-height = 576px
+fader-height = 300px
 fader-width = 50px
 name-height = 16px
+grip-height = 30px
 
 *
     -moz-box-sizing border-box
@@ -18,13 +20,14 @@ html, body
     .groove
         background #334
         width 4px
-        height (fader-height - name-height)
+        height (fader-height - name-height - grip-height)
         position absolute
+        top (grip-height / 2)
         left ((fader-width - @width) / 2)
 
     .grip
         width 20px
-        height 30px
+        height grip-height
         position absolute
         left ((fader-width - @width) / 2)
 

@@ -13,17 +13,17 @@ $(window).resize(_.throttle(->
     winSize.height($window.height())
 , 100))
 
+cumSum = (arr) ->
+    accum = 0
+    for item in arr
+        accum += item
 
-meterLogToLinear = d3.scale.log()
-    .domain([-60, -50, -40, -30, -20, -15, -10, -6,  -1, 0])
-    .range([   0, .05,  .1,  .2,   0,  .5,  .7, .8, .95, 1])
-    .clamp(true)
+faderPositionToDb = d3.scale.linear()
+    .range([-70, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10])
 
-faderLogToLinear = meterLogToLinear
-# faderLogToLinear = d3.scale.log()
-#     .domain([-60, -10, 0])
-#     .range([0, .8, 1])
-#     .clamp(true)
+faderDomain = (max=1) ->
+    scale = max / 60
+    (item * scale for item in cumSum([0, 2.75, 3, 3, 6.75, 6.75, 7.4, 7.4, 7.5, 7.5, 7.6]))
 
 ko.bindingHandlers.roundedText = {
     update: (element, valueAccessor) ->
@@ -53,7 +53,8 @@ mixer = {channels, buses}
 class FaderView
     constructor: (@element, @model) ->
         @level = @model.level
-        @scale = d3.scale.linear().domain([0, 1])
+        @posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain(@grooveHeight))
+        @posToPixel = d3.scale.linear()
         @elt = d3.select(@element)
         @groove = @elt.select('.groove')
         @grip = @elt.select('.grip')
@@ -64,7 +65,7 @@ class FaderView
         @dragBehavior = d3.behavior.drag()
             .on('drag', @drag)
             .origin( =>
-                y = @scale(faderLogToLinear(@level()))
+                y = @posToPixel(@posToDb.invert(@level()))
                 debug 'origin', y
                 {x: 0, y: y})
         @grip.call(@dragBehavior)
@@ -75,21 +76,26 @@ class FaderView
     drag: =>
         y = d3.event.y
         console.log "y=#{y}"
-        newVal = faderLogToLinear.invert(@scale.invert(y))
+        newVal = @posToDb(@posToPixel.invert(y))
         console.log 'drag to', newVal
         @level newVal
 
     resize: ->
         @grooveHeight = $(@groove.node()).height()
         @gripHeight = $(@grip.node()).height()
-
-        @scale.range [@grooveHeight-@gripHeight/2, @gripHeight/2]
-        console.log 'scale range: ', @scale.range()
+        @posToPixel
+            .domain([0, 1])
+            .range([@grooveHeight+@gripHeight/2, @gripHeight/2])
+        debug '0 is at', @posToPixel(0)
+        debug '1 is at', @posToPixel(1)
         @setPosition @level()
 
-    setPosition: (val) ->
-        console.log 'setPosition', val
-        y = Math.round(@scale(faderLogToLinear(val)) - @gripHeight/2)
+    gripTopForDb: (dB) ->
+        Math.round(@posToPixel(@posToDb.invert(dB)) - @gripHeight/2)
+
+    setPosition: (dB) ->
+        console.log 'setPosition', dB
+        y = @gripTopForDb dB
         @grip.style('top', "#{y}px")
 
 
@@ -119,3 +125,5 @@ faderTemplate = """
 
 faderSection = new FaderSection('#faders', mixer)
 ko.applyBindings(faderSection)
+faderSection.setActiveFaders()
+
