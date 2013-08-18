@@ -16,6 +16,7 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport memset
 from os import open, close, O_RDWR
 from posix.ioctl cimport ioctl
+from libc.errno cimport errno
 
 cdef extern from "linux/spi/spidev.h":
     struct spi_ioc_transfer:
@@ -72,6 +73,7 @@ cdef class SpiChannel:
         print 'SPI mode:', self.get_spi_mode()
         print 'Bits per word:', self.get_bits_per_word()
         print 'Max speed: {} Hz ({} kHz)'.format(speed, speed/1000.)
+        print 'LSB first:', self.get_lsb_first()
 
     def set_spi_mode(self, int mode):
         self.mode = mode
@@ -122,5 +124,5 @@ cdef class SpiChannel:
         self.lsb_first = lsb_first
         ret = ioctl(self.fd, SPI_IOC_WR_LSB_FIRST, &self.lsb_first)
         if ret == -1:
-            raise IOError("can't set lsb-first flag")
+            raise IOError("can't set lsb-first flag: " + str(errno))
 
