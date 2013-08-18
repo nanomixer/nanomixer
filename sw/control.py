@@ -159,10 +159,8 @@ class Controller(object):
         return normalize(*lowpass(**METERING_LPF_PARAMS))
 
     def _set_parameter_memory(self, core, addr, data):
-        self.memory_interface.set_mem(
-            name=core_param_mem_name[core],
-            addr=addr,
-            data=data)
+        self.memory_interface.memories[core_param_mem_name[core]][addr] = data
+
 
 class Memory(object):
     def __init__(self, on_changed, size, dtype=np.float64):

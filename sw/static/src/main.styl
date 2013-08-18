@@ -1,0 +1,61 @@
+fader-height = 576px
+fader-width = 60px
+name-height = 16px
+grip-width = 35px
+grip-height = (grip-width * 2)
+
+bg-color = #303030
+text-color = darken(#dbdbdb, 40)
+
+*
+    -moz-box-sizing border-box
+    box-sizing border-box
+
+html, body
+    background bg-color
+    color text-color
+
+.fader
+    float left
+    width fader-width
+    height fader-height
+    position relative
+    .groove
+        background black
+        width 4px
+        height (fader-height - name-height - grip-height)
+        position absolute
+        top (grip-height / 2)
+        left ((fader-width - @width) / 2)
+
+    .grip
+        width grip-width
+        height grip-height
+        position absolute
+        left ((fader-width - @width) / 2)
+
+        background: #897e6c
+        background-image: url('fader.png')
+        background-size: contain // https://developer.mozilla.org/en-US/docs/Web/Guide/CSS/Scaling_background_images
+
+
+    .scale
+        line
+            stroke text-color
+            stroke-width 1.5px
+        text
+            font-size 10px
+            font-family sans-serif
+            fill text-color
+
+    .name
+        width fader-width
+        border 1px inset transparent
+        text-align center
+        position absolute
+        bottom 0
+        background #111
+        color white
+        &:hover
+            border-color white
+
