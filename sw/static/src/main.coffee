@@ -73,6 +73,7 @@ class FaderView
         @setPosition(@level())
 
         @dragBehavior = d3.behavior.drag()
+            .on('dragstart', -> d3.event.sourceEvent.stopPropagation()) # silence other listeners
             .on('drag', @drag)
             .origin( =>
                 {x: 0, y: @posToPixel(@posToDb.invert(@level()))})
@@ -150,3 +151,5 @@ faderSection = new FaderSection('#faders', mixer)
 ko.applyBindings(faderSection)
 faderSection.setActiveFaders()
 
+# Master disable scroll (seems hacky...)
+window.addEventListener('touchmove', (e) -> e.preventDefault())
