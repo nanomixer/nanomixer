@@ -29,7 +29,7 @@ faderDomain = (max=1) ->
 
 faderLevelToText = (value) ->
     if value == MIN_FADER
-        '-∞'
+        '-\u221e'
     else 
         d3.round(value, 1)
 
@@ -100,7 +100,7 @@ class FaderView
             .attr('height', @grooveHeight + @gripHeight)
             .append('g').attr('transform', 'translate(20, 0)')
         faderTicks = [MIN_FADER, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10]
-        faderLabels = ['∞', '60', '50', '40', '30', '20', '10', '5', 'U', '5', '10']
+        faderLabels = ['\u221e', '60', '50', '40', '30', '20', '10', '5', 'U', '5', '10']
 
         for [dB, label] in _.zip(faderTicks, faderLabels)
             y = @posToPixel(@posToDb.invert(dB))
