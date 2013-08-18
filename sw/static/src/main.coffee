@@ -142,7 +142,7 @@ class FaderSection
 
 faderTemplate = """
 <div class="groove"></div>
-<div class="grip" data-bind='faderLevelText: level'></div>
+<div class="grip"></div>
 <input class="name" data-bind="value: name">
 """
 
