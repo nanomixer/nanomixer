@@ -1,8 +1,8 @@
-//fader-height = 576px
-fader-height = 300px
-fader-width = 50px
+fader-height = 576px
+fader-width = 60px
 name-height = 16px
-grip-height = 30px
+grip-width = 35px
+grip-height = (grip-width * 2)
 
 bg-color = #303030
 text-color = darken(#dbdbdb, 40)
@@ -29,7 +29,7 @@ html, body
         left ((fader-width - @width) / 2)
 
     .grip
-        width 20px
+        width grip-width
         height grip-height
         position absolute
         left ((fader-width - @width) / 2)
@@ -37,6 +37,7 @@ html, body
         background: #897e6c
         background-image: url('fader.png')
         background-size: contain // https://developer.mozilla.org/en-US/docs/Web/Guide/CSS/Scaling_background_images
+
 
     .scale
         line
