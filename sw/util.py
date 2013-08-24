@@ -37,8 +37,8 @@ def spi_to_fixeds(x):
     start = 0
     for i in xrange(n_words):
         result[i] = (
-            (bitstring.Bits(bytes=x[start  :start+4]).uintle << 18) +
-             bitstring.Bits(bytes=x[start+4:start+8]).uintle)
+            ((bitstring.Bits(bytes=x[start  :start+4]).uintle & 0x03ff) << 18) +
+             (bitstring.Bits(bytes=x[start+4:start+8]).uintle & 0x03ff))
         start += 8
     return result
 
