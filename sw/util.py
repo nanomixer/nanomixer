@@ -1,20 +1,46 @@
 import itertools
 import bitstring
+import numpy as np
 
 
-def encode_signed_fixedpt_as_hex(x, width, fracbits):
+def floats_to_fixeds(x, fracbits):
+    """Takes a numpy float array and returns a numpy int array of them
+    in fixed point.
+
+    NB: This does not check for overflow!
+    """
     shift = 1 << fracbits
-    as_int = int(x * shift)
-    try:
-        return bitstring.BitArray(int=as_int, length=width).hex
-    except bitstring.CreationError:
-        raise ValueError("Overflow! %s doesn't fit into %d bits with %d frac bits",
-                         x, width, fracbits)
+    return (x * shift).astype(np.uint64)
 
 
-def decode_signed_fixedpt_from_hex(x, fracbits):
+def fixeds_to_floats(x, fracbits):
     shift = 1 << fracbits
-    return float(bitstring.BitArray(hex=x).int) / shift
+    return x.astype(np.float64) / shift
+
+
+def fixeds_to_spi(x):
+    hiwords = (x >> 18) & 0x03ff
+    lowords = x & 0x03ff
+    n_words = len(x)
+    result = np.empty(8 * n_words, dtype=np.uint8)
+    start = 0
+    for i in xrange(n_words):
+        result[start  :start+4] = bitstring.Bits(uintle=hiwords[i], length=32).bytes
+        result[start+4:start+8] = bitstring.Bits(uintle=lowords[i], length=32).bytes
+        start += 8
+    return result
+
+
+def spi_to_fixeds(x):
+    n_words = len(x) / 8
+    result = np.empty(n_words, dtype=np.uint64)
+    start = 0
+    for i in xrange(n_words):
+        result[i] = (
+            (bitstring.Bits(bytes=x[start  :start+4]).uintle << 18) +
+             bitstring.Bits(bytes=x[start+4:start+8]).uintle)
+        start += 8
+    return result
 
 
 def flattened(iterable):
