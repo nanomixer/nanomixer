@@ -89,27 +89,48 @@ end
 
 
 // Memory interface
-logic loadOutput_next;
+logic loadOutput_next, wr_enable_next;
 logic [PACKET_SIZE-1:0] toOutput_next;
-logic [PARAM_WIDTH-1:0] rd_addr_next;
+logic [ADDR_WIDTH-1:0] rd_addr_next, wr_addr_next;
+logic [PARAM_WIDTH-1:0] wr_data_next;
 always_comb begin
     loadOutput_next = '0;
     toOutput_next = toOutput;
     rd_addr_next = rd_addr;
+    wr_addr_next = wr_addr;
+    wr_data_next = '0;
+    wr_enable_next = '0;
     
     if (ssel) begin
         // Reset
-        rd_addr_next = 'b0;
-    end else if (dataReady) begin
-        rd_addr_next = rd_addr + 'b1;
+        rd_addr_next = '0;
+        wr_enable_next = '0;
+        wr_addr_next = '0;
+        // Prepare to read from address 0.
         loadOutput_next = '1;
         toOutput_next = {2'b0, rd_data};
+    end else if (dataReady) begin
+        // Read from memory.
+        rd_addr_next = rd_addr + '1;
+        loadOutput_next = '1;
+        toOutput_next = {2'b0, rd_data};
+        
+        // Write to memory.
+        wr_data_next = inputReg[PARAM_WIDTH-1:0];
+        wr_enable_next = '1;
+    end else if (wr_enable) begin
+        // We wrote to memory last cycle; now advance the address.
+        wr_addr_next = wr_addr + '1;
     end
 end
 
-initial rd_addr = 0;
+initial rd_addr = '0;
+initial wr_enable = '0;
 always_ff @(posedge clk) begin : proc_memif
     rd_addr <= rd_addr_next;
+    wr_enable <= wr_enable_next;
+    wr_addr <= wr_addr_next;
+    wr_data <= wr_data_next;
     loadOutput <= loadOutput_next;
     toOutput <= toOutput_next;
 end
