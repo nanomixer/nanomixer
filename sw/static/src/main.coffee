@@ -185,7 +185,7 @@ class FilterView
         {@freq, @gain, @q} = @model
         @freqElt = d3.select(@element).select('.freq')
         @freqToPixel = d3.scale.log().range([0, 300]).domain([20000, 20]).clamp(true)
-        @gainToPixel = d3.scale.linear().domain([-20, 20]).range([50, -50]).clamp(true)
+        @gainToPixel = d3.scale.linear().domain([-20, 20]).range([200, -200]).clamp(true)
         @qToPixel = d3.scale.linear()
 
 
