@@ -158,19 +158,17 @@ class Filter
         @gain = ko.observable 0
         @q = ko.observable Math.sqrt(2) / 2
 
-{log, exp} = Math
-
 class FilterView
     constructor: (@element, @model) ->
         {@freq, @gain, @q} = @model
         @freqElt = d3.select(@element).select('.freq')
-        pixelToFreq = d3.scale.linear().domain([0, 300]).range([log(20000), log(20)]).clamp(true)
+        freqToPixel = d3.scale.log().range([0, 300]).domain([20000, 20]).clamp(true)
         @dragBehavior = d3.behavior.drag()
             .on('dragstart', -> d3.event.sourceEvent.stopPropagation()) # silence other listeners
             .on('drag', =>
-                @freq exp(pixelToFreq(d3.event.y))
+                @freq freqToPixel.invert(d3.event.y)
             ).origin( =>
-                {x: 0, y: pixelToFreq.invert(log(@freq()))})
+                {x: 0, y: freqToPixel(@freq())})
         @freqElt.call(@dragBehavior)
 
 
