@@ -158,18 +158,31 @@ class Filter
         @gain = ko.observable 0
         @q = ko.observable Math.sqrt(2) / 2
 
+ko.bindingHandlers.dragToAdjust = {
+    init: (element, valueAccesor) ->
+        {value, scale} = valueAccesor()
+
+        dragBehavior = d3.behavior.drag()
+            .on('dragstart', -> d3.event.sourceEvent.stopPropagation()) # silence other listeners
+            .on('drag', =>
+                value scale.invert(d3.event.y)
+            ).origin( =>
+                {x: 0, y: scale(value())})
+        d3.select(element).call(dragBehavior)
+
+    update: (element, valueAccessor) ->
+        {value} = valueAccessor()
+        text = d3.round(value(), 2)
+        ko.bindingHandlers.text.update(element, -> text)
+}
+
 class FilterView
     constructor: (@element, @model) ->
         {@freq, @gain, @q} = @model
         @freqElt = d3.select(@element).select('.freq')
-        freqToPixel = d3.scale.log().range([0, 300]).domain([20000, 20]).clamp(true)
-        @dragBehavior = d3.behavior.drag()
-            .on('dragstart', -> d3.event.sourceEvent.stopPropagation()) # silence other listeners
-            .on('drag', =>
-                @freq freqToPixel.invert(d3.event.y)
-            ).origin( =>
-                {x: 0, y: freqToPixel(@freq())})
-        @freqElt.call(@dragBehavior)
+        @freqToPixel = d3.scale.log().range([0, 300]).domain([20000, 20]).clamp(true)
+        @gainToPixel = d3.scale.linear().domain([-20, 20]).range([50, -50]).clamp(true)
+        @qToPixel = d3.scale.linear()
 
 
 
@@ -197,9 +210,9 @@ class ChannelSection
             sel.exit().remove()#.transition().duration(500).style('opacity', 0).remove()
 
 filterTemplate = """
-<div class="freq" data-bind="text: freq"></div>
-<div class="gain" data-bind="text: gain"></div>
-<div class="q" data-bind="text: q"></div>
+<div class="freq" data-bind="dragToAdjust: {value: freq, scale: freqToPixel}"></div>
+<div class="gain" data-bind="dragToAdjust: {value: gain, scale: gainToPixel}"></div>
+<div class="q" data-bind="dragToAdjust: {value: q, scale: qToPixel}"></div>
 """
 
 channels = (new Channel(ko.observable('Ch'+(i+1))) for i in [0...16])
