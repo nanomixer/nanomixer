@@ -132,11 +132,9 @@ class FaderSection
     setActiveFaders: ->
         faders = @activeBus().faders
         sel = d3.select(@containerSelection).selectAll('.fader').data(faders, (fader) -> ko.unwrap(fader.name))
-        sel.enter().append('div').attr('class', 'fader').html(faderTemplate).each((fader, i) ->
-            console.log 'before', this.__data__
-            this.viewModel = new FaderView(this, fader)
-            ko.applyBindings(this.viewModel, this)
-            console.log 'after', this.__data__
+        sel.enter().append('div').attr('class', 'fader').html(faderTemplate).each((fader) ->
+            @viewModel = new FaderView(this, fader)
+            ko.applyBindings(@viewModel, this)
         )
         sel.exit().transition().duration(500).style('opacity', 0).remove()
     # .each((d, i) -> ko.cleanNode(@))
