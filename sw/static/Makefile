@@ -16,8 +16,8 @@ build:
 clean:
 	rm -rf build
 
-html: src/*.jade
-	$(JADE) -o build "$<"
+html: src/*.html
+	cp "$<" build
 
 css: src/*.styl
 	$(STYLUS) -U -o build/css "$<"
