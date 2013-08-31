@@ -14,6 +14,8 @@
     <div id="faders"></div>
     <div id="channel">
       <h1 data-bind="text: title"></h1>
+      <button data-bind="click: prevChannel, enable: hasPrevChannel">&laquo; Prev</button>
+      <button data-bind="click: nextChannel, enable: hasNextChannel">Next &raquo;</button>
       <div id="eq"></div>
     </div>
     <script type="text/javascript" src="js/main.js"></script>

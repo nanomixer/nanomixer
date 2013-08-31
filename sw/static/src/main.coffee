@@ -201,6 +201,9 @@ class ChannelSection
             return 'No channel' unless @activeChannel()?
             "Channel #{@activeChannelIdx()+1} (#{@activeChannel().name()})"
 
+        @hasPrevChannel = ko.computed => @activeChannelIdx() > 0
+        @hasNextChannel = ko.computed => @activeChannelIdx() < @mixer.channels.length - 2
+
         ko.computed =>
             channel = @activeChannel()
             return unless channel?
@@ -212,6 +215,14 @@ class ChannelSection
                 ko.applyBindings(@viewModel, this)
             )
             sel.exit().remove()#.transition().duration(500).style('opacity', 0).remove()
+
+    prevChannel: ->
+        if @hasPrevChannel()
+            @activeChannelIdx @activeChannelIdx() - 1
+
+    nextChannel: ->
+        if @hasNextChannel()
+            @activeChannelIdx @activeChannelIdx() + 1
 
 filterTemplate = """
 <div class="freq" data-bind="dragToAdjust: {value: freq, scale: freqToPixel}"></div>
