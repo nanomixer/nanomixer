@@ -1,4 +1,6 @@
 @debug = console?.log.bind(console) ? ->
+# Master disable scroll (seems hacky...)
+window.addEventListener('touchmove', (e) -> e.preventDefault())
 
 winSize = {
     width: ko.observable()
@@ -43,6 +45,7 @@ ko.bindingHandlers.faderLevelText = {
 class Channel
     constructor: (@name) ->
         @curLevel = ko.observable Math.random()
+        @eq = new Eq(@)
 
 class Bus
     constructor: (@channels) ->
@@ -52,12 +55,6 @@ class Bus
             level: ko.observable(0)
             pan: ko.observable(0)
             } for channel in channels)
-
-channels = (new Channel(ko.observable('Ch'+(i+1))) for i in [0...16])
-buses = {
-    master: new Bus(channels)
-}
-mixer = {channels, buses}
 
 class FaderView
     constructor: (@element, @model) ->
@@ -145,9 +142,80 @@ faderTemplate = """
 <input class="name" data-bind="value: name">
 """
 
-faderSection = new FaderSection('#faders', mixer)
-ko.applyBindings(faderSection)
-faderSection.setActiveFaders()
 
-# Master disable scroll (seems hacky...)
-window.addEventListener('touchmove', (e) -> e.preventDefault())
+
+
+###### Channel View
+defaultEqFrequencies = [250, 500, 1000, 6000, 12000]
+
+class Eq
+    constructor: (@channel) ->
+        @filters = (new Filter(@, freq) for freq in defaultEqFrequencies)
+
+class Filter
+    constructor: (@eq, freq) ->
+        @freq = ko.observable freq
+        @gain = ko.observable 0
+        @q = ko.observable Math.sqrt(2) / 2
+
+{log, exp} = Math
+
+class FilterView
+    constructor: (@element, @model) ->
+        {@freq, @gain, @q} = @model
+        @freqElt = d3.select(@element).select('.freq')
+        pixelToFreq = d3.scale.linear().domain([0, 300]).range([log(20000), log(20)]).clamp(true)
+        @dragBehavior = d3.behavior.drag()
+            .on('dragstart', -> d3.event.sourceEvent.stopPropagation()) # silence other listeners
+            .on('drag', =>
+                @freq exp(pixelToFreq(d3.event.y))
+            ).origin( =>
+                {x: 0, y: pixelToFreq.invert(log(@freq()))})
+        @freqElt.call(@dragBehavior)
+
+
+
+class ChannelSection
+    constructor: (@containerSelection, @mixer) ->
+        @activeChannelIdx = ko.observable null
+        @activeChannel = ko.computed =>
+            return unless @activeChannelIdx()?
+            @mixer.channels[@activeChannelIdx()]
+
+        @title = ko.computed =>
+            return 'No channel' unless @activeChannel()?
+            "Channel #{@activeChannelIdx()+1} (#{@activeChannel().name()})"
+
+        ko.computed =>
+            channel = @activeChannel()
+            return unless channel?
+            filters = channel.eq.filters
+
+            sel = d3.select(@containerSelection).select('#eq').selectAll('.filter').data(filters, (filter, i) => "#{@activeChannelIdx()}-#{i}")
+            sel.enter().append('div').attr('class', 'filter').html(filterTemplate).each((filter) ->
+                @viewModel = new FilterView(this, filter)
+                ko.applyBindings(@viewModel, this)
+            )
+            sel.exit().remove()#.transition().duration(500).style('opacity', 0).remove()
+
+filterTemplate = """
+<div class="freq" data-bind="text: freq"></div>
+<div class="gain" data-bind="text: gain"></div>
+<div class="q" data-bind="text: q"></div>
+"""
+
+channels = (new Channel(ko.observable('Ch'+(i+1))) for i in [0...16])
+buses = {
+    master: new Bus(channels)
+}
+mixer = {channels, buses}
+
+
+#faderSection = new FaderSection('#faders', mixer)
+#ko.applyBindings(faderSection, document.querySelector('#faders'))
+#faderSection.setActiveFaders()
+
+
+channelSection = new ChannelSection('#channel', mixer)
+ko.applyBindings(channelSection, document.querySelector('#channel'))
+channelSection.activeChannelIdx 0
