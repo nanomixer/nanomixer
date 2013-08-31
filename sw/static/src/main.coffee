@@ -163,9 +163,13 @@ ko.bindingHandlers.dragToAdjust = {
         {value, scale} = valueAccesor()
 
         dragBehavior = d3.behavior.drag()
-            .on('dragstart', -> d3.event.sourceEvent.stopPropagation()) # silence other listeners
-            .on('drag', =>
+            .on('dragstart', ->
+                d3.event.sourceEvent.stopPropagation() # silence other listeners
+                d3.select(element).classed("adjusting", true)
+            ).on('drag', =>
                 value scale.invert(d3.event.y)
+            ).on('dragend', ->
+                d3.select(element).classed("adjusting", false)
             ).origin( =>
                 {x: 0, y: scale(value())})
         d3.select(element).call(dragBehavior)
