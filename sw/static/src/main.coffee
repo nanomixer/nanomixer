@@ -43,14 +43,14 @@ ko.bindingHandlers.faderLevelText = {
 }
 
 class Channel
-    constructor: (@name) ->
+    constructor: (@idx, @name) ->
+        @name = ko.observable "Ch#{@idx + 1}" unless @name?
         @curLevel = ko.observable Math.random()
         @eq = new Eq(@)
 
 class Bus
     constructor: (@channels) ->
         @faders = ({
-            name: channel.name
             channel: channel
             level: ko.observable(0)
             pan: ko.observable(0)
@@ -128,7 +128,7 @@ class FaderSection
 
     setActiveFaders: ->
         faders = @activeBus().faders
-        sel = d3.select(@containerSelection).selectAll('.fader').data(faders, (fader) -> ko.unwrap(fader.name))
+        sel = d3.select(@containerSelection).selectAll('.fader').data(faders, (fader) -> ko.unwrap(fader.channel.idx))
         sel.enter().append('div').attr('class', 'fader').html(faderTemplate).each((fader) ->
             @viewModel = new FaderView(this, fader)
             ko.applyBindings(@viewModel, this)
@@ -139,7 +139,7 @@ class FaderSection
 faderTemplate = """
 <div class="groove"></div>
 <div class="grip"></div>
-<input class="name" data-bind="value: name">
+<input class="name" data-bind="value: channel.name">
 """
 
 
@@ -206,7 +206,7 @@ class ChannelSection
             return unless channel?
             filters = channel.eq.filters
 
-            sel = d3.select(@containerSelection).select('#eq').selectAll('.filter').data(filters, (filter, i) => "#{@activeChannelIdx()}-#{i}")
+            sel = d3.select(@containerSelection).select('#eq').selectAll('.filter').data(filters, (filter, i) => "#{filter.eq.channel.idx}-#{i}")
             sel.enter().append('div').attr('class', 'filter').html(filterTemplate).each((filter) ->
                 @viewModel = new FilterView(this, filter)
                 ko.applyBindings(@viewModel, this)
@@ -219,7 +219,7 @@ filterTemplate = """
 <div class="q" data-bind="dragToAdjust: {value: q, scale: qToPixel}"></div>
 """
 
-channels = (new Channel(ko.observable('Ch'+(i+1))) for i in [0...16])
+channels = (new Channel(i) for i in [0...16])
 buses = {
     master: new Bus(channels)
 }
