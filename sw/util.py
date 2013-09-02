@@ -25,8 +25,10 @@ def fixeds_to_spi(x):
     result = np.empty(8 * n_words, dtype=np.uint8)
     start = 0
     for i in xrange(n_words):
-        result[start  :start+4] = bitstring.Bits(uintle=hiwords[i], length=32).bytes
-        result[start+4:start+8] = bitstring.Bits(uintle=lowords[i], length=32).bytes
+        result[start  :start+4] = np.fromstring(
+            bitstring.Bits(uintle=hiwords[i], length=32).bytes, dtype=np.uint8)
+        result[start+4:start+8] = np.fromstring(
+            bitstring.Bits(uintle=lowords[i], length=32).bytes, dtype=np.uint8)
         start += 8
     return result
 
