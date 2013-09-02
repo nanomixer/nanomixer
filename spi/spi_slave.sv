@@ -17,7 +17,10 @@ module spi_slave #(
     // Memory write port
     output logic[ADDR_WIDTH-1:0] wr_addr,
     output logic[PARAM_WIDTH-1:0] wr_data,
-    output logic wr_enable
+    output logic wr_enable,
+
+    // Status
+    output wire valid;
 );
 localparam PACKET_SIZE = PARAM_WIDTH + 4;
 localparam COUNT_WIDTH = $clog2(PACKET_SIZE + 1);
@@ -89,7 +92,7 @@ end
 
 
 // Memory interface
-logic loadOutput_next, wr_enable_next;
+logic loadOutput_next, wr_enable_next, valid_next;
 logic [PACKET_SIZE-1:0] toOutput_next;
 logic [ADDR_WIDTH-1:0] rd_addr_next, wr_addr_next;
 logic [PARAM_WIDTH-1:0] wr_data_next;
@@ -100,7 +103,8 @@ always_comb begin
     wr_addr_next = wr_addr;
     wr_data_next = '0;
     wr_enable_next = '0;
-    
+    valid_next = valid;
+
     if (ssel) begin
         // Reset
         rd_addr_next = '0;
@@ -108,16 +112,21 @@ always_comb begin
         wr_addr_next = '0;
         // Prepare to read from address 0.
         loadOutput_next = '1;
-        toOutput_next = {2'b0, rd_data};
+        toOutput_next = {2'b01, rd_data[35:18], 2'b10, rd_data[17:0]}; // FIXME: hardcoded.
     end else if (dataReady) begin
         // Read from memory.
         rd_addr_next = rd_addr + '1;
         loadOutput_next = '1;
-        toOutput_next = {2'b0, rd_data};
-        
+        toOutput_next = {2'b01, rd_data[35:18], 2'b10, rd_data[17:0]}; // FIXME: hardcoded.
+
         // Write to memory.
-        wr_data_next = inputReg[PARAM_WIDTH-1:0];
-        wr_enable_next = '1;
+        valid_next = (
+            inputReg[39:38] == 2'b01 &&
+            inputReg[19:18] == 2'b10)
+        if (valid_next) begin
+            wr_data_next = {inputReg[37:20], inputReg[17:0]};
+            wr_enable_next = '1;
+        end
     end else if (wr_enable) begin
         // We wrote to memory last cycle; now advance the address.
         wr_addr_next = wr_addr + '1;
@@ -133,6 +142,7 @@ always_ff @(posedge clk) begin : proc_memif
     wr_data <= wr_data_next;
     loadOutput <= loadOutput_next;
     toOutput <= toOutput_next;
+    valid <= valid_next;
 end
 
 endmodule
