@@ -45,6 +45,12 @@ def spi_to_fixeds(x):
     return result
 
 
+def test_spi_roundtrip(n=1000):
+    x = np.random.randint(2**36-1, size=n)
+    y = spi_to_fixeds(fixeds_to_spi(x))
+    assert np.all(x==y)
+
+
 def flattened(iterable):
     iterable = iter(iterable)
     while True:
