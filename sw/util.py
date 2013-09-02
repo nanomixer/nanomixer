@@ -19,8 +19,8 @@ def fixeds_to_floats(x, fracbits):
 
 
 def fixeds_to_spi(x):
-    hiwords = (x >> 18) & 0x03ffff
-    lowords = x & 0x03ffff
+    hiwords = ((x >> 18) & 0x03ffff) | 0x40000 # prepend 2'b01
+    lowords = (x & 0x03ffff) | 0x80000 # prepend 2'b10
     n_words = len(x)
     result = np.empty(8 * n_words, dtype=np.uint8)
     start = 0
