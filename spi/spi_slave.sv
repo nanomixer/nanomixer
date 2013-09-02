@@ -3,13 +3,13 @@ module spi_slave #(
     ADDR_WIDTH = 8
 ) (
 	input wire clk,
-    
+
     // SPI port
 	input wire spi_SCLK, // spi clock
 	input wire spi_SSEL, // spi slave select
 	input wire spi_MOSI, // data in
 	output logic spi_MISO, // data out
-    
+
     // Memory read port
     output logic[ADDR_WIDTH-1:0] rd_addr,
     input logic[PARAM_WIDTH-1:0] rd_data,
