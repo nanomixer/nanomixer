@@ -19,8 +19,8 @@ def fixeds_to_floats(x, fracbits):
 
 
 def fixeds_to_spi(x):
-    hiwords = (x >> 18) & 0x03ff
-    lowords = x & 0x03ff
+    hiwords = (x >> 18) & 0x03ffff
+    lowords = x & 0x03ffff
     n_words = len(x)
     result = np.empty(8 * n_words, dtype=np.uint8)
     start = 0
@@ -39,8 +39,8 @@ def spi_to_fixeds(x):
     start = 0
     for i in xrange(n_words):
         result[i] = (
-            ((bitstring.Bits(bytes=x[start  :start+4]).uintle & 0x03ff) << 18) +
-             (bitstring.Bits(bytes=x[start+4:start+8]).uintle & 0x03ff))
+            ((bitstring.Bits(bytes=x[start  :start+4]).uintle & 0x03ffff) << 18) +
+             (bitstring.Bits(bytes=x[start+4:start+8]).uintle & 0x03ffff))
         start += 8
     return result
 
