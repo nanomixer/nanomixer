@@ -154,6 +154,7 @@ class IOThread(threading.Thread):
     def __init__(self, param_mem_size, spi_device):
         threading.Thread.__init__(self, name='IOThread')
         self._param_mem_contents = np.zeros(param_mem_size, np.float64)
+        self._meter_revision = -1
         self._write_queue = collections.deque()
         self._spi = spidev.SpiChannel(spi_device, bits_per_word=20)
 
@@ -186,6 +187,11 @@ class IOThread(threading.Thread):
 
             # self.meter_values = 20 * np.log10(np.sqrt(decoded * 2**8))
 
-iothread = IOThread(param_mem_size=2048)
-iothread.start()
-controller = Controller(iothread)
+
+def pack_meter_packet(meter_data):
+    return {'channels', meter_data[:METERING_CHANNELS].tolist()}
+
+
+io_thread = IOThread(param_mem_size=2048)
+io_thread.start()
+controller = Controller(io_thread)
