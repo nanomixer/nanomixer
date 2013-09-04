@@ -1,6 +1,6 @@
 import numpy as np
 from biquads import normalize, peaking, lowpass
-from util import encode_signed_fixedpt_as_hex, decode_signed_fixedpt_from_hex
+from util import fixeds_to_spi, spi_to_fixeds, fixeds_to_floats, floats_to_fixeds
 from dsp_program import (
     HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain,
     constants_base, constants, meter_biquad_param_base)
@@ -12,49 +12,34 @@ METERING_LPF_PARAMS = dict(
     f0=10.,
     q=np.sqrt(2.)/2.)
 
-MEMIF_SERVER_PORT = 2540
-METER_SOCKET_PORT = 2541
-
 # Number formats
 PARAM_WIDTH = 36
 PARAM_FRAC_BITS = 30
 METER_WIDTH = 24
 METER_WIDTH_NIBBLES = METER_WIDTH / 4
 METER_FRAC_BITS = 20
+WORDS_PER_CORE = 1024 # FIXME !
 
+# I don't think these are used.
 METERING_CHANNELS = 8
 METERING_PACKET_SIZE = METERING_CHANNELS * METER_WIDTH_NIBBLES
 
-core_param_mem_name = ['PM00', 'PM01']
-
-MEM_CONFIG = [
-    ['PM00', 1024, np.float64],
-    ['PM01', 1024, np.float64]]
-
 # Channel name -> (core, channel)
 channel_map = {
-    '1': (0, 0),
-    '2': (0, 1),
-    '3': (0, 2),
-    '4': (0, 3),
-    '5': (0, 4),
-    '6': (0, 5),
-    '7': (0, 6),
-    '8': (0, 7),
+    0: (0, 0),
+    1: (0, 1),
+    2: (0, 2),
+    3: (0, 3),
+    4: (0, 4),
+    5: (0, 5),
+    6: (0, 6),
+    7: (0, 7),
 }
 
 bus_map = {
-    'L': (0, 0),
-    'R': (0, 1)
+    0: (0, 0),
+    1: (0, 1)
 }
-
-
-def to_param_word_as_hex(x):
-    return encode_signed_fixedpt_as_hex(
-        x, width=PARAM_WIDTH, fracbits=PARAM_FRAC_BITS)
-
-def from_metering_word_as_hex(x):
-    return decode_signed_fixedpt_from_hex(x, fracbits=METER_FRAC_BITS)
 
 def pack_biquad_coeffs(b, a):
     return [b[0], b[1], b[2], -a[1], -a[2]]
@@ -87,9 +72,9 @@ class MixerState(object):
 
 
 class Controller(object):
-    def __init__(self, memory_interface):
+    def __init__(self, io_thread):
         self.state = MixerState(**HARDWARE_PARAMS)
-        self.memory_interface = memory_interface
+        self.io_thread = io_thread
 
     def handle_message(self, message, args):
         logger.info('handle_message(%r, %r)', message, args)
@@ -159,87 +144,48 @@ class Controller(object):
         return normalize(*lowpass(**METERING_LPF_PARAMS))
 
     def _set_parameter_memory(self, core, addr, data):
-        self.memory_interface.memories[core_param_mem_name[core]][addr] = data
+        self.io_thread.memories[core * WORDS_PER_CORE + addr] = data
 
 
-class Memory(object):
-    def __init__(self, on_changed, size, dtype=np.float64):
-        self._on_changed = on_changed
-        self.contents = np.zeros(size, dtype=dtype)
-        self.dirty = np.ones(size, dtype=np.bool)
+import threading
+import collections
+import spidev
+class IOThread(threading.Thread):
+    def __init__(self, param_mem_size, spi_device):
+        threading.Thread.__init__(self, name='IOThread')
+        self._param_mem_contents = np.zeros(param_mem_size, np.float64)
+        self._write_queue = collections.deque()
+        self._spi = spidev.SpiChannel(spi_device, bits_per_word=20)
 
-    def __getitem__(self, indices):
-        return self.contents[indices]
+    def __setitem__(self, addr, data):
+        self._write_queue.append((addr, data))
 
-    def __setitem__(self, indices, values):
-        self.contents[indices] = values
-        self.dirty[indices] = True
-        self._on_changed()
+    def get_meter(self):
+        return self._meter_mem_contents
 
-    def is_dirty(self):
-        return np.any(self.dirty)
-
-    def mark_clean(self, indices=None):
-        if indices is None:
-            self.dirty.fill(False)
-        else:
-            self.dirty[indices] = False
-
-
-import gevent.event
-from gevent import socket
-class MemoryInterface(object):
-    def __init__(self, host='localhost', port=MEMIF_SERVER_PORT, mem_config=MEM_CONFIG):
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.connect((host, port))
-        self.changed_event = gevent.event.Event()
-        self.memories = dict((name, Memory(self.changed_event.set, size, dtype=dtype))
-            for name, size, dtype in mem_config)
-        self.updater_greenlet = gevent.spawn(self._updater)
-
-    def _updater(self):
+    def run(self):
+        logger.info('IO thread started')
         while True:
-            self.changed_event.wait()
-            # Clear the event before we do anything that could block,
-            # to avoid a race against another greenlet changing memory
-            # while we're blocking. (Getting extra changed events is harmless.)
-            self.changed_event.clear()
-            for name, mem in self.memories.items():
-                if mem.is_dirty():
-                    self.set_mem(name, 0, mem.contents)
-                    mem.mark_clean()
+            # Handle queued memory modifications
+            while True:
+                try:
+                    item = self._write_queue.popleft()
+                except IndexError:
+                    continue
+                else:
+                    addr, data = item
+                    self._param_mem_contents[addr] = data
 
-    def set_mem(self, name, addr, data):
-        # Quartus strangely requests _words_ in _backwards_ order!
-        content = list(reversed(data))
-        content = ''.join(to_param_word_as_hex(data) for data in content)
-        self.s.send(
-            '{:4s}{:<10d}{:<10d}{}'.format(name, addr, len(content), content))
-        # Wait for confirmation.
-        self.s.recv(2)
+            # Do an SPI send-recv.
+            data = fixeds_to_spi(floats_to_fixeds(self._param_mem_contents, PARAM_FRAC_BITS))
+            meter = self._spi.transfer(data)
+            self._meter_revision += 1
 
-    def close(self):
-        # TODO: shutdown updater greenlet
-        self.s.close()
+            self._meter_mem_contents = (
+                self._meter_revision, fixeds_to_floats(spi_to_fixeds(meter), METER_FRAC_BITS))
 
-class MeteringInterface(object):
-    def __init__(self, host='localhost', port=METER_SOCKET_PORT):
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.connect((host, port))
-        self.meter_values = None
-        gevent.spawn(self._updater)
+            # self.meter_values = 20 * np.log10(np.sqrt(decoded * 2**8))
 
-    def _updater(self):
-        '''Greenlet that continually gets metering data.'''
-        while True:
-            metering_packet = self.s.recv(METERING_PACKET_SIZE)
-            print "Got metering packet."
-            chunks = [
-                metering_packet[idx:idx+METER_WIDTH_NIBBLES]
-                for idx in range(0, METERING_PACKET_SIZE, METER_WIDTH_NIBBLES)]
-            # As far as we're concerned, the chunks are backwards again.
-            decoded = np.array([from_metering_word_as_hex(chunk) for chunk in reversed(chunks)])
-            self.meter_values = 20 * np.log10(np.sqrt(decoded * 2**8))
-
-memif = MemoryInterface()
-controller = Controller(memif)
+iothread = IOThread(param_mem_size=2048)
+iothread.start()
+controller = Controller(iothread)
