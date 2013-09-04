@@ -180,14 +180,31 @@ ko.bindingHandlers.dragToAdjust = {
         ko.bindingHandlers.text.update(element, -> text)
 }
 
+wrapModelObservable = (model, name) ->
+    ko.computed {
+        read: ->
+            model()[name]()
+        write: (value) ->
+            model()[name](value)
+    }
+
+wrapModelObservables = (viewModel, model, names) ->
+    for name in names
+        viewModel[name] = wrapModelObservable model, name
+
 class FilterView
     constructor: (@element, @model) ->
-        {@freq, @gain, @q} = @model
+        debug 'new FilterView'
+        @_observables = wrapModelObservables @, @model, ['freq', 'gain', 'q']
         @freqElt = d3.select(@element).select('.freq')
         @freqToPixel = d3.scale.log().range([0, 300]).domain([20000, 20]).clamp(true)
         @gainToPixel = d3.scale.linear().domain([-20, 20]).range([200, -200]).clamp(true)
         @qToPixel = d3.scale.linear()
 
+    dispose: ->
+        for observable in @_observables
+            observable.dispose()
+        ko.cleanNode(@element)
 
 
 class ChannelSection
@@ -209,12 +226,14 @@ class ChannelSection
             return unless channel?
             filters = channel.eq.filters
 
-            sel = d3.select(@containerSelection).select('#eq').selectAll('.filter').data(filters, (filter, i) => "#{filter.eq.channel.idx}-#{i}")
+            sel = d3.select(@containerSelection).select('#eq').selectAll('.filter').data(filters)
+            sel.each((d) -> @viewModel.model(d))
             sel.enter().append('div').attr('class', 'filter').html(filterTemplate).each((filter) ->
-                @viewModel = new FilterView(this, filter)
+                model = ko.observable filter
+                @viewModel = new FilterView(this, model)
                 ko.applyBindings(@viewModel, this)
             )
-            sel.exit().remove()#.transition().duration(500).style('opacity', 0).remove()
+            sel.exit().each((d) -> @viewModel.dispose()).transition().duration(500).style('opacity', 0).remove()
 
     prevChannel: ->
         if @hasPrevChannel()
