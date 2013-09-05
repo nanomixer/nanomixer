@@ -3,9 +3,9 @@ module spi_serdes #(
 ) (
     input wire clk,
 
-    input logic [PACKET_WIDTH-1:0] toOutput,
-    input logic loadOutput,
-    output logic [PACKET_WIDTH-1:0] inputReg,
+    input logic [PACKET_WIDTH-1:0] txData,
+    input logic load,
+    output logic [PACKET_WIDTH-1:0] rxShiftReg,
     output logic dataReady,
     
     // SPI port
@@ -32,21 +32,21 @@ always_comb begin : proc_clkedges
 end
 
 logic [COUNT_WIDTH-1:0] bitsRemaining, bitsRemaining_next;
-logic [PACKET_WIDTH-1:0] inputReg_next, outputReg, outputReg_next;
+logic [PACKET_WIDTH-1:0] rxShiftReg_next, txShiftReg, txShiftReg_next;
 logic dataReady_next;
 always_comb begin
-    spi_MISO = outputReg[PACKET_WIDTH-1];
+    spi_MISO = txShiftReg[PACKET_WIDTH-1];
 
     // defaults (no latches!)
     dataReady_next = '0;
     bitsRemaining_next = bitsRemaining;
-    inputReg_next = inputReg;
-    outputReg_next = outputReg;
+    rxShiftReg_next = rxShiftReg;
+    txShiftReg_next = txShiftReg;
 
     if (sclk_posedge) begin
         // shift out.
-        inputReg_next = {inputReg[PACKET_WIDTH-2:0], mosi};
-        outputReg_next = outputReg << 1;
+        rxShiftReg_next = {rxShiftReg[PACKET_WIDTH-2:0], mosi};
+        txShiftReg_next = txShiftReg << 1;
         dataReady_next = '0;
     end else if (sclk_negedge) begin
         // read in.
@@ -58,8 +58,8 @@ always_comb begin
         end
     end
 
-    if (loadOutput) begin
-        outputReg_next = toOutput;
+    if (load) begin
+        txShiftReg_next = txData;
     end
 end
 
@@ -68,13 +68,13 @@ always_ff@(posedge clk or posedge ssel) begin
     if (ssel) begin
         // reset.
         bitsRemaining_next = PACKET_WIDTH-1;
-        inputReg_next = '0;
-        outputReg_next = '0;
+        rxShiftReg_next = '0;
+        txShiftReg_next = '0;
         dataReady_next = '0;
     end else begin
         bitsRemaining <= bitsRemaining_next;
-        inputReg <= inputReg_next;
-        outputReg <= outputReg_next;
+        rxShiftReg <= rxShiftReg_next;
+        txShiftReg <= txShiftReg_next;
         dataReady <= dataReady_next;
     end
 end
