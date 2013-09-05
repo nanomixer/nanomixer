@@ -12,8 +12,12 @@ class Resource(BaseNamespace, BroadcastMixin):
         super(Resource, self).disconnect(*a, **kw)
 
     def on_control(self, message, params):
-        controller.handle_message(message, params)
+        for cmd, args in params['commands']:
+            controller.handle_message(cmd, args)
+
+        response = dict(seq=params['seq'])
         rev, meter = io_thread.get_meter()
         if rev > self.last_meter_sent:
+            response['meter'] = pack_meter_packet(rev, meter)
             self.last_meter_sent = rev
-            self.emit('meter', pack_meter_packet(meter))
+        self.emit('response', response)

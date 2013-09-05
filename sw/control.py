@@ -188,8 +188,10 @@ class IOThread(threading.Thread):
             # self.meter_values = 20 * np.log10(np.sqrt(decoded * 2**8))
 
 
-def pack_meter_packet(meter_data):
-    return {'channels', meter_data[:METERING_CHANNELS].tolist()}
+def pack_meter_packet(rev, meter_data):
+    return dict(
+        channels=meter_data[:METERING_CHANNELS].tolist(),
+        rev=rev)
 
 
 io_thread = IOThread(param_mem_size=2048)
