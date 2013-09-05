@@ -1,14 +1,14 @@
 module spi_slave #(
-	PARAM_WIDTH = 36,
+    PARAM_WIDTH = 36,
     ADDR_WIDTH = 8
 ) (
-	input wire clk,
+    input wire clk,
 
     // SPI port
-	input wire spi_SCLK, // spi clock
-	input wire spi_SSEL, // spi slave select
-	input wire spi_MOSI, // data in
-	output logic spi_MISO, // data out
+    input wire spi_SCLK, // spi clock
+    input wire spi_SSEL, // spi slave select
+    input wire spi_MOSI, // data in
+    output logic spi_MISO, // data out
 
     // Memory read port
     output logic[ADDR_WIDTH-1:0] rd_addr,
@@ -36,36 +36,36 @@ logic prev_sclk;
 logic sclk_posedge, sclk_negedge;
 
 always_comb begin : proc_clkedges
-	sclk_posedge = sclk & ~prev_sclk;
-	sclk_negedge = ~sclk & prev_sclk;
+    sclk_posedge = sclk & ~prev_sclk;
+    sclk_negedge = ~sclk & prev_sclk;
 end
 
 logic [COUNT_WIDTH-1:0] bitsRemaining, bitsRemaining_next;
 logic [PACKET_SIZE-1:0] inputReg, inputReg_next, outputReg, outputReg_next, toOutput;
 logic loadOutput, dataReady, dataReady_next;
 always_comb begin : proc_serdes
-	spi_MISO = outputReg[PACKET_SIZE-1];
+    spi_MISO = outputReg[PACKET_SIZE-1];
 
-	// defaults (no latches!)
+    // defaults (no latches!)
     dataReady_next = '0;
-	bitsRemaining_next = bitsRemaining;
-	inputReg_next = inputReg;
-	outputReg_next = outputReg;
+    bitsRemaining_next = bitsRemaining;
+    inputReg_next = inputReg;
+    outputReg_next = outputReg;
 
     if (sclk_posedge) begin
-		// shift out.
-		inputReg_next = {inputReg[PACKET_SIZE-2:0], mosi};
-		outputReg_next = outputReg << 1;
+        // shift out.
+        inputReg_next = {inputReg[PACKET_SIZE-2:0], mosi};
+        outputReg_next = outputReg << 1;
         dataReady_next = '0;
-	end else if (sclk_negedge) begin
-		// read in.
-		if (bitsRemaining) begin
-			bitsRemaining_next = bitsRemaining_next - 1;
-		end else begin
-			bitsRemaining_next = PACKET_SIZE-1;
+    end else if (sclk_negedge) begin
+        // read in.
+        if (bitsRemaining) begin
+            bitsRemaining_next = bitsRemaining_next - 1;
+        end else begin
+            bitsRemaining_next = PACKET_SIZE-1;
             dataReady_next = '1;
-		end
-	end
+        end
+    end
 
     if (loadOutput) begin
         outputReg_next = toOutput;
@@ -74,13 +74,13 @@ end
 
 always_ff@(posedge clk or posedge ssel) begin : proc_ff
     prev_sclk <= sclk;
-	if (ssel) begin
-		// reset.
-		bitsRemaining_next = PACKET_SIZE-1;
-		inputReg_next = '0;
-		outputReg_next = '0;
+    if (ssel) begin
+        // reset.
+        bitsRemaining_next = PACKET_SIZE-1;
+        inputReg_next = '0;
+        outputReg_next = '0;
         dataReady_next = '0;
-	end else begin
+    end else begin
         bitsRemaining <= bitsRemaining_next;
         inputReg <= inputReg_next;
         outputReg <= outputReg_next;
