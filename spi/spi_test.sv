@@ -23,7 +23,6 @@ wire sclk_posedge = u1.sclk_posedge, sclk_negedge=u1.sclk_negedge;
 
 logic [WORD_WIDTH-1:0] miso_buf;
 
-// board-omap3beagle.c configures McSPI to be in Mode 1:
 // clock is active high and the first sampling happens on the first falling edge.
 
 task spi_xfer(logic [WORD_WIDTH-1:0] x);
@@ -32,7 +31,7 @@ begin
     logic [WORD_WIDTH-1:0] mosi_buf;
     miso_buf = 'bx;
     
-    // Let's try to mimic McSPI mode 1: master data output begins a half-clock
+    // Let's try to mimic how McSPI is configured: master data output begins a half-clock
     // before the first posedge.
     spi_SCLK = 0;
     #(SPI_PERIOD);
