@@ -44,18 +44,17 @@ always_comb begin
     txShiftReg_next = txShiftReg;
 
     if (sclk_posedge) begin
-        // shift out.
+        // sample on posedge
         rxShiftReg_next = {rxShiftReg[PACKET_WIDTH-2:0], mosi};
-        txShiftReg_next = txShiftReg << 1;
-        dataReady_next = '0;
-    end else if (sclk_negedge) begin
-        // read in.
         if (bitsRemaining) begin
-            bitsRemaining_next = bitsRemaining_next - 1;
+            bitsRemaining_next = bitsRemaining - 1;
         end else begin
             bitsRemaining_next = PACKET_WIDTH-1;
             dataReady_next = '1;
         end
+    end else if (sclk_negedge) begin
+        // shift on nededge
+        txShiftReg_next = txShiftReg << 1;
     end
 
     if (load) begin
