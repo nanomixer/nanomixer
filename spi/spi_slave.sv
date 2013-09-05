@@ -20,16 +20,10 @@ module spi_slave #(
     output logic wr_enable,
 
     // Status
-    output wire valid;
+    output wire valid
 );
 localparam PACKET_SIZE = PARAM_WIDTH + 4;
 localparam COUNT_WIDTH = $clog2(PACKET_SIZE + 1);
-
-// States:
-// START: start of transmission, before the first sclk edge
-// WORD: within a word; bitIdx counts down to 0
-// INTER: between words.
-
 
 // Synchronize signals
 logic sclk, ssel, mosi;
@@ -122,7 +116,7 @@ always_comb begin
         // Write to memory.
         valid_next = (
             inputReg[39:38] == 2'b01 &&
-            inputReg[19:18] == 2'b10)
+            inputReg[19:18] == 2'b10);
         if (valid_next) begin
             wr_data_next = {inputReg[37:20], inputReg[17:0]};
             wr_enable_next = '1;
