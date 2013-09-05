@@ -52,13 +52,7 @@ always_comb begin : proc_serdes
 	inputReg_next = inputReg;
 	outputReg_next = outputReg;
 
-	if (ssel) begin
-		// reset.
-		bitsRemaining_next = PACKET_SIZE-1;
-		inputReg_next = '0;
-		outputReg_next = '0;
-        dataReady_next = '0;
-	end else if (sclk_posedge) begin
+    if (sclk_posedge) begin
 		// shift out.
 		inputReg_next = {inputReg[PACKET_SIZE-2:0], mosi};
 		outputReg_next = outputReg << 1;
@@ -71,17 +65,27 @@ always_comb begin : proc_serdes
 			bitsRemaining_next = PACKET_SIZE-1;
             dataReady_next = '1;
 		end
-	end else if (loadOutput) begin
+	end
+
+    if (loadOutput) begin
         outputReg_next = toOutput;
     end
 end
 
-always_ff@(posedge clk) begin : proc_ff
-	prev_sclk <= sclk;
-	bitsRemaining <= bitsRemaining_next;
-	inputReg <= inputReg_next;
-	outputReg <= outputReg_next;
-    dataReady <= dataReady_next;
+always_ff@(posedge clk or posedge ssel) begin : proc_ff
+    prev_sclk <= sclk;
+	if (ssel) begin
+		// reset.
+		bitsRemaining_next = PACKET_SIZE-1;
+		inputReg_next = '0;
+		outputReg_next = '0;
+        dataReady_next = '0;
+	end else begin
+        bitsRemaining <= bitsRemaining_next;
+        inputReg <= inputReg_next;
+        outputReg <= outputReg_next;
+        dataReady <= dataReady_next;
+    end
 end
 
 
