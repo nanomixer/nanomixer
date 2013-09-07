@@ -256,16 +256,17 @@ buses = {
 mixer = {channels, buses}
 
 
-faderSection = new FaderSection('#faders', mixer)
-ko.applyBindings(faderSection, document.querySelector('#faders'))
-faderSection.setActiveFaders()
+class UIView
+    constructor: ->
+        @activeSection = ko.observable 'faders'
+        @faderSection = new FaderSection('#faders', mixer)
+        @channelSection = new ChannelSection('#channel', mixer)
 
+        ko.applyBindings this
+        @faderSection.setActiveFaders()
+        @channelSection.activeChannelIdx 0
 
-channelSection = new ChannelSection('#channel', mixer)
-ko.applyBindings(channelSection, document.querySelector('#channel'))
-channelSection.activeChannelIdx 0
-
-
+ui = new UIView()
 
 
 # Socket handling stuff
