@@ -63,7 +63,7 @@ class FaderView
     constructor: (@element, @model) ->
         @name = @model.channel.name
         @level = @model.level
-        @posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain(@grooveHeight))
+        @posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain())
         @posToPixel = d3.scale.linear()
         @elt = d3.select(@element)
         @groove = @elt.select('.groove')
