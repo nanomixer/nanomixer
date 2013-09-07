@@ -58,7 +58,7 @@ class Bus
 
 class FaderView
     constructor: (@element, @model) ->
-        @name = @model.name
+        @name = @model.channel.name
         @level = @model.level
         @posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain(@grooveHeight))
         @posToPixel = d3.scale.linear()
@@ -139,7 +139,7 @@ class FaderSection
 faderTemplate = """
 <div class="groove"></div>
 <div class="grip"></div>
-<input class="name" data-bind="value: channel.name">
+<input class="name" data-bind="value: name">
 """
 
 
