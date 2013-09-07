@@ -256,9 +256,9 @@ buses = {
 mixer = {channels, buses}
 
 
-#faderSection = new FaderSection('#faders', mixer)
-#ko.applyBindings(faderSection, document.querySelector('#faders'))
-#faderSection.setActiveFaders()
+faderSection = new FaderSection('#faders', mixer)
+ko.applyBindings(faderSection, document.querySelector('#faders'))
+faderSection.setActiveFaders()
 
 
 channelSection = new ChannelSection('#channel', mixer)
@@ -272,3 +272,15 @@ channelSection.activeChannelIdx 0
 socket = io.connect('');
 socket.on 'connect', -> debug('connected!')
 socket.on 'meter', (data) -> debug('meter', data)
+
+subscribeToEverything = (mixer) ->
+    for busName, bus of mixer.buses
+        for fader in bus.faders
+            channelIdx = fader.channel.idx
+            do (channelIdx) ->
+                fader.level.subscribe (newLevel) ->
+                    socket.emit 'control', [
+                        ['set_gain',
+                         [0, channelIdx, newLevel]
+                        ]]
+    return
