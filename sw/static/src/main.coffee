@@ -9,11 +9,14 @@ winSize = {
 winSize.rect = ko.computed ->
     {width: winSize.width(), height: winSize.height}
 
-$(window).resize(_.throttle(->
-    $window = $(window)
-    winSize.width($window.width())
-    winSize.height($window.height())
-, 100))
+do ->
+    updateWinSize = ->
+        $window = $(window)
+        winSize.width($window.width())
+        winSize.height($window.height())
+    updateWinSize()
+    $(window).resize(_.throttle(updateWinSize, 100))
+    return
 
 cumSum = (arr) ->
     accum = 0
