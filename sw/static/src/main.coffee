@@ -45,7 +45,7 @@ ko.bindingHandlers.faderLevelText = {
 class Channel
     constructor: (@idx, @name) ->
         @name = ko.observable "Ch#{@idx + 1}" unless @name?
-        @curLevel = ko.observable Math.random()
+        @signalLevel = ko.observable 0
         @eq = new Eq(@)
 
 class Bus
@@ -271,7 +271,12 @@ channelSection.activeChannelIdx 0
 # Socket handling stuff
 socket = io.connect('');
 socket.on 'connect', -> debug('connected!')
-socket.on 'meter', (data) -> debug('meter', data)
+socket.on 'meter', (data) ->
+    levels = data.levels
+    for level, channelIdx in levels
+        mixer.channels[channelIdx].signalLevel level
+    # And... request another one??
+    return
 
 subscribeToEverything = (mixer) ->
     for busName, bus of mixer.buses
