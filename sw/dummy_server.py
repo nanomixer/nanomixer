@@ -4,6 +4,7 @@ from socketio.namespace import BaseNamespace
 import logging
 import numpy as np
 import os
+import traceback
 
 STATIC_FILES_AT = os.path.join(os.path.dirname(__file__), 'static', 'build')
 NUM_CHANNELS = 16
@@ -17,14 +18,16 @@ class Resource(BaseNamespace):
         super(Resource, self).disconnect(*a, **kw)
 
     def on_control(self, commands):
-        for cmd, args in commands:
-            if cmd == 'set_gain':
-                bus, channel, gain = args
-                self.meter_levels[channel] = gain
+        try:
+            for cmd, args in commands:
+                if cmd == 'set_gain':
+                    bus, channel, gain = args
+                    self.meter_levels[channel] = gain
 
-        self.emit('meter', dict(
-            levels=self.meter_levels.tolist()))
-
+            self.emit('meter', dict(
+                levels=self.meter_levels.tolist()))
+        except Exception as e:
+            traceback.print_exc()
 
 # Flask routes
 app = Flask(__name__)
