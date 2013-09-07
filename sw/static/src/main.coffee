@@ -309,3 +309,5 @@ subscribeToEverything = (mixer) ->
                          [0, channelIdx, newLevel]
                         ]]
     return
+
+subscribeToEverything(mixer)
