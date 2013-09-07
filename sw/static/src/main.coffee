@@ -69,6 +69,8 @@ class FaderView
         @groove = @elt.select('.groove')
         @grip = @elt.select('.grip')
 
+        @grooveHeight = ko.observable 20
+
         @level.subscribe @setPosition, this
         @setPosition(@level())
 
@@ -88,17 +90,18 @@ class FaderView
         @level newVal
 
     resize: ->
-        @grooveHeight = $(@groove.node()).height()
+        grooveHeight = $(@groove.node()).height()
+        @grooveHeight grooveHeight
         @gripHeight = $(@grip.node()).height()
         @posToPixel
             .domain([0, 1])
-            .range([@grooveHeight+@gripHeight/2, @gripHeight/2])
+            .range([grooveHeight+@gripHeight/2, @gripHeight/2])
         @setPosition @level()
 
         @elt.selectAll('svg.scale').remove()
         scale = @elt.append('svg').attr('class', 'scale')
             .attr('width', 20)
-            .attr('height', @grooveHeight + @gripHeight)
+            .attr('height', grooveHeight + @gripHeight)
             .append('g').attr('transform', 'translate(20, 0)')
         faderTicks = [MIN_FADER, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10]
         faderLabels = ['\u221e', '60', '50', '40', '30', '20', '10', '5', 'U', '5', '10']
