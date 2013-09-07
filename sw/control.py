@@ -144,7 +144,7 @@ class Controller(object):
         return normalize(*lowpass(**METERING_LPF_PARAMS))
 
     def _set_parameter_memory(self, core, addr, data):
-        self.io_thread.memories[core * WORDS_PER_CORE + addr] = data
+        self.io_thread[core * WORDS_PER_CORE + addr] = data
 
 
 import threading
