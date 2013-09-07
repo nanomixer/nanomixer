@@ -71,6 +71,14 @@ class FaderView
 
         @grooveHeight = ko.observable 20
 
+        ctx = @elt.select('canvas').node().getContext('2d')
+        ko.computed =>
+            ctx.clearRect(0, 0, 1000, 1000)
+            y = @posToPixel(@posToDb.invert(@model.channel.signalLevel()))
+            debug 'y=', y, 'signal=', @model.channel.signalLevel()
+            ctx.fillStyle = 'rgba(255, 0, 0, .2)'
+            ctx.fillRect(0, y, 1000, 1000)
+
         @level.subscribe @setPosition, this
         @setPosition(@level())
 
@@ -142,14 +150,13 @@ class FaderSection
         sel.exit().transition().duration(500).style('opacity', 0).remove()
     # .each((d, i) -> ko.cleanNode(@))
 
+# Hacking in constants for the groove
 faderTemplate = """
+<canvas class="meter" width="20" data-bind="attr: {height: grooveHeight }"></canvas>
 <div class="groove"></div>
 <div class="grip"></div>
 <input class="name" data-bind="value: name">
 """
-
-
-
 
 ###### Channel View
 defaultEqFrequencies = [250, 500, 1000, 6000, 12000]
