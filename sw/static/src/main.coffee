@@ -32,7 +32,7 @@ faderDomain = (max=1) ->
 faderLevelToText = (value) ->
     if value == MIN_FADER
         '-\u221e'
-    else 
+    else
         d3.round(value, 1)
 
 ko.bindingHandlers.faderLevelText = {
@@ -264,3 +264,11 @@ mixer = {channels, buses}
 channelSection = new ChannelSection('#channel', mixer)
 ko.applyBindings(channelSection, document.querySelector('#channel'))
 channelSection.activeChannelIdx 0
+
+
+
+
+# Socket handling stuff
+socket = io.connect('');
+socket.on 'connect', -> debug('connected!')
+socket.on 'meter', (data) -> debug('meter', data)
