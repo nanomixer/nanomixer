@@ -261,7 +261,13 @@ mixer = {channels, buses}
 
 class UIView
     constructor: ->
-        @activeSection = ko.observable 'faders'
+        @activeSection = ko.computed =>
+            if winSize.width() > winSize.height()
+                # Landscape
+                'faders'
+            else
+                # portrait
+                'channel'
         @faderSection = new FaderSection('#faders', mixer)
         @channelSection = new ChannelSection('#channel', mixer)
 
