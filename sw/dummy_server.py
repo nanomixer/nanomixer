@@ -10,7 +10,8 @@ STATIC_FILES_AT = os.path.join(os.path.dirname(__file__), 'static', 'build')
 NUM_CHANNELS = 16
 
 class Resource(BaseNamespace):
-    def initialize(self):
+    def __init__(self, *a, **kw):
+        BaseNamespace.__init__(self, *a, **kw)
         # Called after socketio has initialized the namespace.
         self.meter_levels = np.zeros(NUM_CHANNELS)
 
