@@ -63,14 +63,15 @@ always_comb begin
 end
 
 always_ff@(posedge clk or posedge ssel) begin
-    prev_sclk <= sclk;
     if (ssel) begin
         // reset.
-        bitsRemaining_next = PACKET_WIDTH-1;
-        rxShiftReg_next = '0;
-        txShiftReg_next = '0;
-        dataReady_next = '0;
+        prev_sclk <= '0;
+        bitsRemaining <= PACKET_WIDTH-1;
+        rxShiftReg <= '0;
+        txShiftReg <= '0;
+        dataReady <= '0;
     end else begin
+        prev_sclk <= sclk;
         bitsRemaining <= bitsRemaining_next;
         rxShiftReg <= rxShiftReg_next;
         txShiftReg <= txShiftReg_next;
