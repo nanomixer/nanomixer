@@ -3,20 +3,21 @@ module memif #(
     ADDR_WIDTH = 10
 ) (
     input logic reset,
+    input logic clk,
 
     // serdes port
-    output logic [WORD_WIDTH-1:0] toOutput,
+    output logic [PACKET_SIZE-1:0] toOutput,
     output logic loadOutput,
-    input logic [WORD_WIDTH-1:0] inputReg,
+    input logic [PACKET_SIZE-1:0] inputReg,
     input logic dataReady,
 
     // Memory read port
     output logic[ADDR_WIDTH-1:0] rd_addr,
-    input logic[PARAM_WIDTH-1:0] rd_data,
+    input logic[WORD_WIDTH-1:0] rd_data,
 
     // Memory write port
     output logic[ADDR_WIDTH-1:0] wr_addr,
-    output logic[PARAM_WIDTH-1:0] wr_data,
+    output logic[WORD_WIDTH-1:0] wr_data,
     output logic wr_enable,
 
     // Status
@@ -39,32 +40,47 @@ always_comb begin
     wr_enable_next = '0;
     valid_next = valid;
 
+    // Pack the word read from memory into a packet, at the moment by adding
+    // two extra bits to the beginning of each nibble.
+    //
+    // This will only be valid (the output to load in) at the end of a packet,
+    // but we might as well compute it unconditionally.
     toOutput_next = {
-        2'b01, rd_data[2*NIBBLE_WIDTH+1:NIBBLE_WIDTH+2], // NIBBLE_WIDTH bits
-        2'b10, rd_data[NIBBLE_WIDTH-1:0]}; // also NIBBLE_WIDTH bits!
+        2'b01, rd_data[WORD_WIDTH-1:NIBBLE_WIDTH], // NIBBLE_WIDTH bits
+        2'b10, rd_data[NIBBLE_WIDTH-1:0]};
 
     if (reset) begin
         // Reset write address to 0.
         wr_addr_next = '0;
         // Prepare to read from address 0, so it's ready as soon as reset is deasserted.
         rd_addr_next = '0;
+        // Since reset is asserted for many clocks, there will be enough time
+        // for the memory to finish reading from address 0, so we can go ahead
+        // and load the output we're receiving from it.
         loadOutput_next = '1;
     end else if (dataReady) begin
-        // Read from memory.
-        rd_addr_next = rd_addr + '1;
+        // End of a packet. This means (1) we're ready to output the next thing
+        // we got from memory and (2) we just received a packet, which we should
+        // write to memory.
+
+        // (1) Output the word we read from memory.
         loadOutput_next = '1;
 
-        // Write to memory.
+        // (2) Write what we just received to memory, if it's valid.
         valid_next = (
-            inputReg[39:38] == 2'b01 &&
-            inputReg[19:18] == 2'b10);
+            inputReg[PACKET_SIZE-1:PACKET_SIZE-2] == 2'b01 &&
+            inputReg[PACKET_SIZE/2-1:PACKET_SIZE/2-2] == 2'b10);
+        wr_data_next = {
+            inputReg[PACKET_SIZE-3:PACKET_SIZE/2],
+            inputReg[PACKET_SIZE/2-3:0]};
         if (valid_next) begin
-            wr_data_next = {inputReg[37:20], inputReg[17:0]};
             wr_enable_next = '1;
         end
     end else if (wr_enable) begin
-        // We wrote to memory last cycle; now advance the address.
+        // Last clock was the end of a packet, so the current packet is dealing
+        // with the subsequent addresses.
         wr_addr_next = wr_addr + '1;
+        rd_addr_next = rd_addr + '1;
     end
 end
 
