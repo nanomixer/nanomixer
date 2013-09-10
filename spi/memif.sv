@@ -1,6 +1,7 @@
 module memif #(
     WORD_WIDTH = 36,
-    ADDR_WIDTH = 10
+    ADDR_WIDTH = 10,
+    PACKET_SIZE = WORD_WIDTH + 4
 ) (
     input logic reset,
     input logic clk,
@@ -21,11 +22,10 @@ module memif #(
     output logic wr_enable,
 
     // Status
-    output wire valid
+    output logic valid
 );
 
 localparam NIBBLE_WIDTH = WORD_WIDTH / 2;
-localparam PACKET_SIZE = WORD_WIDTH + 4;
 
 // Memory interface
 logic loadOutput_next, wr_enable_next, valid_next;
