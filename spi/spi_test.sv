@@ -24,6 +24,9 @@ spi_serdes #(.PACKET_WIDTH(PACKET_WIDTH)) u1
     (.clk, .spi_SCLK, .spi_SSEL, .spi_MOSI, .spi_MISO,
      .txData, .load, .rxShiftReg, .dataReady);
 
+logic [PACKET_WIDTH-1:0] dataReceived;
+always @(posedge clk) if (dataReady) dataReceived <= rxShiftReg;
+
 // clock is active high and the first sampling happens on the first falling edge.
 
 task spi_xfer(logic [PACKET_WIDTH-1:0] x);
@@ -35,6 +38,7 @@ begin
     spi_SCLK = 0;
     #(SPI_PERIOD);
     $display("spi_xfer %x", x);
+    dataReceived = 'x;
     
     // now start ticking. Advance at negedge.
     for (bitIdx=PACKET_WIDTH-1; bitIdx>=0; bitIdx--) begin
@@ -43,7 +47,6 @@ begin
         #(SPI_PERIOD/2) spi_SCLK = 1;
         #(SPI_PERIOD/2) spi_SCLK = 0;
     end
-    assert (dataReady == '1) else $error("dataReady not asserted after complete transmission");
     assert (rxShiftReg == x) else $error("Sent %x but %x got received.", x, rxShiftReg);
 end
 endtask : spi_xfer
@@ -61,8 +64,8 @@ initial begin
     // Start SPI transmission
     spi_SSEL = 0;
     
-    spi_xfer(8'hff);
-    spi_xfer(8'h00);
+    spi_xfer(8'hab);
+    spi_xfer(8'h15);
     
     spi_SSEL = 1;
     #(SPI_PERIOD);
