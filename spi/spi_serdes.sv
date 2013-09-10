@@ -68,7 +68,6 @@ always_ff@(posedge clk or posedge ssel) begin
         prev_sclk <= '0;
         bitsRemaining <= PACKET_WIDTH-1;
         rxShiftReg <= '0;
-        txShiftReg <= '0;
         dataReady <= '0;
     end else begin
         prev_sclk <= sclk;
