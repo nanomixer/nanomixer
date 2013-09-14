@@ -12,28 +12,27 @@ module spi_io #(
 );
 localparam PACKET_WIDTH = WORD_WIDTH + 4;
 
-logic [PACKET_WIDTH-1:0] toOutput;
-logic loadOutput;
-logic [PACKET_WIDTH-1:0] inputReg;
 logic dataReady;
+logic [PACKET_WIDTH-1:0] inPacket;
+logic [PACKET_WIDTH-1:0] outPacket;
 
 logic[ADDR_WIDTH-1:0] rd_addr;
 logic[WORD_WIDTH-1:0] rd_data;
 
-logic valid;
+logic inPacketIsValid;
 
 spi_serdes #(.PACKET_WIDTH(PACKET_WIDTH)) serdes (
-    .clk, .txData(toOutput), .load(loadOutput),
-    .rxShiftReg(), .dataReady(),
+    .clk, .txData(outPacket), .load(dataReady),
+    .rxShiftReg(inPacket), .dataReady,
     .spi_SSEL, .spi_SCLK, .spi_MISO, .spi_MOSI);
 
 memif #(.WORD_WIDTH(WORD_WIDTH), .ADDR_WIDTH(ADDR_WIDTH)) memif_inst (
     .reset(spi_SSEL),
     .clk,
-    .toOutput, .loadOutput, .inputReg, .dataReady,
+    .dataReady, .inPacket, .outPacket,
     .rd_addr, .rd_data,
     .wr_addr(), .wr_data(), .wr_enable(),
-    .valid);
+    .inPacketIsValid);
 
 test_meter test_meter_inst (
     .address ( rd_addr ),
