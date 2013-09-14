@@ -62,8 +62,8 @@ always_comb begin
     end
 end
 
-always_ff@(posedge clk or posedge ssel) begin
-    if (ssel) begin
+always_ff@(posedge clk or posedge spi_SSEL) begin
+    if (spi_SSEL) begin
         // reset.
         prev_sclk <= '0;
         bitsRemaining <= PACKET_WIDTH-1;
