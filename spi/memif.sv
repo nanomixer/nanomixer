@@ -109,11 +109,6 @@ always_ff @(posedge clk or posedge reset) begin
             curReadAddr <= curReadAddr_next;
             curWriteAddr <= curWriteAddr_next;
             state <= state_next;
-        end else begin
-            // er, well, latch.
-            curReadAddr <= curReadAddr;
-            curWriteAddr <= curWriteAddr;
-            state <= state;
         end
     end
 end
