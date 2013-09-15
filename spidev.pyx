@@ -1,3 +1,6 @@
+#cython: boundscheck=False
+#cython: wraparound=False
+
 #
 # SPI testing utility (using spidev driver)
 #
@@ -37,18 +40,16 @@ cdef extern from "linux/spi/spidev.h":
 cdef class SpiChannel:
     cdef int fd, mode, bits, speed, delay, lsb_first
 
-    def transfer(self, write_buf):
+    def transfer(self, char [::1] write_buf not None, char [::1] read_buf not None):
         cdef int ret
-        cdef int buflen = len(write_buf)
+        cdef int buflen = write_buf.shape[0]
+        assert read_buf.shape[0] == buflen, 'Read and write buffer lengths must match.'
 
-        cdef char *_read_buf = <char *> malloc(buflen)
-        read_buf = <bytes> _read_buf[:buflen] #PyString_FromStringAndSize(None, len(write_buf))
-        free(_read_buf)
         cdef spi_ioc_transfer tr
         memset(&tr, 0, sizeof(tr))
-        tr.tx_buf = write_buf
-        tr.rx_buf = read_buf
-        tr.len = len(write_buf)
+        tr.tx_buf = &write_buf[0]
+        tr.rx_buf = &read_buf[0]
+        tr.len = buflen
         tr.delay_usecs = self.delay
         tr.speed_hz = self.speed
         tr.bits_per_word = self.bits
@@ -56,8 +57,6 @@ cdef class SpiChannel:
         ret = ioctl(self.fd, SPI_IOC_MESSAGE(1), &tr);
         if ret < 1:
             raise IOError("can't send spi message")
-
-        return read_buf
 
     def __init__(self, char *device, mode=0, bits_per_word=8, speed=500000, delay=0, lsb_first=0):
         self.fd = open(device, O_RDWR)
