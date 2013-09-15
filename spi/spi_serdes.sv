@@ -3,10 +3,9 @@ module spi_serdes #(
 ) (
     input wire clk,
 
-    input logic [PACKET_WIDTH-1:0] txData,
-    input logic load,
-    output logic [PACKET_WIDTH-1:0] rxShiftReg,
     output logic dataReady,
+    input logic [PACKET_WIDTH-1:0] outPacket,
+    output logic [PACKET_WIDTH-1:0] inPacket,
     
     // SPI port
     input wire spi_SCLK, // spi clock
@@ -31,9 +30,11 @@ always_comb begin : proc_clkedges
     sclk_negedge = ~sclk & prev_sclk;
 end
 
+logic startOfFrame;
 logic [COUNT_WIDTH-1:0] bitsRemaining, bitsRemaining_next;
-logic [PACKET_WIDTH-1:0] rxShiftReg_next, txShiftReg, txShiftReg_next;
+logic [PACKET_WIDTH-1:0] rxShiftReg_next, rxShiftReg, txShiftReg_next, txShiftReg;
 logic dataReady_next;
+assign inPacket = rxShiftReg;
 always_comb begin
     spi_MISO = txShiftReg[PACKET_WIDTH-1];
 
@@ -49,6 +50,7 @@ always_comb begin
         if (bitsRemaining) begin
             bitsRemaining_next = bitsRemaining - 1;
         end else begin
+            // End of packet.
             bitsRemaining_next = PACKET_WIDTH-1;
             dataReady_next = '1;
         end
@@ -56,9 +58,9 @@ always_comb begin
         // shift on nededge
         txShiftReg_next = txShiftReg << 1;
     end
-
-    if (load) begin
-        txShiftReg_next = txData;
+    
+    if ((sclk_posedge && (bitsRemaining == 0)) ||  startOfFrame) begin
+        txShiftReg_next = outPacket;
     end
 end
 
@@ -69,12 +71,14 @@ always_ff@(posedge clk or posedge ssel) begin
         bitsRemaining <= PACKET_WIDTH-1;
         rxShiftReg <= '0;
         dataReady <= '0;
+        startOfFrame <= '1;
     end else begin
         prev_sclk <= sclk;
         bitsRemaining <= bitsRemaining_next;
         rxShiftReg <= rxShiftReg_next;
         txShiftReg <= txShiftReg_next;
         dataReady <= dataReady_next;
+        startOfFrame <= '0;
     end
 end
 

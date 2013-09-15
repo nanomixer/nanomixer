@@ -19,11 +19,14 @@ logic [PACKET_WIDTH-1:0] outPacket;
 logic[ADDR_WIDTH-1:0] rd_addr;
 logic[WORD_WIDTH-1:0] rd_data;
 
+logic[ADDR_WIDTH-1:0] wr_addr;
+logic[WORD_WIDTH-1:0] wr_data;
+logic wr_enable;
+
 logic inPacketIsValid;
 
 spi_serdes #(.PACKET_WIDTH(PACKET_WIDTH)) serdes (
-    .clk, .txData(outPacket), .load(dataReady),
-    .rxShiftReg(inPacket), .dataReady,
+    .clk, .dataReady, .outPacket, .inPacket,
     .spi_SSEL, .spi_SCLK, .spi_MISO, .spi_MOSI);
 
 memif #(.WORD_WIDTH(WORD_WIDTH), .ADDR_WIDTH(ADDR_WIDTH)) memif_inst (
@@ -31,7 +34,7 @@ memif #(.WORD_WIDTH(WORD_WIDTH), .ADDR_WIDTH(ADDR_WIDTH)) memif_inst (
     .clk,
     .dataReady, .inPacket, .outPacket,
     .rd_addr, .rd_data,
-    .wr_addr(), .wr_data(), .wr_enable(),
+    .wr_addr, .wr_data, .wr_enable,
     .inPacketIsValid);
 
 test_meter test_meter_inst (
@@ -41,6 +44,10 @@ test_meter test_meter_inst (
     .wren ( '0 ),
     .q ( rd_data ));
 
-
+test_coeff test_coeff_inst (
+    .clock(clk),
+    .address(wr_addr),
+    .data(wr_data),
+    .wren(wr_enable));
 
 endmodule

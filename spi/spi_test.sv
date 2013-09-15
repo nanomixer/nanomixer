@@ -15,17 +15,16 @@ logic spi_SSEL = 0; // spi slave select
 logic spi_MOSI = 0; // data in
 logic spi_MISO; // data out
 
-logic [PACKET_WIDTH-1:0] txData;
-logic load;
-logic [PACKET_WIDTH-1:0] rxShiftReg;
 logic dataReady;
-
+logic [PACKET_WIDTH-1:0] outPacket;
+logic [PACKET_WIDTH-1:0] inPacket;
+    
 spi_serdes #(.PACKET_WIDTH(PACKET_WIDTH)) u1 
     (.clk, .spi_SCLK, .spi_SSEL, .spi_MOSI, .spi_MISO,
-     .txData, .load, .rxShiftReg, .dataReady);
+     .dataReady, .inPacket, .outPacket);
 
 logic [PACKET_WIDTH-1:0] masterDataReceived, slaveDataReceived;
-always @(posedge clk) if (dataReady) slaveDataReceived <= rxShiftReg;
+always @(posedge clk) if (dataReady) slaveDataReceived <= inPacket;
 
 // clock is active high and the first sampling happens on the first falling edge.
 
@@ -33,13 +32,9 @@ task spi_xfer(logic [PACKET_WIDTH-1:0] masterToSlave, logic [PACKET_WIDTH-1:0] s
 begin
     int bitIdx;
     
-    // Load data
-    load = '1;
-    txData = slaveToMaster;
+    outPacket = slaveToMaster;
     @(posedge clk);
     @(negedge clk);
-    load <= '0;
-    txData <= 'x;
 
     // Let's try to mimic how McSPI is configured: master data output begins a half-clock
     // before the first posedge.
@@ -56,6 +51,8 @@ begin
         #(SPI_PERIOD/2) spi_SCLK = 1;
         masterDataReceived[bitIdx] = spi_MISO;
         #(SPI_PERIOD/2) spi_SCLK = 0;
+        // At this point, serdes should no longer be using the value of outPacket.
+        outPacket = 'x;
     end
     assert (slaveDataReceived == masterToSlave)
       else $error("Master sent %x but slave received %x.", masterToSlave, slaveDataReceived);
