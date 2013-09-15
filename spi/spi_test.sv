@@ -90,6 +90,7 @@ begin
         dataReceived[bitIdx] = spi_MISO;
         #(SPI_PERIOD/2) spi_SCLK = 0;
     end
+    $display("Received %x (%x)", dataReceived, wordReceived);
 end
 endtask : spi_xfer
 
