@@ -95,7 +95,7 @@ always_comb begin
         curReadAddr_next = curReadAddr + 1;
         curWriteAddr_next = curWriteAddr + 1;
         rd_addr = curReadAddr;
-        wr_enable = inPacketIsValid;
+        wr_enable = dataReady && inPacketIsValid;
         state_next = STREAMING;
     end
     endcase
