@@ -6,6 +6,7 @@ module spi_test #(
 localparam time CLK_PERIOD = (1.0e9/CLK_FREQ)*1ns;
 localparam time SPI_PERIOD = 10*CLK_PERIOD;
 localparam int PACKET_WIDTH = WORD_WIDTH + 4;
+localparam int NIBBLE_WIDTH = WORD_WIDTH / 2;
 localparam int NUM_ADDRS = 1 << ADDR_WIDTH;
 
 logic clk;
@@ -52,6 +53,7 @@ always @(posedge clk) begin
     rd_data <= mem[rd_addr];
     if (wr_enable) begin
         mem[wr_addr] <= wr_data;
+        $display("Wrote %x at %x", wr_data, wr_addr);
     end
 end
 
@@ -62,6 +64,12 @@ assign wordReceived = {
     dataReceived[PACKET_WIDTH/2-3:0]};
 
 // clock is active high and the first sampling happens on the first falling edge.
+
+function logic [PACKET_WIDTH-1:0] packPacket(logic [WORD_WIDTH-1:0] word);
+    packPacket = {
+        2'b01, word[WORD_WIDTH-1:NIBBLE_WIDTH], // NIBBLE_WIDTH bits
+        2'b10, word[NIBBLE_WIDTH-1:0]};
+endfunction
 
 task spi_xfer(logic [PACKET_WIDTH-1:0] masterToSlave);
 begin
@@ -99,12 +107,12 @@ initial begin
     spi_SSEL = 0;
 
     // Read address
-    spi_xfer(8'h00);
+    spi_xfer(packPacket(8'h00));
     // Write address
-    spi_xfer(8'h01);
+    spi_xfer(packPacket(8'h01));
     // Some data
     for (i=0; i<5; i++) begin
-        spi_xfer(i+1);
+        spi_xfer(packPacket(i+1));
     end
 
     spi_SSEL = 1;

@@ -6,7 +6,7 @@ module spi_serdes #(
     output logic dataReady,
     input logic [PACKET_WIDTH-1:0] outPacket,
     output logic [PACKET_WIDTH-1:0] inPacket,
-    
+
     // SPI port
     input wire spi_SCLK, // spi clock
     input wire spi_SSEL, // spi slave select
