@@ -89,8 +89,12 @@ class FaderView
         ko.computed =>
             ctx.clearRect(0, 0, 1000, 1000)
             y = @posToPixel(@posToDb.invert(@model.channel.signalLevel()))
-            #debug 'y=', y, 'signal=', @model.channel.signalLevel()
-            ctx.fillStyle = 'rgba(255, 0, 0, .2)'
+#            debug 'y=', y, 'signal=', @model.channel.signalLevel()
+            gradient = ctx.createLinearGradient(0, 0, 20, @grooveHeight())
+            gradient.addColorStop(0, 'red')
+            gradient.addColorStop(.5, 'yellow')
+            gradient.addColorStop(1, 'green')
+            ctx.fillStyle = gradient
             ctx.fillRect(0, y, 1000, 1000)
 
         @level.subscribe @setPosition, this
