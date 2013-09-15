@@ -80,7 +80,7 @@ always_comb begin
     GETTING_READ_ADDR: begin
         curReadAddr_next = inWordAsAddr;
         curWriteAddr_next = '0;
-        rd_addr = inWord; // a bit of an optimization, timing-wise.
+        rd_addr = inWordAsAddr; // a bit of an optimization, timing-wise.
         wr_enable = '0;
         state_next = GETTING_WRITE_ADDR;
     end
