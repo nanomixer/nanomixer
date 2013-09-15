@@ -47,19 +47,19 @@ always_comb begin
     if (sclk_posedge) begin
         // sample on posedge
         rxShiftReg_next = {rxShiftReg[PACKET_WIDTH-2:0], mosi};
+    end else if (sclk_negedge) begin
+        // shift on nededge
         if (bitsRemaining) begin
             bitsRemaining_next = bitsRemaining - 1;
+            txShiftReg_next = txShiftReg << 1;
         end else begin
             // End of packet.
             bitsRemaining_next = PACKET_WIDTH-1;
             dataReady_next = '1;
         end
-    end else if (sclk_negedge) begin
-        // shift on nededge
-        txShiftReg_next = txShiftReg << 1;
     end
-    
-    if ((sclk_posedge && (bitsRemaining == 0)) ||  startOfFrame) begin
+
+    if (startOfFrame || dataReady) begin
         txShiftReg_next = outPacket;
     end
 end
