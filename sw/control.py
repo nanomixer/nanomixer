@@ -1,7 +1,7 @@
 import numpy as np
 import random
 from biquads import normalize, peaking, lowpass
-from util import fixeds_to_spi, spi_to_fixeds, fixeds_to_floats, floats_to_fixeds
+from util import fixeds_to_floats, floats_to_fixeds
 # TODO:
 # from wireformat import spi_to_fixeds
 from dsp_program import (
@@ -152,22 +152,22 @@ class Controller(object):
 import threading
 import collections
 import spidev
-MAX_SPI_SIZE = 2048
-SPI_BYTES_PER_WORD = 8
-# account for the two address words at the beginning of each transmission.
-MAX_SPI_WORDS = (MAX_SPI_SIZE - 2) / SPI_BYTES_PER_WORD
+from spi_channel import SPIChannel
 class IOThread(threading.Thread):
-    def __init__(self, param_mem_size, spi_device):
+    def __init__(self, param_mem_size, spi_channel):
         threading.Thread.__init__(self, name='IOThread')
+        self.spi_channel = spi_channel
+        self.spi_words = spi_channel.buf_size_in_words
         self._param_mem_contents = np.zeros(param_mem_size, dtype=np.float64)
         self._param_mem_dirty = np.zeros(param_mem_size, dtype=np.uint8)
         self._meter_revision = -1
         self._meter_mem_contents = (
             self._meter_revision, np.zeros(METERING_PACKET_SIZE, dtype=np.float64))
         self._write_queue = collections.deque()
-        self._spi = spidev.SpiChannel(spi_device, bits_per_word=20)
-        self._write_buf = np.empty(MAX_SPI_SIZE, dtype=np.uint8)
-        self._read_buf = np.empty(MAX_SPI_SIZE, dtype=np.uint8)
+
+        # Buffers in terms of words.
+        self._write_buf = np.empty(self.spi_words, dtype=np.uint64)
+        self._read_buf = np.empty(self.spi_words, dtype=np.uint64)
 
     def __setitem__(self, addr, data):
         self._write_queue.append((addr, data))
@@ -199,33 +199,35 @@ class IOThread(threading.Thread):
                     if meter_words_desired <= 0:
                         # All sending and receiving this time is complete.
                         break
-                    first_param_send_index = random.randrange(max(0, len(self._param_mem_contents) - MAX_SPI_WORDS))
+                    # Otherwise, pick a random address to start from
+                    first_param_send_index = random.randrange(max(0, len(self._param_mem_contents) - self.spi_words))
                 else:
                     first_param_send_index = dirty[0]
                 param_data_to_send = self._param_mem_contents[first_param_send_index:]
-                if len(param_data_to_send) > MAX_SPI_WORDS:
-                    param_data_to_send = param_data_to_send[:MAX_SPI_WORDS]
+                if len(param_data_to_send) > self.spi_words:
+                    param_data_to_send = param_data_to_send[:self.spi_words]
                 words_in_transfer = len(param_data_to_send)
-                # Build the data packet: read addr, write addr, data.
-                data = fixeds_to_spi(
-                    np.hstack(
-                        (first_meter_index_needed, first_param_send_index,
-                         floats_to_fixeds(param_data_to_send, PARAM_FRAC_BITS))))
 
-                bytes_in_transfer = len(data)
-                read_buf = self._read_buf[:bytes_in_transfer]
+                read_buf = self._read_buf[:words_in_transfer]
+                write_buf = self._write_buf[:words_in_transfer]
 
-                # Do transfer.
-                self._spi.transfer(data, read_buf)
+                floats_to_fixeds(param_data_to_send, PARAM_FRAC_BITS, write_buf)
+
+                self.spi_channel.transfer(
+                    read_addr=first_meter_index_needed,
+                    read_data=read_buf,
+                    write_addr=first_param_send_index,
+                    write_data=write_buf)
 
                 # Mark param memory segment not dirty.
                 self._param_mem_dirty[first_param_send_index:first_param_send_index+words_in_transfer] = 0
 
                 # Extract the metering data we got.
-                meter_data_read = read_buf[2*SPI_BYTES_PER_WORD:]
-                meter_data_read = meter_data_read[:meter_words_desired*SPI_BYTES_PER_WORD]
-                meter_packet[first_meter_index_needed:first_meter_index_needed+meter_words_desired] = \
-                    fixeds_to_floats(spi_to_fixeds(meter_data_read), METER_FRAC_BITS)
+                fixeds_to_floats(
+                    read_buf[:meter_words_desired],
+                    METER_FRAC_BITS,
+                    meter_packet[first_meter_index_needed:first_meter_index_needed+meter_words_desired])
+                # TODO: wraparound, since the meter data at the beginning of the packet is going to be newer.
                 first_meter_index_needed += words_in_transfer
 
             self._meter_revision += 1
@@ -241,6 +243,8 @@ def pack_meter_packet(rev, meter_data):
         rev=rev)
 
 
-io_thread = IOThread(param_mem_size=2048)
+spi_dev = spidev.SpiChannel('/dev/spi4.0', bits_per_word=20)
+spi_channel = SPIChannel(spi_dev, buf_size_in_words=1024)
+io_thread = IOThread(param_mem_size=2048, spi_channel=spi_channel)
 io_thread.start()
 controller = Controller(io_thread)
