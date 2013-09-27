@@ -1,3 +1,6 @@
+#cython: boundscheck=False
+#cython: wraparound=False
+
 import numpy as np
 cimport numpy as np
 
@@ -28,3 +31,25 @@ def fixeds_to_spi(np.uint64_t[:] fixeds not None, np.uint8_t[:] spi not None):
     if fixeds.shape[0] != n_words:
         raise ValueError("Bad dimensionality for fixed-point source array (should be %d)", n_words)
     cdef int start = 0
+    cdef np.uint64_t hiword, loword
+    for i in range(n_words):
+        hiword = (fixeds[i] >> 18) & 0x03ffff
+        loword =  fixeds[i]        & 0x03ffff
+
+        # Pack hi word
+        spi[start] = hiword & 0xff
+        hiword >>= 8
+        spi[start+1] = hiword & 0xff
+        hiword >>= 8
+        spi[start+2] = (hiword & 0xff) | 0x4 # prepend 2'b01
+        spi[start+3] = 0
+        start += 4
+
+        # Pack lo word
+        spi[start] = loword & 0xff
+        loword >>= 8
+        spi[start+1] = loword & 0xff
+        loword >>= 8
+        spi[start+2] = (loword & 0xff) | 0x8 # prepend 2'b10
+        spi[start+3] = 0
+        start += 4

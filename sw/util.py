@@ -18,39 +18,6 @@ def fixeds_to_floats(x, fracbits):
     return x.astype(np.float64) / shift
 
 
-def fixeds_to_spi(x):
-    hiwords = ((x >> 18) & 0x03ffff) | 0x40000 # prepend 2'b01
-    lowords = (x & 0x03ffff) | 0x80000 # prepend 2'b10
-    n_words = len(x)
-    result = np.empty(8 * n_words, dtype=np.uint8)
-    start = 0
-    for i in xrange(n_words):
-        result[start  :start+4] = np.fromstring(
-            bitstring.Bits(uintle=hiwords[i], length=32).bytes, dtype=np.uint8)
-        result[start+4:start+8] = np.fromstring(
-            bitstring.Bits(uintle=lowords[i], length=32).bytes, dtype=np.uint8)
-        start += 8
-    return result
-
-
-def spi_to_fixeds(x):
-    n_words = len(x) / 8
-    result = np.empty(n_words, dtype=np.uint64)
-    start = 0
-    for i in xrange(n_words):
-        result[i] = (
-            ((bitstring.Bits(bytes=x[start  :start+4]).uintle & 0x03ffff) << 18) +
-             (bitstring.Bits(bytes=x[start+4:start+8]).uintle & 0x03ffff))
-        start += 8
-    return result
-
-
-def test_spi_roundtrip(n=1000):
-    x = np.random.randint(2**36-1, size=n)
-    y = spi_to_fixeds(fixeds_to_spi(x))
-    assert np.all(x==y)
-
-
 def flattened(iterable):
     iterable = iter(iterable)
     while True:
