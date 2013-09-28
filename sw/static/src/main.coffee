@@ -59,6 +59,20 @@ class Bus
             pan: ko.observable(0)
             } for channel in channels)
 
+    toJSON: ->
+        faders = for fader in @faders
+            {
+                level: fader.level()
+                pan: pan.level()
+            }
+        { faders }
+
+    fromJSON: (obj) ->
+        for fader, i in obj.faders
+            @faders[i].level fader.level
+            @faders[i].pan fader.pan
+        return
+
 class FaderView
     constructor: (@element, @model) ->
         @name = @model.channel.name
