@@ -84,6 +84,7 @@ class FaderView
         @grip = @elt.select('.grip')
 
         @grooveHeight = ko.observable 20
+        @gripHeight = ko.observable 20
 
         ctx = @elt.select('canvas').node().getContext('2d')
         ko.computed =>
@@ -91,9 +92,9 @@ class FaderView
             y = @posToPixel(@posToDb.invert(@model.channel.signalLevel()))
 #            debug 'y=', y, 'signal=', @model.channel.signalLevel()
             gradient = ctx.createLinearGradient(0, 0, 20, @grooveHeight())
-            gradient.addColorStop(0, 'red')
-            gradient.addColorStop(.5, 'yellow')
-            gradient.addColorStop(1, 'green')
+            gradient.addColorStop(0, 'rgba(255, 0, 0, .2)')
+            gradient.addColorStop(.5, 'rgba(255, 255, 0, .2)')
+            gradient.addColorStop(1, 'rgba(0, 255, 0, .2')
             ctx.fillStyle = gradient
             ctx.fillRect(0, y, 1000, 1000)
 
@@ -118,16 +119,17 @@ class FaderView
     resize: ->
         grooveHeight = $(@groove.node()).height()
         @grooveHeight grooveHeight
-        @gripHeight = $(@grip.node()).height()
+        gripHeight = $(@grip.node()).height()
+        @gripHeight gripHeight
         @posToPixel
             .domain([0, 1])
-            .range([grooveHeight+@gripHeight/2, @gripHeight/2])
+            .range([grooveHeight+gripHeight/2, gripHeight/2])
         @setPosition @level()
 
         @elt.selectAll('svg.scale').remove()
         scale = @elt.append('svg').attr('class', 'scale')
             .attr('width', 20)
-            .attr('height', grooveHeight + @gripHeight)
+            .attr('height', grooveHeight + gripHeight)
             .append('g').attr('transform', 'translate(20, 0)')
         faderTicks = [MIN_FADER, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10]
         faderLabels = ['\u221e', '60', '50', '40', '30', '20', '10', '5', 'U', '5', '10']
@@ -145,7 +147,7 @@ class FaderView
                 .text(label)
 
     gripTopForDb: (dB) ->
-        Math.round(@posToPixel(@posToDb.invert(dB)) - @gripHeight/2)
+        Math.round(@posToPixel(@posToDb.invert(dB)) - @gripHeight()/2)
 
     setPosition: (dB) ->
         y = @gripTopForDb dB
@@ -170,7 +172,7 @@ class FaderSection
 
 # Hacking in constants for the groove
 faderTemplate = """
-<canvas class="meter" width="20" data-bind="attr: {height: grooveHeight }"></canvas>
+<canvas class="meter" width="20" data-bind="attr: {height: grooveHeight() + gripHeight()/2 }"></canvas>
 <div class="groove"></div>
 <div class="grip"></div>
 <input class="name" data-bind="value: name">
