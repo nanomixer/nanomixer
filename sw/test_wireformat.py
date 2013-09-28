@@ -30,7 +30,7 @@ def spi_to_fixeds(x):
     return result
 
 
-def test_spi_roundtrip(n=1000, reps=100):
+def test_spi_roundtrip(n=10, reps=100):
     for i in xrange(reps):
         # Encode ref, decode ref
         fixeds = np.random.randint(2**36-1, size=n).astype(np.uint64)
