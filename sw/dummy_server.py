@@ -1,6 +1,7 @@
 from flask import Flask, request, send_file
 from socketio import socketio_manage
 from socketio.namespace import BaseNamespace
+import time
 import logging
 import numpy as np
 import os
@@ -26,7 +27,7 @@ class Resource(BaseNamespace):
                     self.meter_levels[channel] = gain
 
             self.emit('meter', dict(
-                levels=self.meter_levels.tolist()))
+                levels=(self.meter_levels + np.sin(2*np.pi*time.time())).tolist()))
         except Exception as e:
             traceback.print_exc()
 
