@@ -17,7 +17,13 @@
       <h1 data-bind="text: title"></h1>
       <button data-bind="click: prevChannel, enable: hasPrevChannel">&laquo; Prev</button>
       <button data-bind="click: nextChannel, enable: hasNextChannel">Next &raquo;</button>
-      <div id="eq"></div>
+      <div id="eq">
+        <div class="labels">
+          <div class="freq">Freq</div>
+          <div class="gain">Gain</div>
+          <div class="q">Q</div>
+        </div>
+      </div>
     </div>
     <script type="text/javascript" src="js/main.js"></script>
   </body>
