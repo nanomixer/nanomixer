@@ -209,8 +209,9 @@ class IOThread(threading.Thread):
                 words_in_transfer = len(param_data_to_send)
 
                 read_buf = self._read_buf[:words_in_transfer]
-                write_buf = self._write_buf[:words_in_transfer]
 
+                # Unpack floats into fixed point in the write buffer.
+                write_buf = self._write_buf[:words_in_transfer]
                 floats_to_fixeds(param_data_to_send, PARAM_FRAC_BITS, write_buf)
 
                 self.spi_channel.transfer(
