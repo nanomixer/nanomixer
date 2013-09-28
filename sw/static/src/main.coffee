@@ -302,9 +302,20 @@ class UIView
 ui = new UIView()
 
 
+requestMeterUpdate = ->
+    socket.emit 'control', []
+    throttledRequestMeterUpdate()
+    return
+
+meterUpdateFrameRate = 15
+throttledRequestMeterUpdate = _.throttle requestMeterUpdate, 1000 / meterUpdateFrameRate
+
 # Socket handling stuff
 socket = io.connect('');
-socket.on 'connect', -> debug('connected!')
+socket.on 'connect', ->
+    debug('connected!')
+    throttledRequestMeterUpdate()
+
 socket.on 'meter', (data) ->
     levels = data.levels
     for level, channelIdx in levels
