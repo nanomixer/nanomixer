@@ -53,3 +53,20 @@ def test_spi_roundtrip(n=1000, reps=100):
         wireformat.fixeds_to_spi(fixeds, spi_buf)
         wireformat.spi_to_fixeds(spi_buf, fixed_buf)
         assert np.all(fixeds == fixed_buf)
+
+
+def test_float_to_fixed():
+    #            smallest pos,   "   neg,     1,     -1, largest pos,  largest neg
+    floats = np.array([2**-30, -(2**-30),     1,     -1, 2**5 - 2**-30, -2**5 ])
+    ref    = np.array([     1,        -1, 2**30, -2**30,     2**35 - 1, -2**35], dtype=np.int64)
+    out = np.empty(len(floats), dtype=np.int64)
+    wireformat.floats_to_fixeds(floats, 30, out)
+    assert np.all(out == ref)
+
+
+def test_fixed_to_float():
+    ref    = np.array([2**-30, -(2**-30),     1,     -1, 2**5 - 2**-30, -2**5 ])
+    fixeds = np.array([     1,        -1, 2**30, -2**30,     2**35 - 1, -2**35], dtype=np.int64)
+    out = np.empty(len(fixeds), dtype=np.float64)
+    wireformat.fixeds_to_floats(fixeds, 30, out)
+    assert np.all(out == ref)

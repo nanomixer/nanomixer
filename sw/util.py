@@ -1,21 +1,4 @@
 import itertools
-import bitstring
-import numpy as np
-
-
-def floats_to_fixeds(x, fracbits):
-    """Takes a numpy float array and returns a numpy int array of them
-    in fixed point.
-
-    NB: This does not check for overflow!
-    """
-    shift = 1 << fracbits
-    return (x * shift).astype(np.uint64)
-
-
-def fixeds_to_floats(x, fracbits):
-    shift = 1 << fracbits
-    return x.astype(np.float64) / shift
 
 
 def flattened(iterable):
