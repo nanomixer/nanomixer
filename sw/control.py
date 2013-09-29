@@ -155,6 +155,7 @@ from spi_channel import SPIChannel
 class IOThread(threading.Thread):
     def __init__(self, param_mem_size, spi_channel):
         threading.Thread.__init__(self, name='IOThread')
+        self.daemon = True
         self._shutdown = False
         self.spi_channel = spi_channel
         self.spi_words = spi_channel.buf_size_in_words
