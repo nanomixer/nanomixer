@@ -178,6 +178,66 @@ class IOThread(threading.Thread):
     def shutdown(self):
         self._shutdown = True
 
+    def handle_queued_memory_mods(self):
+        while True:
+            try:
+                item = self._write_queue.popleft()
+            except IndexError:
+                continue
+            else:
+                addr, data = item
+                self._param_mem_contents[addr] = data
+                self._param_mem_dirty[addr] = 1
+
+    def do_send_recvs(self):
+        meter_packet = np.zeros(METERING_PACKET_SIZE, dtype=np.float64)
+        first_meter_index_needed = 0
+        while True:
+            dirty = self._param_mem_dirty.nonzero()[0]
+            meter_words_desired = METERING_PACKET_SIZE - first_meter_index_needed
+            if len(dirty) == 0:
+                if meter_words_desired <= 0:
+                    # All sending and receiving this time is complete.
+                    break
+                # Otherwise, pick a random address to start from
+                first_param_send_index = random.randrange(max(0, len(self._param_mem_contents) - self.spi_words))
+            else:
+                first_param_send_index = dirty[0]
+            param_data_to_send = self._param_mem_contents[first_param_send_index:]
+            if len(param_data_to_send) > self.spi_words:
+                param_data_to_send = param_data_to_send[:self.spi_words]
+            words_in_transfer = len(param_data_to_send)
+
+            read_buf = self._read_buf[:words_in_transfer]
+
+            # Unpack floats into fixed point in the write buffer.
+            write_buf = self._write_buf[:words_in_transfer]
+            wireformat.floats_to_fixeds(param_data_to_send, PARAM_INT_BITS, PARAM_FRAC_BITS, write_buf.view(np.int64))
+
+            self.spi_channel.transfer(
+                read_addr=first_meter_index_needed,
+                read_data=read_buf,
+                write_addr=first_param_send_index,
+                write_data=write_buf)
+
+            # Mark param memory segment not dirty.
+            self._param_mem_dirty[first_param_send_index:first_param_send_index+words_in_transfer] = 0
+
+            # Extract the metering data we got.
+            wireformat.fixeds_to_floats(
+                read_buf[:meter_words_desired],
+                METER_FRAC_BITS,
+                meter_packet[first_meter_index_needed:first_meter_index_needed+meter_words_desired])
+            # TODO: wraparound, since the meter data at the beginning of the packet is going to be newer.
+            first_meter_index_needed += words_in_transfer
+
+        self._meter_revision += 1
+
+        self._meter_mem_contents = (self._meter_revision, meter_packet)
+
+        # self.meter_values = 20 * np.log10(np.sqrt(decoded * 2**8))
+
+
     def run(self):
         logger.info('IO thread started')
         while True:
@@ -185,63 +245,11 @@ class IOThread(threading.Thread):
                 return
 
             # Handle queued memory modifications
-            while True:
-                try:
-                    item = self._write_queue.popleft()
-                except IndexError:
-                    continue
-                else:
-                    addr, data = item
-                    self._param_mem_contents[addr] = data
-                    self._param_mem_dirty[addr] = 1
+            self.handle_queued_memory_mods()
 
             # Do SPI send-recv's
-            meter_packet = np.zeros(METERING_PACKET_SIZE, dtype=np.float64)
-            first_meter_index_needed = 0
-            while True:
-                dirty = self._param_mem_dirty.nonzero()[0]
-                meter_words_desired = METERING_PACKET_SIZE - first_meter_index_needed
-                if len(dirty) == 0:
-                    if meter_words_desired <= 0:
-                        # All sending and receiving this time is complete.
-                        break
-                    # Otherwise, pick a random address to start from
-                    first_param_send_index = random.randrange(max(0, len(self._param_mem_contents) - self.spi_words))
-                else:
-                    first_param_send_index = dirty[0]
-                param_data_to_send = self._param_mem_contents[first_param_send_index:]
-                if len(param_data_to_send) > self.spi_words:
-                    param_data_to_send = param_data_to_send[:self.spi_words]
-                words_in_transfer = len(param_data_to_send)
+            self.do_send_recvs()
 
-                read_buf = self._read_buf[:words_in_transfer]
-
-                # Unpack floats into fixed point in the write buffer.
-                write_buf = self._write_buf[:words_in_transfer]
-                wireformat.floats_to_fixeds(param_data_to_send, PARAM_INT_BITS, PARAM_FRAC_BITS, write_buf.view(np.int64))
-
-                self.spi_channel.transfer(
-                    read_addr=first_meter_index_needed,
-                    read_data=read_buf,
-                    write_addr=first_param_send_index,
-                    write_data=write_buf)
-
-                # Mark param memory segment not dirty.
-                self._param_mem_dirty[first_param_send_index:first_param_send_index+words_in_transfer] = 0
-
-                # Extract the metering data we got.
-                wireformat.fixeds_to_floats(
-                    read_buf[:meter_words_desired],
-                    METER_FRAC_BITS,
-                    meter_packet[first_meter_index_needed:first_meter_index_needed+meter_words_desired])
-                # TODO: wraparound, since the meter data at the beginning of the packet is going to be newer.
-                first_meter_index_needed += words_in_transfer
-
-            self._meter_revision += 1
-
-            self._meter_mem_contents = (self._meter_revision, meter_packet)
-
-            # self.meter_values = 20 * np.log10(np.sqrt(decoded * 2**8))
 
 
 def pack_meter_packet(rev, meter_data):
