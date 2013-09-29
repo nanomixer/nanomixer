@@ -29,7 +29,7 @@ class SPIChannel(object):
         fixeds_to_spi(write_data, write_buf[address_offset_bytes:])
 
         # Do transfer.
-        self._spi.transfer(write_buf, read_buf)
+        self.dev.transfer(write_buf, read_buf)
 
         # Unpack results
         spi_to_fixeds(read_buf[address_offset_bytes:], read_data)
