@@ -1,9 +1,7 @@
 import numpy as np
 import random
 from biquads import normalize, peaking, lowpass
-from util import fixeds_to_floats, floats_to_fixeds
-# TODO:
-# from wireformat import spi_to_fixeds
+import wireformat
 from dsp_program import (
     HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain,
     constants_base, constants, meter_biquad_param_base)
@@ -17,6 +15,7 @@ METERING_LPF_PARAMS = dict(
 
 # Number formats
 PARAM_WIDTH = 36
+PARAM_INT_BITS = 5
 PARAM_FRAC_BITS = 30
 METER_WIDTH = 24
 METER_WIDTH_NIBBLES = METER_WIDTH / 4
@@ -212,7 +211,7 @@ class IOThread(threading.Thread):
 
                 # Unpack floats into fixed point in the write buffer.
                 write_buf = self._write_buf[:words_in_transfer]
-                floats_to_fixeds(param_data_to_send, PARAM_FRAC_BITS, write_buf)
+                wireformat.floats_to_fixeds(param_data_to_send, PARAM_INT_BITS, PARAM_FRAC_BITS, write_buf.view(np.int64))
 
                 self.spi_channel.transfer(
                     read_addr=first_meter_index_needed,
@@ -224,7 +223,7 @@ class IOThread(threading.Thread):
                 self._param_mem_dirty[first_param_send_index:first_param_send_index+words_in_transfer] = 0
 
                 # Extract the metering data we got.
-                fixeds_to_floats(
+                wireformat.fixeds_to_floats(
                     read_buf[:meter_words_desired],
                     METER_FRAC_BITS,
                     meter_packet[first_meter_index_needed:first_meter_index_needed+meter_words_desired])
