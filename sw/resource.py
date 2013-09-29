@@ -1,6 +1,8 @@
 from socketio.namespace import BaseNamespace
 from socketio.mixins import BroadcastMixin
-from control import controller, io_thread, pack_meter_packet
+from control import controller, io_thread
+import traceback
+import numpy as np
 
 
 class Resource(BaseNamespace, BroadcastMixin):
@@ -18,7 +20,7 @@ class Resource(BaseNamespace, BroadcastMixin):
                     bus, channel, gain = args
                     controller.set_gain(bus, channel, gain)
 
-            response = dict(seq=params['seq'])
+            response = dict()#seq=params['seq'])
             rev, meter = io_thread.get_meter()
             if rev > self.last_meter_sent:
                 response['levels'] = np.concatenate(meter[:8], meter[:8]).tolist()
