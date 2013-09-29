@@ -238,9 +238,8 @@ class IOThread(threading.Thread):
 
         self._meter_revision += 1
 
-        self._meter_mem_contents = (self._meter_revision, meter_packet)
-
-        # self.meter_values = 20 * np.log10(np.sqrt(decoded * 2**8))
+        meter_values = 20 * np.log10(np.sqrt(meter_packet * 2**8))
+        self._meter_mem_contents = (self._meter_revision, meter_values)
 
 
     def run(self):
