@@ -184,10 +184,9 @@ class IOThread(threading.Thread):
                 item = self._write_queue.popleft()
             except IndexError:
                 break
-            else:
-                addr, data = item
-                self._param_mem_contents[addr] = data
-                self._param_mem_dirty[addr] = 1
+            addr, data = item
+            self._param_mem_contents[addr] = data
+            self._param_mem_dirty[addr] = 1
 
     def do_send_recvs(self):
         meter_packet = np.zeros(METERING_PACKET_SIZE, dtype=np.float64)
