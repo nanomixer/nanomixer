@@ -264,5 +264,5 @@ def pack_meter_packet(rev, meter_data):
 spi_dev = spidev.SpiChannel('/dev/spidev4.0', bits_per_word=20)
 spi_channel = SPIChannel(spi_dev, buf_size_in_words=64)
 io_thread = IOThread(param_mem_size=1024, spi_channel=spi_channel)
-#io_thread.start()
+io_thread.start()
 controller = Controller(io_thread)
