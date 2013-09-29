@@ -1,19 +1,22 @@
+import os
 from gevent import monkey; monkey.patch_socket()
 from flask import Flask, request, send_file
 from socketio import socketio_manage
 from resource import Resource
 import logging
 
+STATIC_FILES_AT = os.path.join(os.path.dirname(__file__), 'static', 'build')
+
 # Flask routes
 app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return send_file('static/index.html')
+    return send_file(os.path.join(STATIC_FILES_AT, 'index.html'))
 
 @app.route("/socket.io/<path:path>")
 def run_socketio(path):
-    socketio_manage(request.environ, {'': Resource})
+    return socketio_manage(request.environ, {'': Resource})
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
@@ -22,7 +25,7 @@ if __name__ == '__main__':
     import os
     from werkzeug.wsgi import SharedDataMiddleware
     app = SharedDataMiddleware(app, {
-        '/': os.path.join(os.path.dirname(__file__), 'static')
+        '/': STATIC_FILES_AT
         })
     from socketio.server import SocketIOServer
     SocketIOServer(('0.0.0.0', 8080), app,
