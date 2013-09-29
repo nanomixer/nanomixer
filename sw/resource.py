@@ -11,13 +11,19 @@ class Resource(BaseNamespace, BroadcastMixin):
     def disconnect(self, *a, **kw):
         super(Resource, self).disconnect(*a, **kw)
 
-    def on_control(self, message, params):
-        for cmd, args in params['commands']:
-            controller.handle_message(cmd, args)
+    def on_control(self, commands):
+        try:
+            for cmd, args in commands:
+                if cmd == 'set_gain':
+                    bus, channel, gain = args
+                    controller.set_gain(bus, channel, gain)
 
-        response = dict(seq=params['seq'])
-        rev, meter = io_thread.get_meter()
-        if rev > self.last_meter_sent:
-            response['meter'] = pack_meter_packet(rev, meter)
-            self.last_meter_sent = rev
-        self.emit('response', response)
+            response = dict(seq=params['seq'])
+            rev, meter = io_thread.get_meter()
+            if rev > self.last_meter_sent:
+                response['levels'] = np.concatenate(meter[:8], meter[:8]).tolist()
+                self.last_meter_sent = rev
+            self.emit('meter', response)
+
+        except Exception as e:
+            traceback.print_exc()
