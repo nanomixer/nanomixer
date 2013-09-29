@@ -19,6 +19,9 @@ class Addr(object):
     def __index__(self):
         assert self.addr is not None
         return self.addr
+    def __int__(self):
+        assert self.addr is not None
+        return self.addr
 
 
 def assign_addresses(seq, start_address):
