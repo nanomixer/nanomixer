@@ -19,14 +19,14 @@ class SPIChannel(object):
             raise ValueError("Read and write buffer sizes must match.")
         buf_len_bytes = SPI_BYTES_PER_WORD * buf_len_words
         address_offset_bytes = 2 * SPI_BYTES_PER_WORD
+        bytes_in_transfer = address_offset_bytes + buf_len_bytes
 
         # Build the data packet: read addr, write addr, data.
-        write_buf = self.write_buf[address_offset_bytes:address_offset_bytes + buf_len_bytes]
-        read_buf = self.read_buf[address_offset_bytes:address_offset_bytes + buf_len_bytes]
-        assert len(write_buf) == buf_len_bytes
+        write_buf = self.write_buf[:bytes_in_transfer]
+        read_buf = self.read_buf[:bytes_in_transfer]
         self._addresses[0] = read_addr
         self._addresses[1] = write_addr
-        fixeds_to_spi(self._addresses, self.write_buf[:address_offset_bytes])
+        fixeds_to_spi(self._addresses, write_buf[:address_offset_bytes])
         fixeds_to_spi(write_data, write_buf[address_offset_bytes:])
 
         # Do transfer.
