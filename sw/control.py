@@ -223,8 +223,9 @@ class IOThread(threading.Thread):
             self._param_mem_dirty[first_param_send_index:first_param_send_index+words_in_transfer] = 0
 
             # Extract the metering data we got.
+            # TODO: handle negative values correctly. (But we're not going to get any negatives anytime soon.)
             wireformat.fixeds_to_floats(
-                read_buf[:meter_words_desired],
+                read_buf[:meter_words_desired].view(np.int64),
                 METER_FRAC_BITS,
                 meter_packet[first_meter_index_needed:first_meter_index_needed+meter_words_desired])
             # TODO: wraparound, since the meter data at the beginning of the packet is going to be newer.
