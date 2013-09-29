@@ -214,6 +214,7 @@ class IOThread(threading.Thread):
             write_buf = self._write_buf[:words_in_transfer]
             wireformat.floats_to_fixeds(param_data_to_send, PARAM_INT_BITS, PARAM_FRAC_BITS, write_buf.view(np.int64))
 
+            print '{} @ rd: {} wr: {}'.format(words_in_transfer, first_meter_index_needed, first_param_send_index)
             self.spi_channel.transfer(
                 read_addr=first_meter_index_needed,
                 read_data=read_buf,
