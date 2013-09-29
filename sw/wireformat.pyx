@@ -65,10 +65,8 @@ def floats_to_fixeds(np.float64_t[::1] x not None, int intbits, int fracbits, np
     cdef int overflow = 0
     cdef np.float64_t max_possible = 2.**intbits - 2.**-fracbits
     cdef np.float64_t min_possible = -2.**intbits
-    print max_possible, min_possible
     for i in range(len(x)):
         cur_x = x[i]
-        print cur_x
         if cur_x > max_possible:
             cur_x = max_possible
             overflow = 1
