@@ -195,7 +195,7 @@ def parameter_base_addr_for_biquad(channel, biquad):
     return mixer.biquads[channel].params[biquad][0].addr
 
 def address_for_mixdown_gain(core, channel, bus):
-    return mixer.downmix.gain[core][channel][bus].addr
+    return mixer.downmix.gain[core][bus][channel].addr
 
 constants_base = constants.base
 meter_biquad_param_base = mixer.meter_biquad_params[0].addr
