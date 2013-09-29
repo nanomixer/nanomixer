@@ -29,7 +29,7 @@ def spi_to_fixeds(np.uint8_t[:] spi not None, np.uint64_t[:] result not None):
 def fixeds_to_spi(np.uint64_t[:] fixeds not None, np.uint8_t[:] spi not None):
     cdef int n_words = spi.shape[0] / 8
     if fixeds.shape[0] != n_words:
-        raise ValueError("Bad dimensionality for fixed-point source array (should be %d)", n_words)
+        raise ValueError("Bad dimensionality for fixed-point source array (should be %d)" % n_words)
     cdef int start = 0
     cdef np.uint64_t hiword, loword
     for i in range(n_words):
