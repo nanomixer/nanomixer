@@ -4,7 +4,7 @@ from biquads import normalize, peaking, lowpass
 import wireformat
 from dsp_program import (
     HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain,
-    constants_base, constants, meter_biquad_param_base)
+    constants, meter_biquad_param_base)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -124,8 +124,8 @@ class Controller(object):
             # Set constants.
             self._set_parameter_memory(
                 core=core,
-                addr=constants_base,
-                data=constants)
+                addr=constants.base,
+                data=constants.constants)
 
             # Update all biquads
             for channel in xrange(HARDWARE_PARAMS['num_channels_per_core']):
