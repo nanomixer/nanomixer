@@ -21,8 +21,9 @@ class SPIChannel(object):
         address_offset_bytes = 2 * SPI_BYTES_PER_WORD
 
         # Build the data packet: read addr, write addr, data.
-        write_buf = self.write_buf[:address_offset_bytes + buf_len_bytes]
-        read_buf = self.read_buf[:address_offset_bytes + buf_len_bytes]
+        write_buf = self.write_buf[address_offset_bytes:address_offset_bytes + buf_len_bytes]
+        read_buf = self.read_buf[address_offset_bytes:address_offset_bytes + buf_len_bytes]
+        assert len(write_buf) == buf_len_bytes
         self._addresses[0] = read_addr
         self._addresses[1] = write_addr
         fixeds_to_spi(self._addresses, self.write_buf[:address_offset_bytes])
