@@ -31,9 +31,7 @@ body.channel-active #channel
     position relative
     .meter
         width 20px
-        height (fader-height - name-height - grip-height)
         position absolute
-        top (grip-height / 2)
         left 0
     .groove
         background black
@@ -77,11 +75,10 @@ body.channel-active #channel
 #eq
     .filter, .labels
         float left
-        width 150px
+        width 100px
         position relative
         .adjusting
             background: lighten(#303030, 40)
         //.freq
         //.gain
         //.q
-
