@@ -234,6 +234,7 @@ class IOThread(threading.Thread):
                 meter_packet[first_meter_index_needed:first_meter_index_needed+len(meter_vals_read)])
             # TODO: wraparound, since the meter data at the beginning of the packet is going to be newer.
             first_meter_index_needed += words_in_transfer
+            break # FIXME.
 
         self._meter_revision += 1
 
