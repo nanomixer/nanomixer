@@ -155,6 +155,7 @@ from spi_channel import SPIChannel
 class IOThread(threading.Thread):
     def __init__(self, param_mem_size, spi_channel):
         threading.Thread.__init__(self, name='IOThread')
+        self._shutdown = False
         self.spi_channel = spi_channel
         self.spi_words = spi_channel.buf_size_in_words
         self._param_mem_contents = np.zeros(param_mem_size, dtype=np.float64)
@@ -174,9 +175,15 @@ class IOThread(threading.Thread):
     def get_meter(self):
         return self._meter_mem_contents
 
+    def shutdown(self):
+        self._shutdown = True
+
     def run(self):
         logger.info('IO thread started')
         while True:
+            if self._shutdown:
+                return
+
             # Handle queued memory modifications
             while True:
                 try:
