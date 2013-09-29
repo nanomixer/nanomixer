@@ -183,7 +183,7 @@ class IOThread(threading.Thread):
             try:
                 item = self._write_queue.popleft()
             except IndexError:
-                continue
+                break
             else:
                 addr, data = item
                 self._param_mem_contents[addr] = data
