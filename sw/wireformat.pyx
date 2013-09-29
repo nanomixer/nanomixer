@@ -55,26 +55,34 @@ def fixeds_to_spi(np.uint64_t[:] fixeds not None, np.uint8_t[:] spi not None):
         start += 4
 
 
-def floats_to_fixeds(np.float64_t[::1] x not None, int fracbits, np.int64_t[::1] out=None):
+def floats_to_fixeds(np.float64_t[::1] x not None, int intbits, int fracbits, np.int64_t[::1] out):
     """Note that this function takes signed data, so use out.view(np.int64)."""
-    if out is None:
-        out = np.empty(len(x), dtype=np.int64)
-    elif len(x) != len(out):
+    if len(x) != len(out):
         raise ValueError("Input and output array sizes don't match.")
     cdef np.float64_t shift = 1 << fracbits
     cdef int i
+    cdef np.float64_t cur_x
+    cdef int overflow = 0
+    cdef np.float64_t max_possible = 2.**intbits - 2.**-fracbits
+    cdef np.float64_t min_possible = -2.**intbits
+    print max_possible, min_possible
     for i in range(len(x)):
-        out[i] = <np.int64_t> (x[i] * shift)
-    return out
+        cur_x = x[i]
+        print cur_x
+        if cur_x > max_possible:
+            cur_x = max_possible
+            overflow = 1
+        elif cur_x < min_possible:
+            cur_x = min_possible
+            overflow = 1
+        out[i] = <np.int64_t> (cur_x * shift)
+    return overflow != 0
 
 
-def fixeds_to_floats(np.int64_t[::1] x, int fracbits, np.float64_t[::1] out=None):
-    if out is None:
-        out = np.empty(len(x), dtype=np.float64)
-    elif len(x) != len(out):
+def fixeds_to_floats(np.int64_t[::1] x, int fracbits, np.float64_t[::1] out):
+    if len(x) != len(out):
         raise ValueError("Input and output array sizes don't match.")
     cdef np.float64_t shift = 1 << fracbits
     cdef int i
     for i in range(len(x)):
         out[i] = (<np.float64_t> x[i]) / shift
-    return out

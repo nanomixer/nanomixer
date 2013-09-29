@@ -60,8 +60,17 @@ def test_float_to_fixed():
     floats = np.array([2**-30, -(2**-30),     1,     -1, 2**5 - 2**-30, -2**5 ])
     ref    = np.array([     1,        -1, 2**30, -2**30,     2**35 - 1, -2**35], dtype=np.int64)
     out = np.empty(len(floats), dtype=np.int64)
-    wireformat.floats_to_fixeds(floats, 30, out)
+    overflow = wireformat.floats_to_fixeds(floats, 5, 30, out)
     assert np.all(out == ref)
+    assert not overflow
+
+    # Test overflow
+    floats = np.array([     2**5, -2**5 - 2**-30])
+    ref    = np.array([2**35 - 1,         -2**35], dtype=np.int64)
+    out = np.empty(len(floats), dtype=np.int64)
+    overflow = wireformat.floats_to_fixeds(floats, 5, 30, out)
+    assert np.all(out == ref)
+    assert overflow
 
 
 def test_fixed_to_float():
