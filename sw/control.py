@@ -151,7 +151,6 @@ class Controller(object):
 
 import threading
 import collections
-import spidev
 from spi_channel import SPIChannel
 class IOThread(threading.Thread):
     def __init__(self, param_mem_size, spi_channel):
@@ -262,9 +261,24 @@ def pack_meter_packet(rev, meter_data):
         rev=rev)
 
 
-spi_dev = spidev.SpiChannel('/dev/spidev4.0', bits_per_word=20)
-spi_channel = SPIChannel(spi_dev, buf_size_in_words=64)
+import os
+SPI_DEVICE = '/dev/spidev4.0'
+ON_TGT_HARDWARE = os.path.exists(SPI_DEVICE)
+if ON_TGT_HARDWARE:
+    import spidev
+    spi_dev = spidev.SpiChannel(SPI_DEVICE, bits_per_word=20)
+    spi_channel = SPIChannel(spi_dev, buf_size_in_words=64)
+else:
+    class DummySPIChannel(object):
+        buf_size_in_words = 64
+
+    spi_channel = DummySPIChannel()
 io_thread = IOThread(param_mem_size=1024, spi_channel=spi_channel)
-io_thread.start()
+
+if ON_TGT_HARDWARE:
+    io_thread.start()
+else:
+    print "Not on target hardware, not starting IO thread."
+
 controller = Controller(io_thread)
 controller.dump_state_to_mixer()
