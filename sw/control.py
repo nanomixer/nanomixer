@@ -189,6 +189,23 @@ class IOThread(threading.Thread):
             self._param_mem_contents[addr] = data
             self._param_mem_dirty[addr] = 1
 
+    def dump_to_mif(self, outfile):
+        self.handle_queued_memory_mods()
+        write_buf = np.empty(len(self._param_mem_contents), dtype=np.uint64)
+        wireformat.floats_to_fixeds(self._param_mem_contents, PARAM_INT_BITS, PARAM_FRAC_BITS, write_buf.view(np.int64))
+        print >>outfile, "DEPTH = {};".format(len(write_buf))
+        print >>outfile, "WIDTH = {};".format(36)
+        print >>outfile, "ADDRESS_RADIX = HEX;"
+        print >>outfile, "DATA_RADIX = HEX;"
+        print >>outfile, "CONTENT BEGIN"
+        for addr, val in enumerate(write_buf):
+            fmt_val = '{:09x}'.format(val)
+            # But if it was negative, it's too wide.
+            fmt_val = fmt_val[-9:]
+            print >>outfile, '{:02x} : {};'.format(addr, fmt_val)
+        print >>outfile, "END;"
+
+
     def do_send_recvs(self):
         meter_packet = np.zeros(METERING_PACKET_SIZE, dtype=np.float64)
         first_meter_index_needed = 0
