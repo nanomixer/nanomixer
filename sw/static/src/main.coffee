@@ -339,6 +339,13 @@ subscribeToEverything = (mixer) ->
                         ['set_gain',
                          [channelIdx % 2, channelIdx, Math.pow(10, newLevel/20)]
                         ]]
+    for channel, channelIdx in mixer.channels
+        for filter, filterIdx in channel.eq.filters
+            do (channelIdx, filterIdx, filter) ->
+                ko.computed ->
+                    socket.emit 'control', [
+                        ['set_biquad', [channelIdx, filterIdx, filter.freq(), filter.gain(), filter.q()]]
+                    ]
     return
 
 subscribeToEverything(mixer)
