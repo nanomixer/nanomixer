@@ -138,7 +138,7 @@ class Meter(object):
 num_channels = 8
 
 # channel strip
-num_biquads = 2
+num_biquads = 5
 
 # mixdown
 num_cores = 1
