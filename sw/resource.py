@@ -3,7 +3,7 @@ from socketio.mixins import BroadcastMixin
 from control import controller, io_thread
 import traceback
 import numpy as np
-
+from pprint import pprint
 
 class Resource(BaseNamespace, BroadcastMixin):
     def initialize(self):
@@ -14,6 +14,7 @@ class Resource(BaseNamespace, BroadcastMixin):
         super(Resource, self).disconnect(*a, **kw)
 
     def on_control(self, commands):
+        pprint(commands)
         try:
             for cmd, args in commands:
                 if cmd == 'set_gain':
