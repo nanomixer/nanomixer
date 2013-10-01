@@ -31,7 +31,7 @@ class Resource(BaseNamespace, BroadcastMixin):
             if rev > self.last_meter_sent:
                 response['levels'] = np.concatenate((meter[:8], meter[:8])).tolist()
                 self.last_meter_sent = rev
-            self.emit('meter', response)
+                self.emit('meter', response)
 
         except Exception as e:
             traceback.print_exc()
