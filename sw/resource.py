@@ -30,6 +30,7 @@ class Resource(BaseNamespace, BroadcastMixin):
             response = dict()#seq=params['seq'])
             rev, meter = io_thread.get_meter()
             response['levels'] = meter[:8].tolist()
+            response['meter_rev'] = rev
             self.last_meter_sent = rev
             self.emit('meter', response)
 
