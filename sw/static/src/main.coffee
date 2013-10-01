@@ -301,6 +301,7 @@ class UIView
                 'channel'
         @faderSection = new FaderSection('#faders', mixer)
         @channelSection = new ChannelSection('#channel', mixer)
+        @meterRev = ko.observable 0
 
         ko.applyBindings this
         @faderSection.setActiveFaders()
@@ -324,6 +325,7 @@ socket.on 'connect', ->
     throttledRequestMeterUpdate()
 
 socket.on 'meter', (data) ->
+    ui.meterRev data.meter_rev
     levels = data.levels
     for level, channelIdx in levels
         mixer.channels[channelIdx].signalLevel level
