@@ -20,6 +20,11 @@ class Resource(BaseNamespace, BroadcastMixin):
                 if cmd == 'set_gain':
                     bus, channel, gain = args
                     controller.set_gain(bus, channel, gain)
+                elif cmd == 'set_biquad':
+                    #channel, biquad, freq, gain, q = args
+                    controller.set_biquad(*args)
+                else:
+                    print 'Unknown command', cmd
 
             response = dict()#seq=params['seq'])
             rev, meter = io_thread.get_meter()

@@ -81,20 +81,12 @@ class Controller(object):
         logger.info('handle_message(%r, %r)', message, args)
         getattr(self, message)(**args)
 
-    def set_biquad_freq(self, channel, biquad, freq):
+    def set_biquad(self, channel, biquad, freq, gain, q):
         core, ch = channel_map[channel]
         self.state.biquad_freq[core, ch, biquad] = freq
-        self._update_biquad(core, ch, biquad)
-
-    def set_biquad_gain(self, channel, biquad, gain):
-        core, ch = channel_map[channel]
         self.state.biquad_gain[core, ch, biquad] = gain
+        self.state.biquad_q[core, ch, biquad] = q
         self._update_biquad(core, ch, biquad)
-
-    def set_biquad_q(self, channel, biquad, q):
-        core, channel_idx = channel_map[channel]
-        self.state.biquad_q[core, channel_idx, biquad] = q
-        self._update_biquad(core, channel_idx, biquad)
 
     def set_gain(self, bus, channel, gain):
         bus_core, bus_idx = bus_map[bus]
