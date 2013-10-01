@@ -64,6 +64,11 @@ dsp_core my_dsp(.clk(dsp_clk),
                 .io_mem(my_dsp_bus.dsp_io_bus),
                 .instruction);
 
+metering_buffer my_meter(.clock(dsp_clk),
+                         .address(meter_wr_addr), 
+                         .data   (meter_wr_data),
+                         .wren   (meter_wr_en));
+
 meter_mem meter_mem_inst (
     .clock ( dsp_clk ),
     .wraddress ( meter_wr_addr ),
