@@ -29,9 +29,8 @@ class Resource(BaseNamespace, BroadcastMixin):
 
             response = dict()#seq=params['seq'])
             rev, meter = io_thread.get_meter()
-            if rev > self.last_meter_sent:
-                response['levels'] = meter[:8].tolist()
-                self.last_meter_sent = rev
+            response['levels'] = meter[:8].tolist()
+            self.last_meter_sent = rev
             self.emit('meter', response)
 
         except Exception as e:
