@@ -337,7 +337,7 @@ subscribeToEverything = (mixer) ->
                 fader.level.subscribe (newLevel) ->
                     socket.emit 'control', [
                         ['set_gain',
-                         [0, channelIdx, newLevel]
+                         [channelIdx % 2, channelIdx, Math.pow(10, newLevel/20)]
                         ]]
     return
 
