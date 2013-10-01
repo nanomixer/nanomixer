@@ -94,7 +94,7 @@ class FaderView
             gradient = ctx.createLinearGradient(0, 0, 20, @grooveHeight())
             gradient.addColorStop(0, 'rgba(255, 0, 0, .2)')
             gradient.addColorStop(.5, 'rgba(255, 255, 0, .2)')
-            gradient.addColorStop(1, 'rgba(0, 255, 0, .2')
+            gradient.addColorStop(1, 'rgba(0, 255, 0, .2)')
             ctx.fillStyle = gradient
             ctx.fillRect(0, y, 1000, 1000)
 
