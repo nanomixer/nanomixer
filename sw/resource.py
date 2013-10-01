@@ -14,7 +14,8 @@ class Resource(BaseNamespace, BroadcastMixin):
         super(Resource, self).disconnect(*a, **kw)
 
     def on_control(self, commands):
-        pprint(commands)
+        if commands:
+            pprint(commands)
         try:
             for cmd, args in commands:
                 if cmd == 'set_gain':
