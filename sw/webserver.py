@@ -16,7 +16,8 @@ def index():
 
 @app.route("/socket.io/<path:path>")
 def run_socketio(path):
-    return socketio_manage(request.environ, {'': Resource})
+    socketio_manage(request.environ, {'': Resource})
+    return 'out'
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
