@@ -84,6 +84,52 @@ class SingleBiquad(Component):
         self.program = self.chain.program
 
 
+class StateVarFilter(Component):
+    Storage = namedtuple('SVStorage', 'xn, ln, ln1, bn, bn1')
+    Params = namedtuple('SVParams', 'f, nf, oneminusfq')
+
+    def __init__(self):
+        # Params can be passed to share parameter memory.
+        self.storage = storage = self.make_storage()
+        self.params = params = self.make_params()
+        self.input = self.storage.xn
+        self.output = self.storage.ln
+
+        self.program = [
+            Mul(storage.ln1, Constants.addr_for(1.)),
+            Mac(storage.bn1, params.f),
+            # CONTINUE HERE
+            # BASED ON http://www.earlevel.com/main/2003/03/02/the-digital-state-variable-filter/
+            #L[n] = L[n-1] + f * B[n-1]
+            #B[n] = B[n-1] + f *x[n] - f*L[n] - f*q*B[n-1]
+            #
+            #load L[n-1]
+            #mac f, B[n-1]
+            #store L[n]
+            #
+            #mul (1-fq), B[n-1]
+            #mac f, x[n]
+            #mac -f, L[n]
+            #store B[n]
+            #
+
+            Mul(output_storage.xn2, params.a2),
+            Mac(output_storage.xn1, params.a1),
+            Mac(input_storage.xn2, params.b2),
+            Mac(input_storage.xn1, params.b1),
+            Mac(input_storage.xn, params.b0),
+            Store(output_storage.xn)
+        ]
+
+    @classmethod
+    def make_storage(cls):
+        return cls.Storage._make([Addr() for i in xrange(5)])
+
+    @classmethod
+    def make_params(cls):
+        return cls.Params._make([Addr() for i in xrange(3)])
+
+
 class RoundRobin(Component):
     def __init__(self, components):
         self.params = pluck('params', components)
@@ -154,7 +200,7 @@ HARDWARE_PARAMS = dict(
 meter_outputs = [Addr() for channel in range(num_channels)]
 assign_addresses(meter_outputs, start_address=512)
 
-constants = Constants([0., 2**-8])
+constants = Constants([0., 1., 2**-8])
 
 class Mixer(Component):
     def __init__(self):
