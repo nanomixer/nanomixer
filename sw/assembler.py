@@ -97,7 +97,7 @@ class AMac(Instruction):
     def __repr__(self): return '{}({})'.format(self.__class__.__name__, self.sample_addr)
 
 def assemble(instructions, outfile):
-    print >>outfile, "DEPTH = 512;"
+    print >>outfile, "DEPTH = 2048;"
     print >>outfile, "WIDTH = {};".format(OPCODE_WIDTH + SAMPLE_ADDR_WIDTH + PARAM_ADDR_WIDTH)
     print >>outfile, "ADDRESS_RADIX = HEX;"
     print >>outfile, "DATA_RADIX = BIN;"
