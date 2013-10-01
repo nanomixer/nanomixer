@@ -282,7 +282,8 @@ filterTemplate = """
 <div class="q" data-bind="dragToAdjust: {value: q, scale: qToPixel}"></div>
 """
 
-channels = (new Channel(i) for i in [0...16])
+NUM_CHANNELS = 8
+channels = (new Channel(i) for i in [0...NUM_CHANNELS])
 buses = {
     master: new Bus(channels)
 }
