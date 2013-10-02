@@ -95,6 +95,7 @@ class StateVarFilter(Component):
 
     def __init__(self, params=None):
         # Based on http://www.earlevel.com/main/2003/03/02/the-digital-state-variable-filter/
+        # See also https://ccrma.stanford.edu/~jos/svf/Digitization_Second_Order_Continuous_Time_Lowpass.html
         self.storage = storage = self.make_storage()
         self.params = params = self.make_params() if params is None else params
         self.input = self.storage.xn
