@@ -5,6 +5,7 @@
 from assembler import Nop, Mul, Mac, RotMac, Store, In, Out, Spin, AMac, assemble, Addr, assign_addresses
 from util import flattened, roundrobin
 from collections import namedtuple
+import numpy as np
 
 
 class Component(object):
@@ -84,41 +85,29 @@ class SingleBiquad(Component):
         self.program = self.chain.program
 
 
+def Load(sample_addr):
+    return Mul(sample_addr, constants.addr_for(1.))
+
+
 class StateVarFilter(Component):
     Storage = namedtuple('SVStorage', 'xn, ln, ln1, bn, bn1')
     Params = namedtuple('SVParams', 'f, nf, oneminusfq')
 
-    def __init__(self):
-        # Params can be passed to share parameter memory.
+    def __init__(self, params=None):
+        # Based on http://www.earlevel.com/main/2003/03/02/the-digital-state-variable-filter/
         self.storage = storage = self.make_storage()
-        self.params = params = self.make_params()
+        self.params = params = self.make_params() if params is None else params
         self.input = self.storage.xn
         self.output = self.storage.ln
 
         self.program = [
-            Mul(storage.ln1, Constants.addr_for(1.)),
+            Load(storage.ln1),
             Mac(storage.bn1, params.f),
-            # CONTINUE HERE
-            # BASED ON http://www.earlevel.com/main/2003/03/02/the-digital-state-variable-filter/
-            #L[n] = L[n-1] + f * B[n-1]
-            #B[n] = B[n-1] + f *x[n] - f*L[n] - f*q*B[n-1]
-            #
-            #load L[n-1]
-            #mac f, B[n-1]
-            #store L[n]
-            #
-            #mul (1-fq), B[n-1]
-            #mac f, x[n]
-            #mac -f, L[n]
-            #store B[n]
-            #
-
-            Mul(output_storage.xn2, params.a2),
-            Mac(output_storage.xn1, params.a1),
-            Mac(input_storage.xn2, params.b2),
-            Mac(input_storage.xn1, params.b1),
-            Mac(input_storage.xn, params.b0),
-            Store(output_storage.xn)
+            Store(storage.ln),
+            Mul(storage.bn1, params.oneminusfq),
+            Mac(storage.xn, params.f),
+            Mac(storage.ln, params.nf),
+            Store(storage.bn)
         ]
 
     @classmethod
@@ -128,6 +117,19 @@ class StateVarFilter(Component):
     @classmethod
     def make_params(cls):
         return cls.Params._make([Addr() for i in xrange(3)])
+
+    @classmethod
+    def encode_params(cls, Fc, Q, Fs):
+        """
+        Encode filter parameters in the way we'll store them in memory.
+
+        Fc = filter corner frequency
+        Q = filter Q ("normally 0.5 to infinity")
+        Fs = sampling rate
+        """
+        f = 2 * np.sin(np.pi * float(Fc) / Fs)
+        q = 1. / Q
+        return [f, -f, 1 - f * q]
 
 
 class RoundRobin(Component):
@@ -167,18 +169,19 @@ class Downmix(object):
 
 class Meter(object):
     def __init__(self, input, output, params):
-        self.biquad = SingleBiquad(params=params)
-        self.storage = self.biquad.storage
-        self.params = self.biquad.params
+        self.filter = StateVarFilter(params=params)
+        self.storage = self.filter.storage
+        self.params = self.filter.params
         self.output = output
         self.program = [
             Mul(input, constants.addr_for(2**-8)), # shift down to give room for squaring not to overflow.
             Mul(0, constants.addr_for(0)), # HACK to clear the accumulator. First arg doesn't matter.
             AMac(input),
-            Store(self.biquad.input)
-        ] + self.biquad.program
-        # biquad ends with Store(yn), which preserves the accumulator, which currently contains the filtered squared value.
-        self.program.append(Out(self.output))
+            Store(self.filter.input)
+        ] + self.filter.program + [
+            Load(self.filter.output),
+            Out(self.output)
+        ]
 
 
 num_channels = 8
@@ -211,8 +214,8 @@ class Mixer(Component):
         downmix = self.downmix = Downmix([biquads[channel].output for channel in range(num_channels)])
 
         # Meter.
-        meter_biquad_params = self.meter_biquad_params = BiquadChain.make_params()
-        meters = self.meters = [Meter(biquads[channel].input, meter_outputs[channel], meter_biquad_params) for channel in range(num_channels)]
+        meter_filter_params = self.meter_filter_params = StateVarFilter.make_params()
+        meters = self.meters = [Meter(biquads[channel].input, meter_outputs[channel], meter_filter_params) for channel in range(num_channels)]
 
         components = [inputs, Nops(3), RoundRobin(biquads), downmix, meters, constants]
         flat_components = list(flattened(components))
@@ -244,7 +247,7 @@ def address_for_mixdown_gain(core, channel, bus):
     return mixer.downmix.gain[core][bus][channel].addr
 
 constants_base = constants.base
-meter_biquad_param_base = mixer.meter_biquad_params[0].addr
+meter_filter_param_base = mixer.meter_filter_params[0].addr
 
 
 if __name__ == '__main__':

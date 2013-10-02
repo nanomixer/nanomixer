@@ -1,17 +1,18 @@
 import numpy as np
 import random
-from biquads import normalize, peaking, lowpass
+from biquads import normalize, peaking
 import wireformat
 from dsp_program import (
     HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain,
-    constants, meter_biquad_param_base)
+    constants, meter_filter_param_base, StateVarFilter)
 import logging
 
 logger = logging.getLogger(__name__)
 
 METERING_LPF_PARAMS = dict(
-    f0=10.,
-    q=np.sqrt(2.)/2.)
+    Fc=10.,
+    Q=np.sqrt(2.)/2.,
+    Fs=48000)
 
 # Number formats
 PARAM_WIDTH = 36
@@ -124,17 +125,18 @@ class Controller(object):
                 for biquad in xrange(HARDWARE_PARAMS['num_biquads_per_channel']):
                     self._update_biquad(core, channel, biquad)
 
-            # Special metering biquad.
-            self._set_parameter_memory(core=core, addr=meter_biquad_param_base,
-                data=pack_biquad_coeffs(*self.get_metering_biquad_coef()))
+            # Special metering filter.
+            self._set_parameter_memory(core=core, addr=meter_filter_param_base,
+                data=self.get_metering_filter_params())
+
             # Update all gains.
             for bus_core in xrange(HARDWARE_PARAMS['num_cores']):
                 for bus_idx in xrange(HARDWARE_PARAMS['num_busses_per_core']):
                     for channel_idx in xrange(HARDWARE_PARAMS['num_channels_per_core']):
                         self._update_gain(bus_core, bus_idx, core, channel_idx)
 
-    def get_metering_biquad_coef(self):
-        return normalize(*lowpass(**METERING_LPF_PARAMS))
+    def get_metering_filter_params(self):
+        return StateVarFilter.encode_params(**METERING_LPF_PARAMS)
 
     def _set_parameter_memory(self, core, addr, data):
         start = core * WORDS_PER_CORE + int(addr)
