@@ -252,7 +252,7 @@ class ChannelSection
             "Channel #{@activeChannelIdx()+1} (#{@activeChannel().name()})"
 
         @hasPrevChannel = ko.computed => @activeChannelIdx() > 0
-        @hasNextChannel = ko.computed => @activeChannelIdx() < @mixer.channels.length - 2
+        @hasNextChannel = ko.computed => @activeChannelIdx() < @mixer.channels.length - 1
 
         ko.computed =>
             channel = @activeChannel()
