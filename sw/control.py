@@ -237,10 +237,10 @@ class IOThread(threading.Thread):
             self._param_mem_dirty[first_param_send_index:first_param_send_index+words_in_transfer] = 0
 
             # Extract the metering data we got.
-            meter_vals_read = read_buf[:meter_words_desired].view(np.int64)
+            meter_vals_read = read_buf[:meter_words_desired]
             wireformat.sign_extend(meter_vals_read, METER_SIGN_BIT)
             wireformat.fixeds_to_floats(
-                meter_vals_read,
+                meter_vals_read.view(np.int64),
                 METER_FRAC_BITS,
                 meter_packet[first_meter_index_needed:first_meter_index_needed+len(meter_vals_read)])
             # TODO: wraparound, since the meter data at the beginning of the packet is going to be newer.
