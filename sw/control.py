@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 METERING_LPF_PARAMS = dict(
-    Fc=10.,
+    Fc=7.5,
     Q=np.sqrt(2.)/2.,
     Fs=48000)
 
