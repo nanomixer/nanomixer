@@ -1,0 +1,35 @@
+State Management
+================
+
+The server is the authoritative source for the current mixer state, since it communicates it directly to the audio processing engine.
+
+Client-server communication proceeds in lock-step, driven by the client. The client sends a message containing the following information:
+
+{
+    "seq": a message sequence number,
+    "state": a state update object, described below
+}.
+
+The server responds with a message:
+
+{
+    "seq": the client message sequence number to which this message is a response,
+    "state": a state update object,
+    "meter": a metering packet
+}.
+
+The client always responds to a server message with another message, possibly with an empty state update, to ensure that communication flow continues.
+
+A state update packet is a JSON object mapping control names to current values. Control names are strings, constructed as follows:
+
+fader: "b{bus}/c{chan}/f"
+pan: "b{bus}/c{chan}/p"
+filter: "c{chan}/f{filt}/{param}", where param is "f", "g", or "q", for frequency, gain, or Q respectively.
+
+(All fader levels are in absolute magnitudes, but filter gains are in dB.)
+
+On connect, the client sends {seq: 0, state: {}}, and the server responds with the full current state. The client then responds to the server's response, and the communication loop continues.
+
+The client maintains the last sequence number that it has sent out, and the last sequence number that it has received from the server.
+
+For each controllable value (defined below), each client maintains two values: the value as currently represented in its UI, and the most recent value that it is certain the server had. When a value is changed in the UI, the new value is set in the update queue (which is another state update object). If the last sequence number that it has received from the server is no more than one less than the last sequence number it has sent out, the client immediately sends a message to the server and clears the update queue. All messages to the server include and empty the update queue, so the update will get sent on the next meter packet received.
