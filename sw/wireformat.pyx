@@ -84,3 +84,19 @@ def fixeds_to_floats(np.int64_t[::1] x, int fracbits, np.float64_t[::1] out):
     cdef int i
     for i in range(len(x)):
         out[i] = (<np.float64_t> x[i]) / shift
+
+def sign_extend(np.uint64_t[::1] x, int sign_bit):
+    """
+    Sign-extends the given array in-place.
+
+    sign_bit is the (zero-based) index of the sign bit.
+    e.g., if sign_bit is 3, the minimum number that could be represented is 'b1000,
+    which is -8, but we'll see it coming in as +8.
+    """
+    cdef np.uint64_t sign_bit_value = 1
+    sign_bit_value <<= sign_bit
+    cdef np.uint64_t min_neg = <np.uint64_t> -2**sign_bit
+    cdef int i
+    for i in range(x.shape[0]):
+        if x[i] & sign_bit_value:
+            x[i] |= min_neg

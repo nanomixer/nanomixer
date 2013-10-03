@@ -79,3 +79,9 @@ def test_fixed_to_float():
     out = np.empty(len(fixeds), dtype=np.float64)
     wireformat.fixeds_to_floats(fixeds, 30, out)
     assert np.all(out == ref)
+
+def test_signextend():
+    unsigned_vals = np.array([0x0, 0x1, 0xf, 0x8], dtype=np.uint64)
+    ref = np.array([0, 1, -1, -8], dtype=np.int64)
+    wireformat.sign_extend(unsigned_vals, 3)
+    assert np.all(unsigned_vals.view(np.int64) == ref)
