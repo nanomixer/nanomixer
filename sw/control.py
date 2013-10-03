@@ -21,6 +21,7 @@ PARAM_FRAC_BITS = 30
 METER_WIDTH = 24
 METER_WIDTH_NIBBLES = METER_WIDTH / 4
 METER_FRAC_BITS = 20
+METER_SIGN_BIT = 23
 WORDS_PER_CORE = 1024 # FIXME !
 
 METERING_CHANNELS = 8
@@ -236,8 +237,8 @@ class IOThread(threading.Thread):
             self._param_mem_dirty[first_param_send_index:first_param_send_index+words_in_transfer] = 0
 
             # Extract the metering data we got.
-            # TODO: handle negative values correctly. (But we're not going to get any negatives anytime soon.)
             meter_vals_read = read_buf[:meter_words_desired].view(np.int64)
+            wireformat.sign_extend(meter_vals_read, METER_SIGN_BIT)
             wireformat.fixeds_to_floats(
                 meter_vals_read,
                 METER_FRAC_BITS,
