@@ -105,6 +105,8 @@ class StateVarFilter(Component):
             Load(storage.ln1),
             Mac(storage.bn1, params.f),
             Store(storage.ln),
+            Nop(),
+            Nop(),
             Mul(storage.bn1, params.oneminusfq),
             Mac(storage.xn, params.f),
             Mac(storage.ln, params.nf),
