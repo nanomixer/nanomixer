@@ -194,7 +194,7 @@ num_biquads = 5
 
 # mixdown
 num_cores = 1
-num_busses_per_core = 2
+num_busses_per_core = 8
 sample_mem_per_bus = 0 # for now.
 
 HARDWARE_PARAMS = dict(
