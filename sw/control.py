@@ -66,38 +66,49 @@ metadata = dict(
 # Separating out logic so we can have a DummyController also.
 class BaseController(object):
     def __init__(self):
+        self.routes = [
+            [fader_re, self.update_for_fader],
+            [filter_re, self.update_for_filter],
+            [name_re, self.update_for_name]]
+
+        def set_initial_state(name, val):
+            self.state[name] = val
+
         self.state = {}
-        self.state['metadata'] = metadata
 
         self.busses = []
         for bus in range(metadata['num_busses']):
             chan_params = []
+            self.busses.append(chan_params)
             for channel in range(metadata['num_channels']):
                 level_name = 'b{bus}/c{chan}/lvl'.format(bus=bus, chan=channel)
                 pan_name = 'b{bus}/c{chan}/pan'.format(bus=bus, chan=channel)
-                self.state[level_name] = 0.
-                self.state[pan_name] = 0.
                 chan_params.append(Fader(level_name, pan_name))
-            self.busses.append(chan_params)
+                set_initial_state(level_name, 0.)
+                set_initial_state(pan_name, 0.)
 
         self.channels = []
         for channel in range(metadata['num_channels']):
             assert metadata['num_biquads_per_channel'] == 5
             filts = []
-            for filt, freq in enumerate([250, 500, 1000, 6000, 12000]):
-                names = {}
-                for param, val in [('freq', freq), ('gain', 0.), ('q', np.sqrt(2.)/2)]:
-                    param_name = 'c{chan}/f{filt}/{param}'.format(chan=channel, filt=filt, param=param)
-                    self.state[param_name] = val
-                    names[param] = param_name
-                filts.append(Filter(names['freq'], names['gain'], names['q']))
             chan_name = "c{chan}/name".format(chan=channel)
-            self.state[chan_name] = "Ch{}".format(channel+1)
             self.channels.append(Channel(chan_name, filts))
+            set_initial_state(chan_name, "Ch{}".format(channel+1))
+            for filt, freq in enumerate([250, 500, 1000, 6000, 12000]):
+                names = {
+                    param: 'c{chan}/f{filt}/{param}'.format(chan=channel, filt=filt, param=param)
+                    for param in ['freq', 'gain', 'q']}
+                filts.append(Filter(names['freq'], names['gain'], names['q']))
+                set_initial_state(names['freq'], freq)
+                set_initial_state(names['gain'], 0.)
+                set_initial_state(names['q'], np.sqrt(2.)/2)
 
-        self.routes = [
-            [fader_re, self.update_for_fader],
-            [filter_re, self.update_for_filter]]
+        for control, value in self.state.iteritems():
+            handled = self.apply_update(control, value)
+            if not handled:
+                raise NameError("Unhandled name: {}".format(control))
+
+        self.state['metadata'] = metadata
 
     def apply_update(self, control, value):
         """
