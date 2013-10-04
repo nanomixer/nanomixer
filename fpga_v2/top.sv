@@ -45,7 +45,7 @@ logic                        param_rd_en, param_wr_en;
 logic [IO_WIDTH-1:0] audio_inputs  [0:7];
 logic [IO_WIDTH-1:0] audio_outputs [0:7];
 
-logic [IO_WIDTH-1:0] meter_rd_data, meter_wr_data;
+logic [SAMPLE_WIDTH-1:0] meter_rd_data, meter_wr_data;
 logic [7:0]          meter_rd_addr, meter_wr_addr;
 logic                meter_wr_en;
 
