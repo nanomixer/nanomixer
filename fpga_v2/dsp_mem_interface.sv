@@ -21,11 +21,7 @@ interface dsp_mem_interface #(
    output logic                        param_rd_en,
 
    input  logic [IO_WIDTH-1:0] audio_inputs  [0:7],
-   output logic [IO_WIDTH-1:0] audio_outputs [0:7],
-
-   output logic [IO_WIDTH-1:0] meter_wr_data,
-   output logic [7:0]          meter_wr_addr,
-   output logic                meter_wr_en
+   output logic [IO_WIDTH-1:0] audio_outputs [0:7]
 );
 
 
@@ -34,8 +30,6 @@ interface dsp_mem_interface #(
 logic [IO_WIDTH-1:0]         io_rd_data, io_wr_data;
 logic [PARAM_ADDR_WIDTH-1:0] io_rd_addr, io_wr_addr;
 logic                        io_rd_en,   io_wr_en;
-
-enum {ADAT, METER} io_type;
 
 /***** MODPORT DECLARATIONS: *****/
 
@@ -66,20 +60,9 @@ modport dsp_io_bus (
 
 /***** IO ADDRESSING LOGIC: *****/
 
-always_comb begin
-   case (io_wr_addr[IO_ADDR_WIDTH-1])
-      1'b0 : io_type = ADAT;   // lower half of addresses mapped to ADAT
-      1'b1 : io_type = METER;  // upper half of addresses mapped to metering memory
-   endcase
-
-   meter_wr_data = io_wr_data;
-   meter_wr_addr = io_wr_addr[7:0];
-   meter_wr_en   = io_wr_en && (io_type == METER);
-end
-
 always_ff @(posedge clk) begin
    if (io_rd_en) io_rd_data <= audio_inputs[io_rd_addr[2:0]];
-   if (io_wr_en && (io_type == ADAT)) audio_outputs[io_wr_addr[2:0]] <= io_wr_data;
+   if (io_wr_en) audio_outputs[io_wr_addr[2:0]] <= io_wr_data;
 end
 
 endinterface
