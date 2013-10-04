@@ -6,6 +6,8 @@ from dsp_program import (
     HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain,
     constants, meter_filter_param_base, StateVarFilter)
 import logging
+from collections import namedtuple
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -47,57 +49,131 @@ bus_map = {
 def pack_biquad_coeffs(b, a):
     return [b[0], b[1], b[2], -a[1], -a[2]]
 
-class MixerState(object):
-    def __init__(self, num_cores, num_busses_per_core,
-                 num_channels_per_core, num_biquads_per_channel):
-        self.num_cores = num_cores
-        self.num_busses_per_core = num_busses_per_core
-        self.num_channels_per_core = num_channels_per_core
-        self.num_biquads_per_channel = num_biquads_per_channel
+import re
+fader_re = re.compile(r'^b(?P<bus>\d+)/c(?P<chan>\d+)/(?P<param>lvl|pan)$')
+filter_re = re.compile(r'^c(?P<chan>\d+)/f(?P<filt>\d+)/(?P<param>freq|gain|q)$')
+name_re = re.compile(r'c(?P<chan>\d+)$')
 
-        # Biquad parameters
-        self.biquad_freq = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel)) + 1000.
-        self.biquad_gain = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel))
-        self.biquad_q = np.zeros((num_cores, num_channels_per_core, num_biquads_per_channel)) + 1.
+Fader = namedtuple('Fader', 'level, pan')
+Filter = namedtuple('Filter', 'freq, gain, q')
+Channel = namedtuple('Channel', 'name, filters')
 
+# Separating out logic so we can have a DummyController also.
+class BaseController(object):
+    def __init__(self):
+        self.state = {}
+        hwparams = HARDWARE_PARAMS
+        self.state['metadata'] = metadata = dict(
+            num_busses=hwparams['num_cores'] * hwparams['num_busses_per_core'] / 2, # HACK.
+            num_channels=hwparams['num_cores'] * hwparams['num_channels_per_core'],
+            num_biquads_per_channel=hwparams['num_biquads_per_channel'])
+
+        self.busses = []
+        for bus in range(metadata['num_busses']):
+            chan_params = []
+            for channel in range(metadata['num_channels']):
+                level_name = 'b{bus}/c{chan}/lvl'.format(bus=bus, chan=channel)
+                pan_name = 'b{bus}/c{chan}/pan'.format(bus=bus, chan=channel)
+                self.state[level_name] = 0.
+                self.state[pan_name] = 0.
+                chan_params.append(Fader(level_name, pan_name))
+            self.busses.append(chan_params)
+
+        self.channels = []
+        for channel in range(metadata['num_channels']):
+            assert metadata['num_biquads_per_channel'] == 5
+            filts = []
+            for filt, freq in enumerate([250, 500, 1000, 6000, 12000]):
+                names = {}
+                for param, val in [('freq', freq), ('gain', 0.), ('q', np.sqrt(2.)/2)]:
+                    param_name = 'c{chan}/f{filt}/{param}'.format(chan=channel, filt=filt, param=param)
+                    self.state[param_name] = val
+                    names[param] = param_name
+                filts.append(Filter(names['freq'], names['gain'], names['q']))
+            chan_name = "c{chan}/name".format(chan=channel)
+            self.state[chan_name] = "Ch{}".format(channel+1)
+            self.channels.append(Channel(chan_name, filts))
+
+        self.routes = [
+            [fader_re, self.update_for_fader],
+            [filter_re, self.update_for_filter]]
+
+    def apply_update(self, control, value):
+        """
+        Apply a state update.
+
+        Returns True iff the update was handled successfully.
+        """
+        for pattern, func in self.routes:
+            match = pattern.match(control)
+            if match is None:
+                continue
+            self.state[control] = value
+            func(val=value, **match.groupdict())
+            return True
+        # No match.
+        return False
+
+    def update_for_fader(self, bus, chan, param, val):
+        bus = int(bus)
+        chan = int(chan)
+        channel = self.busses[bus][chan]
+        level = self.state[channel.level]
+        absLevel = 10. ** (level/20.)
+        # Until we implement panning...
+        self.set_gain(bus * 2, chan, absLevel)
+        self.set_gain(bus * 2 + 1, chan, absLevel)
+
+    def update_for_filter(self, chan, filt, param, val):
+        chan = int(chan)
+        filt = int(filt)
+        filter = self.channels[chan].filters[filt]
+        self.set_biquad(
+            chan, filt,
+            self.state[filter.freq],
+            self.state[filter.gain],
+            self.state[filter.q])
+
+
+class DummyController(BaseController):
+    def __init__(self):
+        super(DummyController, self).__init__()
+        self.meter_levels = np.zeros(self.state['metadata']['num_channels'])
+
+    def get_meter(self):
+        return self.meter_levels + np.sin(2*np.pi*time.time())
+
+    def set_gain(self, bus, channel, gain):
+        self.meter_levels[channel] = 20 * np.log10(gain)
+
+    def set_biquad(self, channel, biquad, freq, gain, q):
+        pass
+
+
+class Controller(BaseController):
+    def __init__(self, io_thread):
+        super(Controller, self).__init__()
+        self.io_thread = io_thread
+
+    def get_meter(self):
+        return self.io_thread.get_meter()[1]
+
+    def set_biquad(self, channel, biquad, freq, gain, q):
+        core, ch = channel_map[channel]
+        b, a = peaking(f0=freq, dBgain=gain, q=q)
+        b, a = normalize(b, a)
+        self._set_parameter_memory(
+            core=core,
+            addr=parameter_base_addr_for_biquad(channel=channel, biquad=biquad),
+            data=pack_biquad_coeffs(b, a))
+
+    def set_gain(self, bus, channel, gain):
         # Mixdown parameters
         # (bus_core, bus, channel_core, channel)
         # channels are always named by the core they come in on.
         # busses are named by the core where they end up.
-        self.mixdown_gains = np.zeros((num_cores, num_busses_per_core, num_cores, num_channels_per_core))
-
-    def get_biquad_coefficients(self, core, channel, biquad):
-        b, a = peaking(f0=self.biquad_freq[core, channel, biquad],
-                       dBgain=self.biquad_gain[core, channel, biquad],
-                       q=self.biquad_q[core, channel, biquad])
-        b, a = normalize(b, a)
-        return b, a
-
-
-class Controller(object):
-    def __init__(self, io_thread):
-        self.state = MixerState(**HARDWARE_PARAMS)
-        self.io_thread = io_thread
-
-    def handle_message(self, message, args):
-        logger.info('handle_message(%r, %r)', message, args)
-        getattr(self, message)(**args)
-
-    def set_biquad(self, channel, biquad, freq, gain, q):
-        core, ch = channel_map[channel]
-        self.state.biquad_freq[core, ch, biquad] = freq
-        self.state.biquad_gain[core, ch, biquad] = gain
-        self.state.biquad_q[core, ch, biquad] = q
-        self._update_biquad(core, ch, biquad)
-
-    def set_gain(self, bus, channel, gain):
         bus_core, bus_idx = bus_map[bus]
         channel_core, channel_idx = channel_map[channel]
-        self.state.mixdown_gains[bus_core, bus_idx, channel_core, channel_idx] = gain
-        self._update_gain(bus_core, bus_idx, channel_core, channel_idx)
-
-    def _update_gain(self, bus_core, bus_idx, channel_core, channel_idx):
-        gain = self.state.mixdown_gains[bus_core, bus_idx, channel_core, channel_idx]
         self._set_parameter_memory(
             core=channel_core,
             addr=address_for_mixdown_gain(
@@ -106,12 +182,6 @@ class Controller(object):
                 bus=bus_idx),
             data=[gain])
 
-    def _update_biquad(self, core, channel, biquad):
-        b, a = self.state.get_biquad_coefficients(core, channel, biquad)
-        self._set_parameter_memory(
-            core=core,
-            addr=parameter_base_addr_for_biquad(channel=channel, biquad=biquad),
-            data=pack_biquad_coeffs(b, a))
 
     def dump_state_to_mixer(self):
         for core in xrange(HARDWARE_PARAMS['num_cores']):
@@ -121,20 +191,9 @@ class Controller(object):
                 addr=constants.base,
                 data=constants.constants)
 
-            # Update all biquads
-            for channel in xrange(HARDWARE_PARAMS['num_channels_per_core']):
-                for biquad in xrange(HARDWARE_PARAMS['num_biquads_per_channel']):
-                    self._update_biquad(core, channel, biquad)
-
             # Special metering filter.
             self._set_parameter_memory(core=core, addr=meter_filter_param_base,
                 data=self.get_metering_filter_params())
-
-            # Update all gains.
-            for bus_core in xrange(HARDWARE_PARAMS['num_cores']):
-                for bus_idx in xrange(HARDWARE_PARAMS['num_busses_per_core']):
-                    for channel_idx in xrange(HARDWARE_PARAMS['num_channels_per_core']):
-                        self._update_gain(bus_core, bus_idx, core, channel_idx)
 
     def get_metering_filter_params(self):
         return StateVarFilter.encode_params(**METERING_LPF_PARAMS)
@@ -290,8 +349,8 @@ io_thread = IOThread(param_mem_size=1024, spi_channel=spi_channel)
 
 if ON_TGT_HARDWARE:
     io_thread.start()
+    controller = Controller(io_thread)
+    controller.dump_state_to_mixer()
 else:
     print "Not on target hardware, not starting IO thread."
-
-controller = Controller(io_thread)
-controller.dump_state_to_mixer()
+    controller = DummyController()
