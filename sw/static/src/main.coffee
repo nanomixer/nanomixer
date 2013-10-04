@@ -2,6 +2,30 @@
 # Master disable scroll (seems hacky...)
 window.addEventListener('touchmove', (e) -> e.preventDefault())
 
+
+# Controllable value
+controllableValue = (updateQueue, name, initial) ->
+    uiVal = ko.observable initial
+    serverVal = ko.observable null
+    serverLastUpdate = ko.observable null
+
+    cv = (newVal) ->
+        if arguments.length
+            uiVal(newVal)
+            return cv
+        return uiVal()
+
+    _.extend cv, {uiVal, serverVal, serverLastUpdate}
+    cv.subscribe = (args...) ->
+        uiVal
+
+    uiVal.subscribe (newVal) ->
+        updateQueue[name] = newVal
+
+    cv
+
+
+
 winSize = {
     width: ko.observable()
     height: ko.observable()
@@ -46,32 +70,11 @@ ko.bindingHandlers.faderLevelText = {
 }
 
 class Channel
-    constructor: (@idx, @name) ->
-        @name = ko.observable "Ch#{@idx + 1}" unless @name?
+    constructor: (@idx, @name, @eq) ->
         @signalLevel = ko.observable 0
-        @eq = new Eq(@)
 
 class Bus
-    constructor: (@channels) ->
-        @faders = ({
-            channel: channel
-            level: ko.observable(0)
-            pan: ko.observable(0)
-            } for channel in channels)
-
-    toJSON: ->
-        faders = for fader in @faders
-            {
-                level: fader.level()
-                pan: pan.level()
-            }
-        { faders }
-
-    fromJSON: (obj) ->
-        for fader, i in obj.faders
-            @faders[i].level fader.level
-            @faders[i].pan fader.pan
-        return
+    constructor: (@channels, @faders) ->
 
 class FaderView
     constructor: (@element, @model) ->
@@ -156,9 +159,9 @@ class FaderView
 
 class FaderSection
     constructor: (@containerSelection, @mixer) ->
-        @activeSection = ko.observable 'master'
+        @activeBusIdx = ko.observable 0
         @activeBus = ko.computed =>
-            @mixer.buses[@activeSection()]
+            @mixer.buses[@activeBusIdx()]
 
     setActiveFaders: ->
         faders = @activeBus().faders
@@ -179,17 +182,11 @@ faderTemplate = """
 """
 
 ###### Channel View
-defaultEqFrequencies = [250, 500, 1000, 6000, 12000]
-
 class Eq
-    constructor: (@channel) ->
-        @filters = (new Filter(@, freq) for freq in defaultEqFrequencies)
+    constructor: (@filters) ->
 
 class Filter
-    constructor: (@eq, freq) ->
-        @freq = ko.observable freq
-        @gain = ko.observable 0
-        @q = ko.observable Math.sqrt(2) / 2
+    constructor: (@freq, @gain, @q) ->
 
 ko.bindingHandlers.dragToAdjust = {
     init: (element, valueAccesor) ->
@@ -282,16 +279,9 @@ filterTemplate = """
 <div class="q" data-bind="dragToAdjust: {value: q, scale: qToPixel}"></div>
 """
 
-NUM_CHANNELS = 8
-channels = (new Channel(i) for i in [0...NUM_CHANNELS])
-buses = {
-    master: new Bus(channels)
-}
-mixer = {channels, buses}
-
 
 class UIView
-    constructor: ->
+    constructor: (@mixer) ->
         @activeSection = ko.computed =>
             if winSize.width() > winSize.height()
                 # Landscape
@@ -299,56 +289,74 @@ class UIView
             else
                 # portrait
                 'channel'
-        @faderSection = new FaderSection('#faders', mixer)
-        @channelSection = new ChannelSection('#channel', mixer)
+        @faderSection = new FaderSection('#faders', @mixer)
+        @channelSection = new ChannelSection('#channel', @mixer)
         @meterRev = ko.observable 0
 
         ko.applyBindings this
         @faderSection.setActiveFaders()
         @channelSection.activeChannelIdx 0
 
-ui = new UIView()
+## State management
+lastSeqSent = -1
+lastSeqReceived = -1
+updateQueue = {}
+stateFromServer = {}
 
-
-requestMeterUpdate = ->
-    socket.emit 'control', []
-    throttledRequestMeterUpdate()
-    return
-
-meterUpdateFrameRate = 15
-throttledRequestMeterUpdate = _.throttle requestMeterUpdate, 1000 / meterUpdateFrameRate
-
-# Socket handling stuff
 socket = io.connect('');
 socket.on 'connect', ->
     debug('connected!')
-    throttledRequestMeterUpdate()
+    lastSeqSent = -1
+    sendUpdate()
 
-socket.on 'meter', (data) ->
-    ui.meterRev data.meter_rev
-    levels = data.levels
-    for level, channelIdx in levels
+socket.on 'msg', (msg) ->
+    lastSeqReceived = msg.seq
+    _.extend stateFromServer, msg.state
+    if msg.seq == 0
+        initializeMixerState(msg.state)
+
+    for level, channelIdx in msg.meter
         mixer.channels[channelIdx].signalLevel level
-    # And... request another one??
+
+    # Request another update.
+    sendUpdate()
     return
 
-subscribeToEverything = (mixer) ->
-    for busName, bus of mixer.buses
-        for fader in bus.faders
-            channelIdx = fader.channel.idx
-            do (channelIdx) ->
-                fader.level.subscribe (newLevel) ->
-                    socket.emit 'control', [
-                        ['set_gain',
-                         [channelIdx % 2, channelIdx, Math.pow(10, newLevel/20)]
-                        ]]
-    for channel, channelIdx in mixer.channels
-        for filter, filterIdx in channel.eq.filters
-            do (channelIdx, filterIdx, filter) ->
-                ko.computed ->
-                    socket.emit 'control', [
-                        ['set_biquad', [channelIdx, filterIdx, filter.freq(), filter.gain(), filter.q()]]
-                    ]
-    return
+# Spy globals
+metadata = null
+mixer = null
+ui = null
 
-subscribeToEverything(mixer)
+initializeMixerState = (state) ->
+    debug 'state', state
+    metadata = state.metadata
+    getCv = (name) ->
+        val = state[name]
+        unless val?
+            alert "Missing state value: #{name}!"
+            return
+        controllableValue updateQueue, name, val
+
+    channels = for chan in [0...metadata.num_channels]
+        filters = for filt in [0...metadata.num_biquads_per_channel]
+            new Filter(
+                getCv("c#{chan}/f#{filt}/freq"),
+                getCv("c#{chan}/f#{filt}/gain"),
+                getCv("c#{chan}/f#{filt}/q"))
+        eq = new Eq(filters)
+        new Channel(chan, getCv("c#{chan}/name"), eq)
+    buses = for bus in [0...metadata.num_busses]
+        faders = for chan in [0...metadata.num_channels]
+            {
+                channel: channels[chan]
+                level: getCv("b#{bus}/c#{chan}/lvl")
+                pan: getCv("b#{bus}/c#{chan}/lvl")
+            }
+        new Bus(channels, faders)
+    mixer = {channels, buses}
+    ui = new UIView(mixer)
+
+
+sendUpdate = ->
+    socket.emit 'msg', {seq: ++lastSeqSent, state: updateQueue}
+    updateQueue = {}

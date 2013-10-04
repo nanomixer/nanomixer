@@ -22,11 +22,11 @@ The client always responds to a server message with another message, possibly wi
 
 A state update packet is a JSON object mapping control names to current values. Control names are strings, constructed as follows:
 
-fader: "b{bus}/c{chan}/f"
-pan: "b{bus}/c{chan}/p"
-filter: "c{chan}/f{filt}/{param}", where param is "f", "g", or "q", for frequency, gain, or Q respectively.
+fader: "b{bus}/c{chan}/(lvl|pan)"
+name: "c{chan}/name"
+filter: "c{chan}/f{filt}/{param}", where param is "freq", "gain", or "q"
 
-(All fader levels are in absolute magnitudes, but filter gains are in dB.)
+All fader levels and filter gains are in dB. Pan is -1 (full left) to 0 (center) to 1 (full right).
 
 On connect, the client sends {seq: 0, state: {}}, and the server responds with the full current state. The client then responds to the server's response, and the communication loop continues.
 
