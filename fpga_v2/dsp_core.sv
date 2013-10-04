@@ -28,6 +28,10 @@ module dsp_core #(
    input  logic signed [ACCUM_WIDTH-1:0] ring_bus_in,  // intercore communication
    output logic signed [ACCUM_WIDTH-1:0] ring_bus_out, // intercore communication
 
+   output logic [SAMPLE_ADDR_WIDTH-1:0] aux_out_addr,
+   output logic signed [SAMPLE_WIDTH-1:0] aux_out_data,
+   output logic aux_out_en,
+
    input  logic signed [35:0] test_in,
    output logic signed [35:0] test_out
 );
@@ -44,7 +48,8 @@ typedef enum logic [OPCODE_WIDTH-1:0] {   // define opcode type with explicit en
    IN     = 6'h05,
    OUT    = 6'h06,
    SPIN   = 6'h07,
-   AMAC   = 6'h08
+   AMAC   = 6'h08,
+   AUXOUT = 6'h09
 } opcode_t;
 
 typedef struct packed {
@@ -157,6 +162,13 @@ always_comb begin
       case (writeback_instr.opcode)
          OUT     : io_mem.wr_en = 1'b1;
          default : io_mem.wr_en = 1'b0;
+      endcase
+
+      aux_out_data = sample_saturator_out
+      aux_out_addr = writeback_instr.param_addr;
+      case (writeback_instr.opcode)
+         AUXOUT  : aux_out_en = 1'b1;
+         default : aux_out_en = 1'b0;
       endcase
 
       sample_mem.wr_data = sample_saturator_out;
