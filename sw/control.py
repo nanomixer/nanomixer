@@ -84,7 +84,7 @@ class BaseController(object):
                 level_name = 'b{bus}/c{chan}/lvl'.format(bus=bus, chan=channel)
                 pan_name = 'b{bus}/c{chan}/pan'.format(bus=bus, chan=channel)
                 chan_params.append(Fader(level_name, pan_name))
-                set_initial_state(level_name, 0.)
+                set_initial_state(level_name, -180.)
                 set_initial_state(pan_name, 0.)
 
         self.channels = []
