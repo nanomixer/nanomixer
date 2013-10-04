@@ -95,7 +95,7 @@ def sign_extend(np.uint64_t[::1] x, int sign_bit):
     """
     cdef np.uint64_t sign_bit_value = 1
     sign_bit_value <<= sign_bit
-    cdef np.uint64_t min_neg = <np.uint64_t> -2**sign_bit
+    cdef np.uint64_t min_neg = <np.uint64_t> -((<np.int64_t> 2) << sign_bit)
     cdef int i
     for i in range(x.shape[0]):
         if x[i] & sign_bit_value:
