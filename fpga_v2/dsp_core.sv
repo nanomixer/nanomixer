@@ -165,7 +165,7 @@ always_comb begin
          default : io_mem.wr_en = 1'b0;
       endcase
 
-      aux_out_data = sample_saturator_out
+      aux_out_data = sample_saturator_out;
       aux_out_addr = writeback_instr.param_addr[AUX_ADDR_WIDTH-1:0];
       case (writeback_instr.opcode)
          AUXOUT  : aux_out_en = 1'b1;
