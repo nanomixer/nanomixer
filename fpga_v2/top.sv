@@ -62,6 +62,9 @@ dsp_core my_dsp(.clk(dsp_clk),
                 .sample_mem(my_dsp_bus.dsp_sample_bus),
                 .param_mem(my_dsp_bus.dsp_param_bus),
                 .io_mem(my_dsp_bus.dsp_io_bus),
+                .aux_out_addr(meter_wr_addr),
+                .aux_out_data(meter_wr_data),
+                .aux_out_en(meter_wr_en),
                 .instruction);
 
 metering_buffer my_meter(.clock(dsp_clk),
