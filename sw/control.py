@@ -250,7 +250,7 @@ class IOThread(threading.Thread):
         self._meter_revision += 1
 
         np.maximum(2**-METER_FRAC_BITS, meter_packet, out=meter_packet)
-        meter_values = 20 * np.log10(np.sqrt(meter_packet * 2**8))
+        meter_values = 20 * np.log10(np.sqrt(meter_packet * 2**2))
         self._meter_mem_contents = (self._meter_revision, meter_values)
 
 

@@ -177,7 +177,7 @@ class Meter(object):
         self.params = self.filter.params
         self.output = output
         self.program = [
-            Mul(input, constants.addr_for(2**-8)), # shift down to give room for squaring not to overflow.
+            Mul(input, constants.addr_for(2**-2)), # shift down to give room for squaring not to overflow.
             Mul(0, constants.addr_for(0)), # HACK to clear the accumulator. First arg doesn't matter.
             AMac(input),
             Store(self.filter.input)
@@ -206,7 +206,7 @@ HARDWARE_PARAMS = dict(
 meter_outputs = [Addr() for channel in range(num_channels)]
 assign_addresses(meter_outputs, start_address=512)
 
-constants = Constants([0., 1., 2**-8])
+constants = Constants([0., 1., 2**-2])
 
 class Mixer(Component):
     def __init__(self):
