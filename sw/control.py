@@ -58,15 +58,16 @@ Fader = namedtuple('Fader', 'level, pan')
 Filter = namedtuple('Filter', 'freq, gain, q')
 Channel = namedtuple('Channel', 'name, filters')
 
+metadata = dict(
+    num_busses=HARDWARE_PARAMS['num_cores'] * HARDWARE_PARAMS['num_busses_per_core'] / 2, # HACK.
+    num_channels=HARDWARE_PARAMS['num_cores'] * HARDWARE_PARAMS['num_channels_per_core'],
+    num_biquads_per_channel=HARDWARE_PARAMS['num_biquads_per_channel'])
+
 # Separating out logic so we can have a DummyController also.
 class BaseController(object):
     def __init__(self):
         self.state = {}
-        hwparams = HARDWARE_PARAMS
-        self.state['metadata'] = metadata = dict(
-            num_busses=hwparams['num_cores'] * hwparams['num_busses_per_core'] / 2, # HACK.
-            num_channels=hwparams['num_cores'] * hwparams['num_channels_per_core'],
-            num_biquads_per_channel=hwparams['num_biquads_per_channel'])
+        self.state['metadata'] = metadata
 
         self.busses = []
         for bus in range(metadata['num_busses']):
@@ -134,11 +135,14 @@ class BaseController(object):
             self.state[filter.gain],
             self.state[filter.q])
 
+    def update_for_name(self, chan, val):
+        pass
+
 
 class DummyController(BaseController):
     def __init__(self):
+        self.meter_levels = np.zeros(metadata['num_channels'])
         super(DummyController, self).__init__()
-        self.meter_levels = np.zeros(self.state['metadata']['num_channels'])
 
     def get_meter(self):
         return self.meter_levels + np.sin(2*np.pi*time.time())
