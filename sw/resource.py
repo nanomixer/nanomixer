@@ -28,6 +28,9 @@ class Resource(BaseNamespace):
                 else:
                     print "Oops, couldn't handle", control, value
 
+            if msg.get('snapshot', False):
+                controller.save_snapshot()
+
             self.emit('msg', dict(
                 seq=seq,
                 state=self.session['response_state'],

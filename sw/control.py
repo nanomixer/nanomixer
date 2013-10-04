@@ -8,6 +8,8 @@ from dsp_program import (
 import logging
 from collections import namedtuple
 import time
+import json
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +67,11 @@ metadata = dict(
 
 # Separating out logic so we can have a DummyController also.
 class BaseController(object):
-    def __init__(self):
+    def __init__(self, snapshot_base_dir='snapshots'):
+        self.snapshot_base_dir = snapshot_base_dir
+        if not os.path.exists(self.snapshot_base_dir):
+            os.makedirs(self.snapshot_base_dir)
+
         self.routes = [
             [fader_re, self.update_for_fader],
             [filter_re, self.update_for_filter],
@@ -104,6 +110,30 @@ class BaseController(object):
                 set_initial_state(names['q'], np.sqrt(2.)/2)
 
         self.state['metadata'] = metadata
+
+        try:
+            self.load_snapshot()
+            print 'Snapshot loaded.'
+        except IOError:
+            print 'Not loading snapshot.'
+
+    def load_snapshot(self, name='latest'):
+        with open(os.path.join(self.snapshot_base_dir, name), 'rb') as f:
+            state = json.load(f)
+            self.state.update(state)
+        # You probably want to dump_state_to_mixer now.
+
+    def save_snapshot(self):
+        now = datetime.now().isoformat()
+        filename = os.path.join(self.snapshot_base_dir, now)
+        with open(filename, 'wb') as f:
+            json.dump(self.state, f)
+        new_symlink_name = os.path.join(self.snapshot_base_dir, 'latest-next')
+        latest_symlink_name = os.path.join(self.snapshot_base_dir, 'latest')
+        if os.path.exists(new_symlink_name):
+            os.unlink(new_symlink_name)
+        os.symlink(now, new_symlink_name)
+        os.rename(new_symlink_name, latest_symlink_name)
 
     def apply_update(self, control, value):
         """

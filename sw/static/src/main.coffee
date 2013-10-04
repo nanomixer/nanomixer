@@ -2,6 +2,8 @@
 # Master disable scroll (seems hacky...)
 window.addEventListener('touchmove', (e) -> e.preventDefault())
 
+updateQueue = {}
+checkpoint = false
 
 # Extends an observable with the aspect of maintaining server state.
 # FIXME: currently references the global update queue. Or maybe that's okay.
@@ -9,9 +11,10 @@ controllableValue = (name, initial) ->
     uiVal = ko.observable initial
     serverVal = ko.observable null
     serverLastUpdate = ko.observable null
+    grabbed = ko.observable false
     sendInterlock = 0
 
-    _.extend uiVal, {serverVal, serverLastUpdate}
+    _.extend uiVal, {serverVal, serverLastUpdate, grabbed}
     uiVal.subscribe (newVal) ->
         return if sendInterlock
         debug 'update:', name, newVal
@@ -21,6 +24,9 @@ controllableValue = (name, initial) ->
         uiVal newVal
         sendInterlock--
         uiVal
+    grabbed.subscribe (newVal) ->
+        if not newVal
+            checkpoint = true
     uiVal
 
 
@@ -104,7 +110,7 @@ class FaderView
         @setPosition(@level())
 
         @dragBehavior = d3.behavior.drag()
-            .on('dragstart', -> d3.event.sourceEvent.stopPropagation()) # silence other listeners
+            .on('dragstart', => d3.event.sourceEvent.stopPropagation()) # silence other listeners
             .on('drag', @drag)
             .origin( =>
                 {x: 0, y: @posToPixel(@posToDb.invert(@level()))})
@@ -195,10 +201,14 @@ ko.bindingHandlers.dragToAdjust = {
             .on('dragstart', ->
                 d3.event.sourceEvent.stopPropagation() # silence other listeners
                 d3.select(element).classed("adjusting", true)
+                if value.grabbed?
+                    value.grabbed true
             ).on('drag', =>
                 value scale.invert(d3.event.y)
             ).on('dragend', ->
                 d3.select(element).classed("adjusting", false)
+                if value.grabbed?
+                    value.grabbed false
             ).origin( =>
                 {x: 0, y: scale(value())})
         d3.select(element).call(dragBehavior)
@@ -296,10 +306,13 @@ class UIView
         @faderSection.setActiveFaders()
         @channelSection.activeChannelIdx 0
 
+    snapshot: ->
+        checkpoint = true
+
+
 ## State management
 lastSeqSent = -1
 lastSeqReceived = -1
-updateQueue = {}
 stateFromServer = {}
 controllableValues = {}
 
@@ -374,5 +387,6 @@ initializeMixerState = (state) ->
 
 sendUpdate = ->
     lastSeqSent++
-    socket.emit 'msg', {seq: lastSeqSent, state: updateQueue}
+    socket.emit 'msg', {seq: lastSeqSent, state: updateQueue, snapshot: checkpoint}
+    checkpoint = false
     updateQueue = {}
