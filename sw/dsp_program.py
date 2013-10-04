@@ -2,7 +2,7 @@
 # individual channel will be ready by the time we need it. If a core is ever
 # processing just a single channel, NOTE that this may need to be revised.
 
-from assembler import Nop, Mul, Mac, RotMac, Store, In, Out, Spin, AMac, assemble, Addr, assign_addresses
+from assembler import Nop, Mul, Mac, RotMac, Store, In, Out, Spin, AMac, AuxOut, assemble, Addr, assign_addresses
 from util import flattened, roundrobin
 from collections import namedtuple
 import numpy as np
@@ -183,7 +183,7 @@ class Meter(object):
             Store(self.filter.input)
         ] + self.filter.program + [
             Load(self.filter.output),
-            Out(self.output)
+            AuxOut(self.output)
         ]
 
 
