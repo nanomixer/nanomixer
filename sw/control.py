@@ -28,6 +28,7 @@ WORDS_PER_CORE = 1024 # FIXME !
 
 METERING_CHANNELS = 8
 METERING_PACKET_SIZE = METERING_CHANNELS
+SPI_BUF_SIZE_IN_WORDS = METERING_PACKET_SIZE
 
 # Channel name -> (core, channel)
 channel_map = {
@@ -356,10 +357,10 @@ ON_TGT_HARDWARE = os.path.exists(SPI_DEVICE)
 if ON_TGT_HARDWARE:
     import spidev
     spi_dev = spidev.SpiChannel(SPI_DEVICE, bits_per_word=20)
-    spi_channel = SPIChannel(spi_dev, buf_size_in_words=64)
+    spi_channel = SPIChannel(spi_dev, buf_size_in_words=SPI_BUF_SIZE_IN_WORDS)
 else:
     class DummySPIChannel(object):
-        buf_size_in_words = 64
+        buf_size_in_words = SPI_BUF_SIZE_IN_WORDS
 
     spi_channel = DummySPIChannel()
 io_thread = IOThread(param_mem_size=1024, spi_channel=spi_channel)
