@@ -12,6 +12,7 @@ module dsp_core #(
    OPCODE_WIDTH = 6,
    SAMPLE_ADDR_WIDTH = 10,
    PARAM_ADDR_WIDTH  = 10,
+   AUX_ADDR_WIDTH  = 8, // Currently, must be smaller than PARAM_ADDR_WIDTH
 
    ACCUM_WIDTH = SAMPLE_WIDTH + PARAM_WIDTH,
    ACCUM_FRAC_BITS = SAMPLE_FRAC_BITS + PARAM_FRAC_BITS,
@@ -28,7 +29,7 @@ module dsp_core #(
    input  logic signed [ACCUM_WIDTH-1:0] ring_bus_in,  // intercore communication
    output logic signed [ACCUM_WIDTH-1:0] ring_bus_out, // intercore communication
 
-   output logic [SAMPLE_ADDR_WIDTH-1:0] aux_out_addr,
+   output logic [AUX_ADDR_WIDTH-1:0] aux_out_addr,
    output logic signed [SAMPLE_WIDTH-1:0] aux_out_data,
    output logic aux_out_en,
 
@@ -165,7 +166,7 @@ always_comb begin
       endcase
 
       aux_out_data = sample_saturator_out
-      aux_out_addr = writeback_instr.param_addr;
+      aux_out_addr = writeback_instr.param_addr[AUX_ADDR_WIDTH-1:0];
       case (writeback_instr.opcode)
          AUXOUT  : aux_out_en = 1'b1;
          default : aux_out_en = 1'b0;
