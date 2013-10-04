@@ -45,11 +45,11 @@ module meter_mem (
 	q);
 
 	input	  clock;
-	input	[23:0]  data;
+	input	[35:0]  data;
 	input	[7:0]  rdaddress;
 	input	[7:0]  wraddress;
 	input	  wren;
-	output	[23:0]  q;
+	output	[35:0]  q;
 `ifndef ALTERA_RESERVED_QIS
 // synopsys translate_off
 `endif
@@ -59,8 +59,8 @@ module meter_mem (
 // synopsys translate_on
 `endif
 
-	wire [23:0] sub_wire0;
-	wire [23:0] q = sub_wire0[23:0];
+	wire [35:0] sub_wire0;
+	wire [35:0] q = sub_wire0[35:0];
 
 	altsyncram	altsyncram_component (
 				.address_a (wraddress),
@@ -80,7 +80,7 @@ module meter_mem (
 				.clocken1 (1'b1),
 				.clocken2 (1'b1),
 				.clocken3 (1'b1),
-				.data_b ({24{1'b1}}),
+				.data_b ({36{1'b1}}),
 				.eccstatus (),
 				.q_a (),
 				.rden_a (1'b1),
@@ -103,8 +103,8 @@ module meter_mem (
 		altsyncram_component.read_during_write_mode_mixed_ports = "OLD_DATA",
 		altsyncram_component.widthad_a = 8,
 		altsyncram_component.widthad_b = 8,
-		altsyncram_component.width_a = 24,
-		altsyncram_component.width_b = 24,
+		altsyncram_component.width_a = 36,
+		altsyncram_component.width_b = 36,
 		altsyncram_component.width_byteena_a = 1;
 
 
@@ -119,7 +119,7 @@ endmodule
 // Retrieval info: PRIVATE: BYTEENA_ACLR_B NUMERIC "0"
 // Retrieval info: PRIVATE: BYTE_ENABLE_A NUMERIC "0"
 // Retrieval info: PRIVATE: BYTE_ENABLE_B NUMERIC "0"
-// Retrieval info: PRIVATE: BYTE_SIZE NUMERIC "8"
+// Retrieval info: PRIVATE: BYTE_SIZE NUMERIC "9"
 // Retrieval info: PRIVATE: BlankMemory NUMERIC "1"
 // Retrieval info: PRIVATE: CLOCK_ENABLE_INPUT_A NUMERIC "0"
 // Retrieval info: PRIVATE: CLOCK_ENABLE_INPUT_B NUMERIC "0"
@@ -143,7 +143,7 @@ endmodule
 // Retrieval info: PRIVATE: JTAG_ENABLED NUMERIC "0"
 // Retrieval info: PRIVATE: JTAG_ID STRING "NONE"
 // Retrieval info: PRIVATE: MAXIMUM_DEPTH NUMERIC "0"
-// Retrieval info: PRIVATE: MEMSIZE NUMERIC "6144"
+// Retrieval info: PRIVATE: MEMSIZE NUMERIC "9216"
 // Retrieval info: PRIVATE: MEM_IN_BITS NUMERIC "0"
 // Retrieval info: PRIVATE: MIFfilename STRING ""
 // Retrieval info: PRIVATE: OPERATION_MODE NUMERIC "2"
@@ -163,10 +163,10 @@ endmodule
 // Retrieval info: PRIVATE: USE_DIFF_CLKEN NUMERIC "0"
 // Retrieval info: PRIVATE: UseDPRAM NUMERIC "1"
 // Retrieval info: PRIVATE: VarWidth NUMERIC "0"
-// Retrieval info: PRIVATE: WIDTH_READ_A NUMERIC "24"
-// Retrieval info: PRIVATE: WIDTH_READ_B NUMERIC "24"
-// Retrieval info: PRIVATE: WIDTH_WRITE_A NUMERIC "24"
-// Retrieval info: PRIVATE: WIDTH_WRITE_B NUMERIC "24"
+// Retrieval info: PRIVATE: WIDTH_READ_A NUMERIC "36"
+// Retrieval info: PRIVATE: WIDTH_READ_B NUMERIC "36"
+// Retrieval info: PRIVATE: WIDTH_WRITE_A NUMERIC "36"
+// Retrieval info: PRIVATE: WIDTH_WRITE_B NUMERIC "36"
 // Retrieval info: PRIVATE: WRADDR_ACLR_B NUMERIC "0"
 // Retrieval info: PRIVATE: WRADDR_REG_B NUMERIC "0"
 // Retrieval info: PRIVATE: WRCTRL_ACLR_B NUMERIC "0"
@@ -189,25 +189,25 @@ endmodule
 // Retrieval info: CONSTANT: READ_DURING_WRITE_MODE_MIXED_PORTS STRING "OLD_DATA"
 // Retrieval info: CONSTANT: WIDTHAD_A NUMERIC "8"
 // Retrieval info: CONSTANT: WIDTHAD_B NUMERIC "8"
-// Retrieval info: CONSTANT: WIDTH_A NUMERIC "24"
-// Retrieval info: CONSTANT: WIDTH_B NUMERIC "24"
+// Retrieval info: CONSTANT: WIDTH_A NUMERIC "36"
+// Retrieval info: CONSTANT: WIDTH_B NUMERIC "36"
 // Retrieval info: CONSTANT: WIDTH_BYTEENA_A NUMERIC "1"
 // Retrieval info: USED_PORT: clock 0 0 0 0 INPUT VCC "clock"
-// Retrieval info: USED_PORT: data 0 0 24 0 INPUT NODEFVAL "data[23..0]"
-// Retrieval info: USED_PORT: q 0 0 24 0 OUTPUT NODEFVAL "q[23..0]"
+// Retrieval info: USED_PORT: data 0 0 36 0 INPUT NODEFVAL "data[35..0]"
+// Retrieval info: USED_PORT: q 0 0 36 0 OUTPUT NODEFVAL "q[35..0]"
 // Retrieval info: USED_PORT: rdaddress 0 0 8 0 INPUT NODEFVAL "rdaddress[7..0]"
 // Retrieval info: USED_PORT: wraddress 0 0 8 0 INPUT NODEFVAL "wraddress[7..0]"
 // Retrieval info: USED_PORT: wren 0 0 0 0 INPUT GND "wren"
 // Retrieval info: CONNECT: @address_a 0 0 8 0 wraddress 0 0 8 0
 // Retrieval info: CONNECT: @address_b 0 0 8 0 rdaddress 0 0 8 0
 // Retrieval info: CONNECT: @clock0 0 0 0 0 clock 0 0 0 0
-// Retrieval info: CONNECT: @data_a 0 0 24 0 data 0 0 24 0
+// Retrieval info: CONNECT: @data_a 0 0 36 0 data 0 0 36 0
 // Retrieval info: CONNECT: @wren_a 0 0 0 0 wren 0 0 0 0
-// Retrieval info: CONNECT: q 0 0 24 0 @q_b 0 0 24 0
+// Retrieval info: CONNECT: q 0 0 36 0 @q_b 0 0 36 0
 // Retrieval info: GEN_FILE: TYPE_NORMAL meter_mem.v TRUE
 // Retrieval info: GEN_FILE: TYPE_NORMAL meter_mem.inc FALSE
 // Retrieval info: GEN_FILE: TYPE_NORMAL meter_mem.cmp FALSE
-// Retrieval info: GEN_FILE: TYPE_NORMAL meter_mem.bsf TRUE FALSE
+// Retrieval info: GEN_FILE: TYPE_NORMAL meter_mem.bsf TRUE
 // Retrieval info: GEN_FILE: TYPE_NORMAL meter_mem_inst.v TRUE
 // Retrieval info: GEN_FILE: TYPE_NORMAL meter_mem_bb.v TRUE
 // Retrieval info: LIB_FILE: altera_mf
