@@ -9,11 +9,18 @@ controllableValue = (name, initial) ->
     uiVal = ko.observable initial
     serverVal = ko.observable null
     serverLastUpdate = ko.observable null
+    sendInterlock = 0
 
     _.extend uiVal, {serverVal, serverLastUpdate}
     uiVal.subscribe (newVal) ->
+        return if sendInterlock
         debug 'update:', name, newVal
         updateQueue[name] = newVal
+    uiVal.updateWithoutSending = (newVal) ->
+        sendInterlock++
+        uiVal newVal
+        sendInterlock--
+        uiVal
     uiVal
 
 
@@ -314,10 +321,11 @@ socket.on 'msg', (msg) ->
             unless cv?
                 debug("Got a state update we weren't expecting! #{name}")
                 continue
+            debug "Applying update", name, value
             cv.serverVal value
             cv.serverLastUpdate lastSeqReceived
             # FIXME...
-            cv value
+            cv.updateWithoutSending value
 
     for level, channelIdx in msg.meter
         mixer.channels[channelIdx].signalLevel level
@@ -333,6 +341,7 @@ ui = null
 
 initializeMixerState = (state) ->
     debug 'state', state
+    _.extend stateFromServer, state
     metadata = state.metadata
     getCv = (name) ->
         val = state[name]
