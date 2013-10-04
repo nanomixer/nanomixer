@@ -294,6 +294,7 @@ lastSeqSent = -1
 lastSeqReceived = -1
 updateQueue = {}
 stateFromServer = {}
+controllableValues = {}
 
 socket = io.connect('');
 socket.on 'connect', ->
@@ -303,9 +304,20 @@ socket.on 'connect', ->
 
 socket.on 'msg', (msg) ->
     lastSeqReceived = msg.seq
-    _.extend stateFromServer, msg.state
+
     if msg.seq == 0
         initializeMixerState(msg.state)
+    else
+        for name, value of msg.state
+            stateFromServer[name] = value
+            cv = controllableValues[name]
+            unless cv?
+                debug("Got a state update we weren't expecting! #{name}")
+                continue
+            cv.serverVal value
+            cv.serverLastUpdate lastSeqReceived
+            # FIXME...
+            cv value
 
     for level, channelIdx in msg.meter
         mixer.channels[channelIdx].signalLevel level
@@ -327,7 +339,9 @@ initializeMixerState = (state) ->
         unless val?
             alert "Missing state value: #{name}!"
             return
-        controllableValue name, val
+        cv = controllableValue name, val
+        controllableValues[name] = cv
+        cv
 
     channels = for chan in [0...metadata.num_channels]
         filters = for filt in [0...metadata.num_biquads_per_channel]
@@ -350,5 +364,6 @@ initializeMixerState = (state) ->
 
 
 sendUpdate = ->
-    socket.emit 'msg', {seq: ++lastSeqSent, state: updateQueue}
+    lastSeqSent++
+    socket.emit 'msg', {seq: lastSeqSent, state: updateQueue}
     updateQueue = {}

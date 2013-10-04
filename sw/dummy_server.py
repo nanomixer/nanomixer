@@ -12,11 +12,10 @@ STATIC_FILES_AT = os.path.join(os.path.dirname(__file__), 'static', 'build')
 
 import re
 fader_re = re.compile(r'^b(?P<bus>\d+)/c(?P<chan>\d+)/(?P<param>lvl|pan)$')
-filter_re = re.compile(r'^c(?P<chan>\d+)/f(?P<filt>\d+)/(?P<param>f|g|q)$')
+filter_re = re.compile(r'^c(?P<chan>\d+)/f(?P<filt>\d+)/(?P<param>freq|gain|q)$')
 
-class Resource(BaseNamespace):
-    def __init__(self, *a, **kw):
-        super(Resource, self).__init__(*a, **kw)
+class DummyController(object):
+    def __init__(self):
         self.full_state = {}
         hwparams = control.HARDWARE_PARAMS
         self.full_state['metadata'] = metadata = dict(
@@ -33,21 +32,34 @@ class Resource(BaseNamespace):
                 for param, val in [('freq', freq), ('gain', 0.), ('q', np.sqrt(2.)/2)]:
                     self.full_state['c{chan}/f{filt}/{param}'.format(chan=channel, filt=filt, param=param)] = val
             self.full_state["c{chan}/name".format(chan=channel)] = "Ch{}".format(channel+1)
-        self.response_state = dict(self.full_state)
         self.routes = [
             [fader_re, self.set_fader],
             [filter_re, self.set_filter]]
 
         self.meter_levels = np.zeros(metadata['num_channels'])
 
-    def disconnect(self, *a, **kw):
-        super(Resource, self).disconnect(*a, **kw)
+    def apply_update(self, control, value):
+        """
+        Apply a state update.
+
+        Returns True iff the update was handled successfully.
+        """
+        for pattern, func in self.routes:
+            match = pattern.match(control)
+            if match is None:
+                continue
+            func(val=value, **match.groupdict())
+            self.full_state[control] = value
+            return True
+        # No match.
+        return False
 
     def set_fader(self, bus, chan, param, val):
         bus = int(bus)
         chan = int(chan)
         if param == 'lvl':
-            absVal = np.pow(10., val/20.)
+            print 'set_fader', bus, chan, param, val
+            #absVal = np.pow(10., val/20.)
             self.meter_levels[chan] = val
         elif param == 'pan':
             print 'pan'
@@ -57,26 +69,32 @@ class Resource(BaseNamespace):
         filt = int(filt)
         print 'filt', chan, filt, param, val
 
+
+controller = DummyController()
+
+
+class Resource(BaseNamespace):
+    def __init__(self, *a, **kw):
+        super(Resource, self).__init__(*a, **kw)
+        self.response_state = dict(controller.full_state)
+
+    def disconnect(self, *a, **kw):
+        super(Resource, self).disconnect(*a, **kw)
+
     def on_msg(self, msg):
         try:
             seq = msg['seq']
             for control, value in msg['state'].iteritems():
-                matched = False
-                for pattern, func in self.routes:
-                    match = pattern.match(control)
-                    if match is None:
-                        continue
-                    matched = True
-                    func(val=value, **match.groupdict())
+                handled = controller.apply_update(control, value)
+                if handled:
                     self.response_state[control] = value
-                    break
-                if not matched:
+                else:
                     print "Oops, couldn't handle", control, value
 
             self.emit('msg', dict(
                 seq=seq,
                 state=self.response_state,
-                meter=(self.meter_levels + np.sin(2*np.pi*time.time())).tolist()))
+                meter=(controller.meter_levels + np.sin(2*np.pi*time.time())).tolist()))
             self.response_state = {}
         except Exception as e:
             traceback.print_exc()
