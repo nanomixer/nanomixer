@@ -20,10 +20,9 @@ METERING_LPF_PARAMS = dict(
 PARAM_WIDTH = 36
 PARAM_INT_BITS = 5
 PARAM_FRAC_BITS = 30
-METER_WIDTH = 24
-METER_WIDTH_NIBBLES = METER_WIDTH / 4
-METER_FRAC_BITS = 20
-METER_SIGN_BIT = 23
+METER_WIDTH = 36
+METER_FRAC_BITS = 30
+METER_SIGN_BIT = 35
 WORDS_PER_CORE = 1024 # FIXME !
 
 METERING_CHANNELS = 8
@@ -327,7 +326,7 @@ class IOThread(threading.Thread):
         self._meter_revision += 1
 
         np.maximum(2**-METER_FRAC_BITS, meter_packet, out=meter_packet)
-        meter_values = 20 * np.log10(np.sqrt(meter_packet * 2**8))
+        meter_values = 20 * np.log10(np.sqrt(meter_packet * 2**2))
         self._meter_mem_contents = (self._meter_revision, meter_values)
 
 

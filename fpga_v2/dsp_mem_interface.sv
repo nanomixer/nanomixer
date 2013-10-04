@@ -8,24 +8,20 @@ interface dsp_mem_interface #(
 ) (
    input  logic clk, reset_n, // CPU clock & asyncronous reset
 
-   input  logic [SAMPLE_WIDTH-1:0]      sample_rd_data, 
+   input  logic [SAMPLE_WIDTH-1:0]      sample_rd_data,
    output logic [SAMPLE_ADDR_WIDTH-1:0] sample_rd_addr,
    output logic                         sample_rd_en,
-   
-   output logic [SAMPLE_WIDTH-1:0]      sample_wr_data, 
+
+   output logic [SAMPLE_WIDTH-1:0]      sample_wr_data,
    output logic [SAMPLE_ADDR_WIDTH-1:0] sample_wr_addr,
    output logic                         sample_wr_en,
-   
-   input  logic [PARAM_WIDTH-1:0]      param_rd_data, 
+
+   input  logic [PARAM_WIDTH-1:0]      param_rd_data,
    output logic [PARAM_ADDR_WIDTH-1:0] param_rd_addr,
    output logic                        param_rd_en,
-   
+
    input  logic [IO_WIDTH-1:0] audio_inputs  [0:7],
-   output logic [IO_WIDTH-1:0] audio_outputs [0:7],
-   
-   output logic [IO_WIDTH-1:0] meter_wr_data,
-   output logic [7:0]          meter_wr_addr,
-   output logic                meter_wr_en
+   output logic [IO_WIDTH-1:0] audio_outputs [0:7]
 );
 
 
@@ -33,12 +29,10 @@ interface dsp_mem_interface #(
 
 logic [IO_WIDTH-1:0]         io_rd_data, io_wr_data;
 logic [PARAM_ADDR_WIDTH-1:0] io_rd_addr, io_wr_addr;
-logic                        io_rd_en,   io_wr_en;                        
-
-enum {ADAT, METER} io_type;
+logic                        io_rd_en,   io_wr_en;
 
 /***** MODPORT DECLARATIONS: *****/
-   
+
 modport dsp_sample_bus (
    input  .rd_data(sample_rd_data),
    output .rd_addr(sample_rd_addr),
@@ -47,7 +41,7 @@ modport dsp_sample_bus (
    output .wr_addr(sample_wr_addr),
    output .wr_en(sample_wr_en)
    );
-   
+
 modport dsp_param_bus (
    input  .rd_data(param_rd_data),
    output .rd_addr(param_rd_addr),
@@ -63,23 +57,12 @@ modport dsp_io_bus (
    output .wr_en(io_wr_en)
    );
 
-   
-/***** IO ADDRESSING LOGIC: *****/
 
-always_comb begin
-   case (io_wr_addr[IO_ADDR_WIDTH-1])
-      1'b0 : io_type = ADAT;   // lower half of addresses mapped to ADAT
-      1'b1 : io_type = METER;  // upper half of addresses mapped to metering memory
-   endcase
-   
-   meter_wr_data = io_wr_data;
-   meter_wr_addr = io_wr_addr[7:0];
-   meter_wr_en   = io_wr_en && (io_type == METER);
-end
+/***** IO ADDRESSING LOGIC: *****/
 
 always_ff @(posedge clk) begin
    if (io_rd_en) io_rd_data <= audio_inputs[io_rd_addr[2:0]];
-   if (io_wr_en && (io_type == ADAT)) audio_outputs[io_wr_addr[2:0]] <= io_wr_data;
+   if (io_wr_en) audio_outputs[io_wr_addr[2:0]] <= io_wr_data;
 end
 
 endinterface

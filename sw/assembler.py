@@ -95,6 +95,8 @@ class AMac(Instruction):
         Instruction.__init__(
             self, sample_addr=sample_addr, param_or_io_addr=0)
     def __repr__(self): return '{}({})'.format(self.__class__.__name__, self.sample_addr)
+class AuxOut(Out):
+    opcode = 9
 
 def assemble(instructions, outfile):
     print >>outfile, "DEPTH = 2048;"
