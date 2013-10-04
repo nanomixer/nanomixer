@@ -181,7 +181,7 @@ class Controller(BaseController):
         self._set_parameter_memory(
             core=channel_core,
             addr=address_for_mixdown_gain(
-                core=(channel_core - bus_core - 1) % self.state.num_cores,
+                core=(channel_core - bus_core - 1) % HARDWARE_PARAMS['num_cores'],
                 channel=channel_idx,
                 bus=bus_idx),
             data=[gain])
