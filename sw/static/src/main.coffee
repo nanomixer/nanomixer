@@ -3,26 +3,18 @@
 window.addEventListener('touchmove', (e) -> e.preventDefault())
 
 
-# Controllable value
-controllableValue = (updateQueue, name, initial) ->
+# Extends an observable with the aspect of maintaining server state.
+# FIXME: currently references the global update queue. Or maybe that's okay.
+controllableValue = (name, initial) ->
     uiVal = ko.observable initial
     serverVal = ko.observable null
     serverLastUpdate = ko.observable null
 
-    cv = (newVal) ->
-        if arguments.length
-            uiVal(newVal)
-            return cv
-        return uiVal()
-
-    _.extend cv, {uiVal, serverVal, serverLastUpdate}
-    cv.subscribe = (args...) ->
-        uiVal
-
+    _.extend uiVal, {serverVal, serverLastUpdate}
     uiVal.subscribe (newVal) ->
+        debug 'update:', name, newVal
         updateQueue[name] = newVal
-
-    cv
+    uiVal
 
 
 
@@ -335,7 +327,7 @@ initializeMixerState = (state) ->
         unless val?
             alert "Missing state value: #{name}!"
             return
-        controllableValue updateQueue, name, val
+        controllableValue name, val
 
     channels = for chan in [0...metadata.num_channels]
         filters = for filt in [0...metadata.num_biquads_per_channel]
