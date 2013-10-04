@@ -52,7 +52,7 @@ def pack_biquad_coeffs(b, a):
 import re
 fader_re = re.compile(r'^b(?P<bus>\d+)/c(?P<chan>\d+)/(?P<param>lvl|pan)$')
 filter_re = re.compile(r'^c(?P<chan>\d+)/f(?P<filt>\d+)/(?P<param>freq|gain|q)$')
-name_re = re.compile(r'c(?P<chan>\d+)$')
+name_re = re.compile(r'c(?P<chan>\d+)/name$')
 
 Fader = namedtuple('Fader', 'level, pan')
 Filter = namedtuple('Filter', 'freq, gain, q')
