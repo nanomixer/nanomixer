@@ -313,7 +313,6 @@ class IOThread(threading.Thread):
 
             # Extract the metering data we got.
             meter_vals_read = read_buf[:meter_words_desired]
-            print ', '.join('{:09}'.format(val) for val in meter_vals_read)
             wireformat.sign_extend(meter_vals_read, METER_SIGN_BIT)
             wireformat.fixeds_to_floats(
                 meter_vals_read.view(np.int64),
