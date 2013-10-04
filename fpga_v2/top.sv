@@ -5,10 +5,10 @@ module top #(
    SAMPLE_WIDTH = 36,   SAMPLE_ADDR_WIDTH = 10,
    PARAM_WIDTH  = 36,   PARAM_ADDR_WIDTH  = 10,
    IO_WIDTH     = 24,
-   
+
    DSP_CLK_KHZ  = 98304, // must be 2^N times sample rate, where N is integer
    SAMPLE_RATE_KHZ = 48,
-   
+
    INSTR_WIDTH = 26,
    PC_WIDTH = $bits(DSP_CLK_KHZ/SAMPLE_RATE_KHZ - 1)
 ) (
@@ -19,7 +19,7 @@ module top #(
 
    input  logic adat_async_in,
    output logic adat_bitstream_out,
-   
+
     // SPI port
     input wire spi_SCLK, // spi clock
     input wire spi_SSEL, // spi slave select
@@ -57,7 +57,7 @@ logic [INSTR_WIDTH-1:0] instruction;
 
 dsp_mem_interface my_dsp_bus(.clk(dsp_clk), .*);
 
-dsp_core my_dsp(.clk(dsp_clk), 
+dsp_core my_dsp(.clk(dsp_clk),
                 .reset_n,
                 .sample_mem(my_dsp_bus.dsp_sample_bus),
                 .param_mem(my_dsp_bus.dsp_param_bus),
@@ -65,7 +65,7 @@ dsp_core my_dsp(.clk(dsp_clk),
                 .instruction);
 
 metering_buffer my_meter(.clock(dsp_clk),
-                         .address(meter_wr_addr), 
+                         .address(meter_wr_addr),
                          .data   (meter_wr_data),
                          .wren   (meter_wr_en));
 
@@ -81,7 +81,7 @@ meter_mem meter_mem_inst (
 adat_in my_adat_in(.clk(adat_in_clk),
                    .adat_async(adat_async_in),
                    .audio_bus(audio_inputs));
-                
+
 adat_out my_adat_out(.clk(adat_out_clk),
                      .reset_n,
                      .timecode(1'b0), .midi(1'b0), .smux(1'b0),
@@ -89,10 +89,10 @@ adat_out my_adat_out(.clk(adat_out_clk),
                      .bitstream_out(adat_bitstream_out));
 
 sample_mem_00 my_sample_mem(.clock(dsp_clk),
-                            .rdaddress(sample_rd_addr), 
+                            .rdaddress(sample_rd_addr),
                             .rden     (sample_rd_en),
-                            .q        (sample_rd_data), 
-                            .wraddress(sample_wr_addr), 
+                            .q        (sample_rd_data),
+                            .wraddress(sample_wr_addr),
                             .wren     (sample_wr_en),
                             .data     (sample_wr_data));
 
@@ -105,7 +105,7 @@ param_mem param_mem_inst (
     .wren ( param_wr_en )
 );
 
-instr_mem my_instr_mem(.clock(dsp_clk), 
+instr_mem my_instr_mem(.clock(dsp_clk),
                        .address(pc),
                        .rden(1'b1),
                        .q(instruction),
@@ -135,7 +135,7 @@ memif #(.WORD_WIDTH(WORD_WIDTH), .ADDR_WIDTH(ADDR_WIDTH)) memif_inst (
 /***** REGISTER LOGIC: *****/
 
 always_ff @(posedge dsp_clk or negedge reset_n) begin
-   if (!reset_n) begin 
+   if (!reset_n) begin
       pc <= '0;
    end
    else begin
