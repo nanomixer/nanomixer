@@ -103,11 +103,6 @@ class BaseController(object):
                 set_initial_state(names['gain'], 0.)
                 set_initial_state(names['q'], np.sqrt(2.)/2)
 
-        for control, value in self.state.iteritems():
-            handled = self.apply_update(control, value)
-            if not handled:
-                raise NameError("Unhandled name: {}".format(control))
-
         self.state['metadata'] = metadata
 
     def apply_update(self, control, value):
@@ -209,6 +204,13 @@ class Controller(BaseController):
             # Special metering filter.
             self._set_parameter_memory(core=core, addr=meter_filter_param_base,
                 data=self.get_metering_filter_params())
+
+        for control, value in self.state.iteritems():
+            if control == 'metadata':
+                continue
+            handled = self.apply_update(control, value)
+            if not handled:
+                raise NameError("Unhandled name: {}".format(control))
 
     def get_metering_filter_params(self):
         return StateVarFilter.encode_params(**METERING_LPF_PARAMS)
