@@ -35,9 +35,10 @@ def pack_biquad_coeffs(b, a):
     return [b[0], b[1], b[2], -a[1], -a[2]]
 
 import re
+bus_name_re = re.compile(r'^b(?P<bus>\d+)/name$')
 fader_re = re.compile(r'^b(?P<bus>\d+)/c(?P<chan>\d+)/(?P<param>lvl|pan)$')
 filter_re = re.compile(r'^c(?P<chan>\d+)/f(?P<filt>\d+)/(?P<param>freq|gain|q)$')
-name_re = re.compile(r'c(?P<chan>\d+)/name$')
+channel_name_re = re.compile(r'c(?P<chan>\d+)/name$')
 
 Fader = namedtuple('Fader', 'level, pan')
 Filter = namedtuple('Filter', 'freq, gain, q')
@@ -60,9 +61,10 @@ class BaseController(object):
             os.makedirs(self.snapshot_base_dir)
 
         self.routes = [
+            [bus_name_re, None],
             [fader_re, self.update_for_fader],
             [filter_re, self.update_for_filter],
-            [name_re, self.update_for_name]]
+            [channel_name_re, None]]
 
         def set_initial_state(name, val):
             self.state[name] = val
@@ -72,6 +74,11 @@ class BaseController(object):
         self.busses = []
         for bus in range(metadata['num_busses']):
             chan_params = []
+            if bus == 0:
+                name = "Master"
+            else:
+                name = "Aux {}".format(bus)
+            set_initial_state('b{bus}/name'.format(bus=bus), name)
             self.busses.append(chan_params)
             for channel in range(metadata['num_channels']):
                 level_name = 'b{bus}/c{chan}/lvl'.format(bus=bus, chan=channel)
@@ -133,7 +140,9 @@ class BaseController(object):
             if match is None:
                 continue
             self.state[control] = value
-            func(val=value, **match.groupdict())
+            if func is not None:
+                # Things like names don't need update functions.
+                func(val=value, **match.groupdict())
             return True
         # No match.
         return False

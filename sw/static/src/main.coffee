@@ -79,7 +79,7 @@ class Channel
         @signalLevel = ko.observable 0
 
 class Bus
-    constructor: (@channels, @faders) ->
+    constructor: (@channels, @faders, @name) ->
 
 class FaderView
     constructor: (@element, @model) ->
@@ -167,6 +167,8 @@ class FaderSection
         @activeBusIdx = ko.observable 0
         @activeBus = ko.computed =>
             @mixer.buses[@activeBusIdx()]
+        @busNames = ko.computed =>
+            [bus.name() for bus in mixer.buses]
 
     setActiveFaders: ->
         faders = @activeBus().faders
@@ -380,7 +382,7 @@ initializeMixerState = (state) ->
                 level: getCv("b#{bus}/c#{chan}/lvl")
                 pan: getCv("b#{bus}/c#{chan}/lvl")
             }
-        new Bus(channels, faders)
+        new Bus(channels, faders, getCv("b#{bus}/name"))
     mixer = {channels, buses}
     ui = new UIView(mixer)
 
