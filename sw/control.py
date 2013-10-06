@@ -31,23 +31,6 @@ METERING_CHANNELS = 8
 METERING_PACKET_SIZE = METERING_CHANNELS
 SPI_BUF_SIZE_IN_WORDS = METERING_PACKET_SIZE
 
-# Channel name -> (core, channel)
-channel_map = {
-    0: (0, 0),
-    1: (0, 1),
-    2: (0, 2),
-    3: (0, 3),
-    4: (0, 4),
-    5: (0, 5),
-    6: (0, 6),
-    7: (0, 7),
-}
-
-bus_map = {
-    0: (0, 0),
-    1: (0, 1)
-}
-
 def pack_biquad_coeffs(b, a):
     return [b[0], b[1], b[2], -a[1], -a[2]]
 
@@ -64,6 +47,11 @@ metadata = dict(
     num_busses=HARDWARE_PARAMS['num_cores'] * HARDWARE_PARAMS['num_busses_per_core'] / 2, # HACK.
     num_channels=HARDWARE_PARAMS['num_cores'] * HARDWARE_PARAMS['num_channels_per_core'],
     num_biquads_per_channel=HARDWARE_PARAMS['num_biquads_per_channel'])
+
+# index -> (core, channel/bus)
+channel_map = {idx: (0, idx) for idx in range(metadata['num_channels'])}
+bus_map = {idx: (0, idx) for idx in range(metadata['num_busses'] * 2)} # HACK.
+
 
 class BaseController(object):
     def __init__(self, snapshot_base_dir='snapshots'):
