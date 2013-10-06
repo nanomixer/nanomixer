@@ -164,15 +164,15 @@ class FaderView
 
 class FaderSection
     constructor: (@containerSelection, @mixer) ->
-        @activeBusIdx = ko.observable 0
+        @activeBusIdx = ko.observable "0"
         @activeBus = ko.computed =>
-            @mixer.buses[@activeBusIdx()]
+            @mixer.buses[+@activeBusIdx()]
         @busNames = ko.computed =>
-            [bus.name() for bus in @mixer.buses]
+            (bus.name() for bus in @mixer.buses)
 
     setActiveFaders: ->
         faders = @activeBus().faders
-        sel = d3.select(@containerSelection).selectAll('.fader').data(faders, (fader) -> ko.unwrap(fader.channel.idx))
+        sel = d3.select(@containerSelection).select('.faders').selectAll('.fader').data(faders, (fader) -> ko.unwrap(fader.channel.idx))
         sel.enter().append('div').attr('class', 'fader').html(faderTemplate).each((fader) ->
             @viewModel = new FaderView(this, fader)
             ko.applyBindings(@viewModel, this)

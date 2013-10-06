@@ -12,7 +12,15 @@
     <link rel="stylesheet" href="css/main.css">
   </head>
   <body data-bind="attr: {class: activeSection()+'-active'}">
-    <div class="section" id="faders" data-bind="with: faderSection"></div>
+    <div class="section" id="faders" data-bind="with: faderSection">
+      <div class="faders"></div>
+      <div class="buspicker" data-bind="foreach: busNames">
+        <label>
+          <input type="radio" name="activeBusIdx" data-bind="value: $index, checked: $parent.activeBusIdx">
+          <span data-bind="text: $data"></span>
+        </label>
+      </div>
+    </div>
     <div class="section" id="channel" data-bind="with: channelSection">
       <h1 data-bind="text: title"></h1>
       <button data-bind="click: prevChannel, enable: hasPrevChannel">&laquo; Prev</button>
