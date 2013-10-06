@@ -55,6 +55,10 @@ channel_map = {idx: (0, idx) for idx in range(metadata['num_channels'])}
 bus_map = {idx: (0, idx) for idx in range(metadata['num_busses'] * 2)} # HACK.
 
 
+class InvalidSnapshot(Exception):
+    pass
+
+
 class BaseController(object):
     def __init__(self, snapshot_base_dir='snapshots'):
         self.snapshot_base_dir = snapshot_base_dir
@@ -110,11 +114,15 @@ class BaseController(object):
             self.load_snapshot()
             print 'Snapshot loaded.'
         except IOError:
-            print 'Not loading snapshot.'
+            print 'No snapshot found.'
+        except InvalidSnapshot:
+            print "Not loading an initial snapshot because it's invalid."
 
     def load_snapshot(self, name='latest'):
         with open(os.path.join(self.snapshot_base_dir, name), 'rb') as f:
             state = json.load(f)
+            if state['metadata'] != self.state['metadata']:
+                raise InvalidSnapshot
             self.state.update(state)
         # You probably want to dump_state_to_mixer now.
 
