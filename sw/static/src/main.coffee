@@ -225,14 +225,15 @@ class Eq
 
 class Filter
     constructor: (@freq, @gain, @q) ->
-        @coefficients = ko.computed computePeakingParams(@freq(), @gain(), @q())
+            @coefficients = ko.computed =>
+                @computePeakingParams(@freq(), @gain(), @q())
 
     class FilterCoefficients
         constructor : (@b0, @b1, @b2, @a0, @a1, @a2) ->
 
         normalize: =>
             a0Inverse = 1 / @a0
-            FilterCoefficients(@b0 * a0Inverse, @b1 * a0Inverse, @b2 * a0Inverse, @a0, @a1 * a0Inverse, @a2 * a0Inverse)
+            new FilterCoefficients(@b0 * a0Inverse, @b1 * a0Inverse, @b2 * a0Inverse, @a0, @a1 * a0Inverse, @a2 * a0Inverse)
 
     ## Peaking params computation
     computePeakingParams: (freq, gain, q) =>
@@ -254,11 +255,11 @@ class Filter
                 a1 = -2 * k
                 a2 = 1 - alpha / a
 
-                FilterCoefficients(b0, b1, b2, a0, a1, a2).normalize()
+                return new FilterCoefficients(b0, b1, b2, a0, a1, a2).normalize()
             else
-                FilterCoefficients(a * a, 0, 0, 1, 0, 0).normalize()
+                return new FilterCoefficients(a * a, 0, 0, 1, 0, 0).normalize()
         else
-            FilterCoefficients(1, 0, 0, 1, 0, 0).normalize()
+            return new FilterCoefficients(1, 0, 0, 1, 0, 0).normalize()
 
 ko.bindingHandlers.dragToAdjust = {
     init: (element, valueAccesor) ->
