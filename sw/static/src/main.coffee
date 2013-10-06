@@ -225,6 +225,40 @@ class Eq
 
 class Filter
     constructor: (@freq, @gain, @q) ->
+        @coefficients = ko.computed computePeakingParams(@freq(), @gain(), @q())
+
+    class FilterCoefficients
+        constructor : (@b0, @b1, @b2, @a0, @a1, @a2) ->
+
+        normalize: =>
+            a0Inverse = 1 / @a0
+            FilterCoefficients(@b0 * a0Inverse, @b1 * a0Inverse, @b2 * a0Inverse, @a0, @a1 * a0Inverse, @a2 * a0Inverse)
+
+    ## Peaking params computation
+    computePeakingParams: (freq, gain, q) =>
+        clippedFreq = Math.max(0.0, Math.min(freq, 1.0))
+        clippedQ = Math.max(0.0, q)
+
+        a = Math.pow(10.0, gain / 40)
+
+        if 0 < clippedFreq < 1
+            if clippedQ > 0
+                w0 = Math.PI * clippedFreq
+                alpha = Math.sin(w0) / (2 * clippedQ)
+                k = cos(w0)
+
+                b0 = 1 + alpha * a
+                b1 = -2 * k
+                b2 = 1 - alpha * a
+                a0 = 1 + alpha / a
+                a1 = -2 * k
+                a2 = 1 - alpha / a
+
+                FilterCoefficients(b0, b1, b2, a0, a1, a2).normalize()
+            else
+                FilterCoefficients(a * a, 0, 0, 1, 0, 0).normalize()
+        else
+            FilterCoefficients(1, 0, 0, 1, 0, 0).normalize()
 
 ko.bindingHandlers.dragToAdjust = {
     init: (element, valueAccesor) ->
@@ -266,7 +300,6 @@ class FilterView
             observable.dispose()
         ko.cleanNode(@element)
 
-
 class ChannelSection
     constructor: (@containerSelection, @mixer) ->
         @activeChannelIdx = ko.observable null
@@ -294,6 +327,8 @@ class ChannelSection
                 ko.applyBindings(@viewModel, this)
             )
             sel.exit().each((d) -> @viewModel.dispose()).transition().duration(500).style('opacity', 0).remove()
+
+            # After drawing actual adjustable filters, now add filter graphic
 
     prevChannel: ->
         if @hasPrevChannel()
@@ -335,7 +370,6 @@ updateMeters = (meterPacket) ->
     for busIdx in [0...metadata.num_busses]
         level = meterPacket.b[2*busIdx]
         mixer.buses[busIdx].masterFader.channel.signalLevel level
-
 
 ## State management
 lastSeqSent = -1
