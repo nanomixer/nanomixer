@@ -65,7 +65,6 @@ metadata = dict(
     num_channels=HARDWARE_PARAMS['num_cores'] * HARDWARE_PARAMS['num_channels_per_core'],
     num_biquads_per_channel=HARDWARE_PARAMS['num_biquads_per_channel'])
 
-# Separating out logic so we can have a DummyController also.
 class BaseController(object):
     def __init__(self, snapshot_base_dir='snapshots'):
         self.snapshot_base_dir = snapshot_base_dir
@@ -171,24 +170,6 @@ class BaseController(object):
             self.state[filter.gain],
             self.state[filter.q])
 
-    def update_for_name(self, chan, val):
-        pass
-
-
-class DummyController(BaseController):
-    def __init__(self):
-        self.meter_levels = np.zeros(metadata['num_channels'])
-        super(DummyController, self).__init__()
-
-    def get_meter(self):
-        return self.meter_levels + np.sin(2*np.pi*time.time())
-
-    def set_gain(self, bus, channel, gain):
-        self.meter_levels[channel] = 20 * np.log10(gain)
-
-    def set_biquad(self, channel, biquad, freq, gain, q):
-        pass
-
 
 class Controller(BaseController):
     def __init__(self, io_thread):
@@ -248,6 +229,19 @@ class Controller(BaseController):
     def _set_parameter_memory(self, core, addr, data):
         start = core * WORDS_PER_CORE + int(addr)
         self.io_thread[start:start+len(data)] = data
+
+
+class DummyController(Controller):
+    def __init__(self, *a, **kw):
+        super(DummyController, self).__init__(*a, **kw)
+        self.meter_levels = np.zeros(metadata['num_channels'])
+
+    def get_meter(self):
+        return self.meter_levels + np.sin(2*np.pi*time.time())
+
+    def set_gain(self, bus, channel, gain):
+        super(DummyController, self).set_gain(bus, channel, gain)
+        self.meter_levels[channel] = 20 * np.log10(gain)
 
 
 import threading
@@ -380,6 +374,10 @@ def pack_meter_packet(rev, meter_data):
         rev=rev)
 
 
+class DummySPIChannel(object):
+    buf_size_in_words = SPI_BUF_SIZE_IN_WORDS
+
+
 import os
 SPI_DEVICE = '/dev/spidev4.0'
 ON_TGT_HARDWARE = os.path.exists(SPI_DEVICE)
@@ -388,16 +386,13 @@ if ON_TGT_HARDWARE:
     spi_dev = spidev.SpiChannel(SPI_DEVICE, bits_per_word=20)
     spi_channel = SPIChannel(spi_dev, buf_size_in_words=SPI_BUF_SIZE_IN_WORDS)
 else:
-    class DummySPIChannel(object):
-        buf_size_in_words = SPI_BUF_SIZE_IN_WORDS
-
     spi_channel = DummySPIChannel()
+
 io_thread = IOThread(param_mem_size=1024, spi_channel=spi_channel)
+controller = Controller(io_thread)
+controller.dump_state_to_mixer()
 
 if ON_TGT_HARDWARE:
     io_thread.start()
-    controller = Controller(io_thread)
-    controller.dump_state_to_mixer()
 else:
     print "Not on target hardware, not starting IO thread."
-    controller = DummyController()
