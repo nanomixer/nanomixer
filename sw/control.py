@@ -383,11 +383,13 @@ if ON_TGT_HARDWARE:
     import spidev
     spi_dev = spidev.SpiChannel(SPI_DEVICE, bits_per_word=20)
     spi_channel = SPIChannel(spi_dev, buf_size_in_words=SPI_BUF_SIZE_IN_WORDS)
+    controller_class = Controller
 else:
     spi_channel = DummySPIChannel()
+    controller_class = DummyController
 
 io_thread = IOThread(param_mem_size=1024, spi_channel=spi_channel)
-controller = Controller(io_thread)
+controller = controller_class(io_thread)
 controller.dump_state_to_mixer()
 
 if ON_TGT_HARDWARE:
