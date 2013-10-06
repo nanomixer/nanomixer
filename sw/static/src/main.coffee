@@ -14,7 +14,7 @@ controllableValue = (name, initial) ->
     grabbed = ko.observable false
     sendInterlock = 0
 
-    _.extend uiVal, {serverVal, serverLastUpdate, grabbed}
+    _.extend uiVal, {paramName: name, serverVal, serverLastUpdate, grabbed}
     uiVal.subscribe (newVal) ->
         return if sendInterlock
         debug 'update:', name, newVal
