@@ -12,8 +12,8 @@
     <link rel="stylesheet" href="css/main.css">
   </head>
   <body data-bind="attr: {class: activeSection()+'-active'}">
-    <div id="faders" data-bind="with: faderSection"></div>
-    <div id="channel" data-bind="with: channelSection">
+    <div class="section" id="faders" data-bind="with: faderSection"></div>
+    <div class="section" id="channel" data-bind="with: channelSection">
       <h1 data-bind="text: title"></h1>
       <button data-bind="click: prevChannel, enable: hasPrevChannel">&laquo; Prev</button>
       <button data-bind="click: nextChannel, enable: hasNextChannel">Next &raquo;</button>

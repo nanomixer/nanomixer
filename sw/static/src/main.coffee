@@ -168,7 +168,7 @@ class FaderSection
         @activeBus = ko.computed =>
             @mixer.buses[@activeBusIdx()]
         @busNames = ko.computed =>
-            [bus.name() for bus in mixer.buses]
+            [bus.name() for bus in @mixer.buses]
 
     setActiveFaders: ->
         faders = @activeBus().faders
@@ -344,6 +344,8 @@ socket.on 'msg', (msg) ->
 
     for level, channelIdx in msg.meter
         mixer.channels[channelIdx].signalLevel level
+
+    ui.meterRev lastSeqReceived
 
     # Request another update.
     sendUpdate()
