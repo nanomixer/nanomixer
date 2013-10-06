@@ -26,6 +26,7 @@ METER_WIDTH = 36
 METER_FRAC_BITS = 30
 METER_SIGN_BIT = 35
 WORDS_PER_CORE = 1024 # FIXME !
+MIN_FADER = -180.
 
 METERING_CHANNELS = 8
 METERING_PACKET_SIZE = METERING_CHANNELS
@@ -84,7 +85,7 @@ class BaseController(object):
                 level_name = 'b{bus}/c{chan}/lvl'.format(bus=bus, chan=channel)
                 pan_name = 'b{bus}/c{chan}/pan'.format(bus=bus, chan=channel)
                 chan_params.append(Fader(level_name, pan_name))
-                set_initial_state(level_name, -180.)
+                set_initial_state(level_name, MIN_FADER)
                 set_initial_state(pan_name, 0.)
 
         self.channels = []
