@@ -28,10 +28,6 @@ METER_SIGN_BIT = 35
 WORDS_PER_CORE = 1024 # FIXME !
 MIN_FADER = -180.
 
-METERING_CHANNELS = 8
-METERING_PACKET_SIZE = METERING_CHANNELS
-SPI_BUF_SIZE_IN_WORDS = METERING_PACKET_SIZE
-
 def pack_biquad_coeffs(b, a):
     return [b[0], b[1], b[2], -a[1], -a[2]]
 
@@ -54,6 +50,9 @@ metadata = dict(
 channel_map = {idx: (0, idx) for idx in range(metadata['num_channels'])}
 bus_map = {idx: (0, idx) for idx in range(metadata['num_busses'] * 2)} # HACK.
 
+METERING_CHANNELS = metadata['num_channels']
+METERING_PACKET_SIZE = METERING_CHANNELS
+SPI_BUF_SIZE_IN_WORDS = METERING_PACKET_SIZE
 
 class InvalidSnapshot(Exception):
     pass
