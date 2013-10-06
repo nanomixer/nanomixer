@@ -30,6 +30,18 @@ controllableValue = (name, initial) ->
     uiVal
 
 
+wrapModelObservable = (model, name) ->
+    ko.computed {
+        read: ->
+            ko.unwrap(model()[name])
+        write: (value) ->
+            model()[name](value)
+    }
+
+wrapModelObservables = (viewModel, model, names) ->
+    for name in names
+        viewModel[name] = wrapModelObservable model, name
+
 
 winSize = {
     width: ko.observable()
@@ -81,10 +93,16 @@ class Channel
 class Bus
     constructor: (@channels, @faders, @name) ->
 
-class FaderView
+class BaseViewModel
+    dispose: ->
+        for observable in @_observables
+            observable.dispose()
+        ko.cleanNode(@element)
+
+class FaderView extends BaseViewModel
     constructor: (@element, @model) ->
-        @name = @model.channel.name
-        @level = @model.level
+        @_observables = wrapModelObservables @, @model, ['channel', 'level']
+        @name = @channel().name # FIXME: won't update for new channel maps.
         @posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain())
         @posToPixel = d3.scale.linear()
         @elt = d3.select(@element)
@@ -97,7 +115,7 @@ class FaderView
         ctx = @elt.select('canvas').node().getContext('2d')
         ko.computed =>
             ctx.clearRect(0, 0, 1000, 1000)
-            y = @posToPixel(@posToDb.invert(@model.channel.signalLevel()))
+            y = @posToPixel(@posToDb.invert(@channel().signalLevel()))
             gradient = ctx.createLinearGradient(0, 0, 20, @grooveHeight())
             gradient.addColorStop(0, 'rgba(255, 0, 0, .2)')
             gradient.addColorStop(.5, 'rgba(255, 255, 0, .2)')
@@ -157,6 +175,7 @@ class FaderView
         Math.round(@posToPixel(@posToDb.invert(dB)) - @gripHeight()/2)
 
     setPosition: (dB) ->
+        debug 'setPosition'
         y = @gripTopForDb dB
         @grip.style('top', "#{y}px")
 
@@ -168,16 +187,21 @@ class FaderSection
             @mixer.buses[+@activeBusIdx()]
         @busNames = ko.computed =>
             (bus.name() for bus in @mixer.buses)
+        @viewModels = ko.observableArray []
+        @elts = []
 
     setActiveFaders: ->
-        faders = @activeBus().faders
-        sel = d3.select(@containerSelection).select('.faders').selectAll('.fader').data(faders, (fader) -> ko.unwrap(fader.channel.idx))
-        sel.enter().append('div').attr('class', 'fader').html(faderTemplate).each((fader) ->
-            @viewModel = new FaderView(this, fader)
-            ko.applyBindings(@viewModel, this)
-        )
-        sel.exit().transition().duration(500).style('opacity', 0).remove()
-    # .each((d, i) -> ko.cleanNode(@))
+        ko.computed =>
+            faders = @activeBus().faders
+
+            sel = d3.select(@containerSelection).select('.faders').selectAll('.fader').data(faders, (fader) -> ko.unwrap(fader.channel.idx))
+            sel.each((d) -> @viewModel.model(d))
+            sel.enter().append('div').attr('class', 'fader').html(faderTemplate).each((fader) ->
+                model = ko.observable fader
+                @viewModel = new FaderView(this, model)
+                ko.applyBindings(@viewModel, this)
+            )
+            sel.exit().each((d) -> @viewModel.dispose()).transition().duration(500).style('opacity', 0).remove()
 
 # Hacking in constants for the groove
 faderTemplate = """
@@ -219,18 +243,6 @@ ko.bindingHandlers.dragToAdjust = {
         text = d3.round(value(), 2)
         ko.bindingHandlers.text.update(element, -> text)
 }
-
-wrapModelObservable = (model, name) ->
-    ko.computed {
-        read: ->
-            model()[name]()
-        write: (value) ->
-            model()[name](value)
-    }
-
-wrapModelObservables = (viewModel, model, names) ->
-    for name in names
-        viewModel[name] = wrapModelObservable model, name
 
 class FilterView
     constructor: (@element, @model) ->
