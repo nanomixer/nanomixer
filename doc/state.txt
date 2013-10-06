@@ -8,6 +8,7 @@ Client-server communication proceeds in lock-step, driven by the client. The cli
 {
     "seq": a message sequence number,
     "state": a state update object, described below
+    "snapshot": (optional) True if the server should save the current state as a snapshot.
 }.
 
 The server responds with a message:
