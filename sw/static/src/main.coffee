@@ -365,6 +365,9 @@ initializeMixerState = (state) ->
         unless val?
             alert "Missing state value: #{name}!"
             return
+        if controllableValues[name]?
+            debug "Duplicate state name: #{name}!"
+            return controllableValues[name]
         cv = controllableValue name, val
         controllableValues[name] = cv
         cv
@@ -382,7 +385,7 @@ initializeMixerState = (state) ->
             {
                 channel: channels[chan]
                 level: getCv("b#{bus}/c#{chan}/lvl")
-                pan: getCv("b#{bus}/c#{chan}/lvl")
+                pan: getCv("b#{bus}/c#{chan}/pan")
             }
         new Bus(channels, faders, getCv("b#{bus}/name"))
     mixer = {channels, buses}
