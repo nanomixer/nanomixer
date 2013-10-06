@@ -348,7 +348,7 @@ socket.on 'msg', (msg) ->
     ui.meterRev lastSeqReceived
 
     # Request another update.
-    sendUpdate()
+    throttledSendUpdate()
     return
 
 # Spy globals
@@ -394,3 +394,5 @@ sendUpdate = ->
     socket.emit 'msg', {seq: lastSeqSent, state: updateQueue, snapshot: checkpoint}
     checkpoint = false
     updateQueue = {}
+
+throttledSendUpdate = _.throttle sendUpdate, 1000/30
