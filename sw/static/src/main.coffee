@@ -227,6 +227,10 @@ class Filter
     constructor: (@freq, @gain, @q) ->
             @coefficients = ko.computed =>
                 @computePeakingParams(@freq(), @gain(), @q())
+            @coefficients.subscribe((updatedCoefficients) =>
+                debug "subscribe coefficients = " + JSON.stringify(updatedCoefficients)
+                @redrawVisualization()
+                )
 
     class FilterCoefficients
         constructor : (@b0, @b1, @b2, @a0, @a1, @a2) ->
@@ -237,7 +241,10 @@ class Filter
 
     ## Peaking params computation
     computePeakingParams: (freq, gain, q) =>
-        clippedFreq = Math.max(0.0, Math.min(freq, 1.0))
+        debug "compute peaking params"
+        convertedFreq = 1 / freq
+        debug "convertedFreq = " + convertedFreq
+        clippedFreq = Math.max(0.0, Math.min(convertedFreq, 1.0))
         clippedQ = Math.max(0.0, q)
 
         a = Math.pow(10.0, gain / 40)
@@ -246,7 +253,7 @@ class Filter
             if clippedQ > 0
                 w0 = Math.PI * clippedFreq
                 alpha = Math.sin(w0) / (2 * clippedQ)
-                k = cos(w0)
+                k = Math.cos(w0)
 
                 b0 = 1 + alpha * a
                 b1 = -2 * k
@@ -260,6 +267,9 @@ class Filter
                 return new FilterCoefficients(a * a, 0, 0, 1, 0, 0).normalize()
         else
             return new FilterCoefficients(1, 0, 0, 1, 0, 0).normalize()
+
+    redrawVisualization: =>
+        debug "redraw visualization with new coefficients: " + JSON.stringify(@coefficients())
 
 ko.bindingHandlers.dragToAdjust = {
     init: (element, valueAccesor) ->
