@@ -161,10 +161,12 @@ class BaseController(object):
 
     def update_for_fader(self, bus, val, chan=None):
         bus = int(bus)
+        busFaderLevel = self.state['b{bus}/lvl'.format(bus=bus)]
+        absBusFaderLevel = 10. ** (busFaderLevel/20.)
         for chan in [int(chan)] if chan is not None else xrange(metadata['num_channels']):
             channel = self.busses[bus][chan]
             level = self.state[channel.level]
-            absLevel = 10. ** (level/20.)
+            absLevel = 10. ** (level/20.) * absBusFaderLevel
             # Until we implement panning...
             self.set_gain(bus * 2, chan, absLevel)
             self.set_gain(bus * 2 + 1, chan, absLevel)
