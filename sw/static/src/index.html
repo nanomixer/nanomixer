@@ -14,6 +14,7 @@
   <body data-bind="attr: {class: activeSection()+'-active'}">
     <div class="section" id="faders" data-bind="with: faderSection">
       <div class="faders"></div>
+      <div class="master-fader"></div>
       <div class="buspicker" data-bind="foreach: busNames">
         <label>
           <input type="radio" name="activeBusIdx" data-bind="value: $index, checked: $parent.activeBusIdx">

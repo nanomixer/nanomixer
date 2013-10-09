@@ -33,7 +33,8 @@ def pack_biquad_coeffs(b, a):
 
 import re
 bus_name_re = re.compile(r'^b(?P<bus>\d+)/name$')
-fader_re = re.compile(r'^b(?P<bus>\d+)/c(?P<chan>\d+)/(?P<param>lvl|pan)$')
+fader_re = re.compile(r'^b(?P<bus>\d+)/c(?P<chan>\d+)/(lvl|pan)$')
+master_fader_re = re.compile(r'b(?P<bus>\d+)/(lvl|pan)')
 filter_re = re.compile(r'^c(?P<chan>\d+)/f(?P<filt>\d+)/(?P<param>freq|gain|q)$')
 channel_name_re = re.compile(r'c(?P<chan>\d+)/name$')
 
@@ -68,6 +69,7 @@ class BaseController(object):
             [bus_name_re, None],
             [fader_re, self.update_for_fader],
             [filter_re, self.update_for_filter],
+            [master_fader_re, self.update_for_fader],
             [channel_name_re, None]]
 
         def set_initial_state(name, val):
@@ -83,6 +85,8 @@ class BaseController(object):
             else:
                 name = "Aux {}".format(bus)
             set_initial_state('b{bus}/name'.format(bus=bus), name)
+            set_initial_state('b{bus}/lvl'.format(bus=bus), 0.)
+            set_initial_state('b{bus}/pan'.format(bus=bus), 0.)
             self.busses.append(chan_params)
             for channel in range(metadata['num_channels']):
                 level_name = 'b{bus}/c{chan}/lvl'.format(bus=bus, chan=channel)
@@ -155,15 +159,15 @@ class BaseController(object):
         # No match.
         return False
 
-    def update_for_fader(self, bus, chan, param, val):
+    def update_for_fader(self, bus, val, chan=None):
         bus = int(bus)
-        chan = int(chan)
-        channel = self.busses[bus][chan]
-        level = self.state[channel.level]
-        absLevel = 10. ** (level/20.)
-        # Until we implement panning...
-        self.set_gain(bus * 2, chan, absLevel)
-        self.set_gain(bus * 2 + 1, chan, absLevel)
+        for chan in [int(chan)] if chan is not None else xrange(metadata['num_channels']):
+            channel = self.busses[bus][chan]
+            level = self.state[channel.level]
+            absLevel = 10. ** (level/20.)
+            # Until we implement panning...
+            self.set_gain(bus * 2, chan, absLevel)
+            self.set_gain(bus * 2 + 1, chan, absLevel)
 
     def update_for_filter(self, chan, filt, param, val):
         chan = int(chan)

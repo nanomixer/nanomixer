@@ -91,7 +91,7 @@ class Channel
         @signalLevel = ko.observable 0
 
 class Bus
-    constructor: (@channels, @faders, @name) ->
+    constructor: (@channels, @faders, @masterFader, @name) ->
 
 class BaseViewModel
     dispose: ->
@@ -187,7 +187,6 @@ class FaderSection
             @mixer.buses[+@activeBusIdx()]
         @busNames = ko.computed =>
             (bus.name() for bus in @mixer.buses)
-        @viewModels = ko.observableArray []
         @elts = []
 
     setActiveFaders: ->
@@ -202,6 +201,15 @@ class FaderSection
                 ko.applyBindings(@viewModel, this)
             )
             sel.exit().each((d) -> @viewModel.dispose()).transition().duration(500).style('opacity', 0).remove()
+
+            sel = d3.select(@containerSelection).select('.master-fader').selectAll('.fader').data([@activeBus().masterFader], (d) -> 'MASTER')
+            sel.each((d) -> @viewModel.model(d))
+            sel.enter().append('div').attr('class', 'fader').html(faderTemplate).each((fader) ->
+                model = ko.observable fader
+                @viewModel = new FaderView(this, model)
+                ko.applyBindings(@viewModel, this)
+            )
+
 
 # Hacking in constants for the groove
 faderTemplate = """
@@ -326,9 +334,10 @@ class UIView
 updateMeters = (meterPacket) ->
     for level, channelIdx in meterPacket.c
         mixer.channels[channelIdx].signalLevel level
-    for level, busIdx in meterPacket.b
-        debug busIdx, level
-
+    # FIXME: physical to logical level map
+    for busIdx in [0...metadata.num_busses]
+        level = meterPacket.b[2*busIdx]
+        mixer.buses[busIdx].masterFader.channel.signalLevel level
 
 
 ## State management
@@ -405,7 +414,13 @@ initializeMixerState = (state) ->
                 level: getCv("b#{bus}/c#{chan}/lvl")
                 pan: getCv("b#{bus}/c#{chan}/pan")
             }
-        new Bus(channels, faders, getCv("b#{bus}/name"))
+        busName = getCv("b#{bus}/name")
+        masterFader = {
+            channel: new Channel(null, busName, null)
+            level: getCv("b#{bus}/lvl")
+            pan: getCv("b#{bus}/pan")
+        }
+        new Bus(channels, faders, masterFader, busName)
     mixer = {channels, buses}
     ui = new UIView(mixer)
 

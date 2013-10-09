@@ -25,7 +25,8 @@ A state update packet is a JSON object mapping control names to current values. 
 
 buses:
   name: "b{bus}/name"
-  fader: "b{bus}/c{chan}/(lvl|pan)"
+  faders: "b{bus}/c{chan}/(lvl|pan)"
+  master fader: "b{bus}/(lvl|pan)"
 channels:
   name: "c{chan}/name"
   filter: "c{chan}/f{filt}/{param}", where param is "freq", "gain", or "q"
