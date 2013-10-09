@@ -20,8 +20,8 @@ interface dsp_mem_interface #(
    output logic [PARAM_ADDR_WIDTH-1:0] param_rd_addr,
    output logic                        param_rd_en,
 
-   input  logic [IO_WIDTH-1:0] audio_inputs  [0:7],
-   output logic [IO_WIDTH-1:0] audio_outputs [0:7]
+   input  logic [IO_WIDTH-1:0] audio_inputs  [0:15],
+   output logic [IO_WIDTH-1:0] audio_outputs [0:15]
 );
 
 
@@ -61,8 +61,8 @@ modport dsp_io_bus (
 /***** IO ADDRESSING LOGIC: *****/
 
 always_ff @(posedge clk) begin
-   if (io_rd_en) io_rd_data <= audio_inputs[io_rd_addr[2:0]];
-   if (io_wr_en) audio_outputs[io_wr_addr[2:0]] <= io_wr_data;
+   if (io_rd_en) io_rd_data <= audio_inputs[io_rd_addr[3:0]];
+   if (io_wr_en) audio_outputs[io_wr_addr[3:0]] <= io_wr_data;
 end
 
 endinterface

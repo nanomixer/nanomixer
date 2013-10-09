@@ -17,8 +17,11 @@ module top #(
                 adat_out_clk,  // 12.288 MHz (assuming 48 kHz sample rate)
                 reset_n,
 
-   input  logic adat_async_in,
-   output logic adat_bitstream_out,
+   input  logic adat_async_in0,
+                adat_async_in1,
+
+   output logic adat_bitstream_out0,
+                adat_bitstream_out1,
 
     // SPI port
     input wire spi_SCLK, // spi clock
@@ -42,8 +45,8 @@ logic [PARAM_WIDTH-1:0]      param_rd_data, param_wr_data;
 logic [PARAM_ADDR_WIDTH-1:0] param_rd_addr, param_wr_addr;
 logic                        param_rd_en, param_wr_en;
 
-logic [IO_WIDTH-1:0] audio_inputs  [0:7];
-logic [IO_WIDTH-1:0] audio_outputs [0:7];
+logic [IO_WIDTH-1:0] audio_inputs  [0:15];
+logic [IO_WIDTH-1:0] audio_outputs [0:15];
 
 logic [SAMPLE_WIDTH-1:0] meter_rd_data, meter_wr_data;
 logic [7:0]          meter_rd_addr, meter_wr_addr;
@@ -81,15 +84,37 @@ meter_mem meter_mem_inst (
     .q ( meter_rd_data )
 );
 
-adat_in my_adat_in(.clk(adat_in_clk),
-                   .adat_async(adat_async_in),
-                   .audio_bus(audio_inputs));
+adat_in adat_in0 (
+    .clk(adat_in_clk),
+    .adat_async(adat_async_in0),
+    .audio_bus(audio_inputs[0:7])
+);
 
-adat_out my_adat_out(.clk(adat_out_clk),
-                     .reset_n,
-                     .timecode(1'b0), .midi(1'b0), .smux(1'b0),
-                     .audio_in(audio_outputs),
-                     .bitstream_out(adat_bitstream_out));
+adat_in adat_in1 (
+    .clk(adat_in_clk),
+    .adat_async(adat_async_in1),
+    .audio_bus(audio_inputs[8:15])
+);
+
+adat_out adat_out0 (
+    .clk(adat_out_clk),
+    .reset_n,
+    .timecode(1'b0),
+    .midi(1'b0),
+    .smux(1'b0),
+    .audio_in(audio_outputs[0:7]),
+    .bitstream_out(adat_bitstream_out0)
+);
+
+adat_out adat_out1 (
+    .clk(adat_out_clk),
+    .reset_n,
+    .timecode(1'b0),
+    .midi(1'b0),
+    .smux(1'b0),
+    .audio_in(audio_outputs[8:15]),
+    .bitstream_out(adat_bitstream_out1)
+);
 
 sample_mem_00 my_sample_mem(.clock(dsp_clk),
                             .rdaddress(sample_rd_addr),
