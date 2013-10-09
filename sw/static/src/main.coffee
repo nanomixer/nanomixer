@@ -312,13 +312,7 @@ filterTemplate = """
 
 class UIView
     constructor: (@mixer) ->
-        @activeSection = ko.computed =>
-            if winSize.width() > winSize.height()
-                # Landscape
-                'faders'
-            else
-                # portrait
-                'channel'
+        @activeSection = ko.observable 'faders'
         @faderSection = new FaderSection('#faders', @mixer)
         @channelSection = new ChannelSection('#channel', @mixer)
         @meterRev = ko.observable 0
@@ -329,6 +323,9 @@ class UIView
 
     snapshot: ->
         checkpoint = true
+
+    goMix: -> @activeSection 'faders'
+    goChan: -> @activeSection 'channel'
 
 
 updateMeters = (meterPacket) ->

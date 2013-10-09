@@ -12,8 +12,13 @@ text-color = darken(#dbdbdb, 40)
     box-sizing border-box
 
 html, body
+    margin 0
+    padding 0
     background bg-color
     color text-color
+
+body
+    margin-top 30px
 
 body > .section
     display: none;
@@ -23,6 +28,22 @@ body.faders-active #faders
 
 body.channel-active #channel
     display:block
+
+.section
+    overflow auto
+
+.nav
+    position absolute
+    top 0
+    height 30px
+    background black
+    overflow none
+
+    .mode-picker, .buspicker
+        display inline-block
+
+    button
+        height 30px
 
 .fader
     float left
