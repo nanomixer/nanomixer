@@ -323,6 +323,14 @@ class UIView
         checkpoint = true
 
 
+updateMeters = (meterPacket) ->
+    for level, channelIdx in meterPacket.c
+        mixer.channels[channelIdx].signalLevel level
+    for level, busIdx in meterPacket.b
+        debug busIdx, level
+
+
+
 ## State management
 lastSeqSent = -1
 lastSeqReceived = -1
@@ -353,8 +361,7 @@ socket.on 'msg', (msg) ->
             # FIXME...
             cv.updateWithoutSending value
 
-    for level, channelIdx in msg.meter
-        mixer.channels[channelIdx].signalLevel level
+    updateMeters(msg.meter)
 
     ui.meterRev lastSeqReceived
 

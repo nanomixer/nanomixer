@@ -34,7 +34,7 @@ class Resource(BaseNamespace):
             self.emit('msg', dict(
                 seq=seq,
                 state=self.session['response_state'],
-                meter=controller.get_meter().tolist()))
+                meter=controller.get_meter()))
             self.session['response_state'] = {}
         except Exception as e:
             traceback.print_exc()

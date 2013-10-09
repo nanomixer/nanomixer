@@ -16,7 +16,7 @@ The server responds with a message:
 {
     "seq": the client message sequence number to which this message is a response,
     "state": a state update object,
-    "meter": a metering packet
+    "meter": a metering packet, described below.
 }.
 
 The client always responds to a server message with another message, possibly with an empty state update, to ensure that communication flow continues.
@@ -37,3 +37,13 @@ On connect, the client sends {seq: 0, state: {}}, and the server responds with t
 The client maintains the last sequence number that it has sent out, and the last sequence number that it has received from the server.
 
 For each controllable value (defined below), each client maintains two values: the value as currently represented in its UI, and the most recent value that it is certain the server had. When a value is changed in the UI, the new value is set in the update queue (which is another state update object). If the last sequence number that it has received from the server is no more than one less than the last sequence number it has sent out, the client immediately sends a message to the server and clears the update queue. All messages to the server include and empty the update queue, so the update will get sent on the next meter packet received.
+
+Metering packets
+----------------
+
+A meter packet is a JSON object (encoded along with the whole state update packet) with the following schema:
+
+{
+    "c": [<channel 0 level in dB>, ...],
+    "b": [<bus 0 level in dB>, ...]
+}

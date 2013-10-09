@@ -50,7 +50,7 @@ metadata = dict(
 channel_map = {idx: (0, idx) for idx in range(metadata['num_channels'])}
 bus_map = {idx: (0, idx) for idx in range(metadata['num_busses'] * 2)} # HACK.
 
-METERING_CHANNELS = metadata['num_channels']
+METERING_CHANNELS = HARDWARE_PARAMS['num_channels_per_core'] + HARDWARE_PARAMS['num_busses_per_core']
 METERING_PACKET_SIZE = METERING_CHANNELS
 SPI_BUF_SIZE_IN_WORDS = METERING_PACKET_SIZE
 
@@ -182,7 +182,10 @@ class Controller(BaseController):
         self.io_thread = io_thread
 
     def get_meter(self):
-        return self.io_thread.get_meter()[1]
+        raw = self.io_thread.get_meter()[1]
+        return dict(
+            c=raw[:metadata['num_channels']].tolist(),
+            b=raw[metadata['num_channels']:].tolist())
 
     def set_biquad(self, channel, biquad, freq, gain, q):
         core, ch = channel_map[channel]
@@ -242,7 +245,9 @@ class DummyController(Controller):
         self.meter_levels = np.zeros(metadata['num_channels'])
 
     def get_meter(self):
-        return self.meter_levels + np.sin(2*np.pi*time.time())
+        return dict(
+            c=(self.meter_levels + np.sin(2*np.pi*time.time())).tolist(),
+            b=[np.logaddexp.reduce(self.meter_levels).tolist()]*HARDWARE_PARAMS['num_busses_per_core'])
 
     def set_gain(self, bus, channel, gain):
         super(DummyController, self).set_gain(bus, channel, gain)
@@ -373,12 +378,6 @@ class IOThread(threading.Thread):
             # Do SPI send-recv's
             self.do_send_recvs()
 
-
-
-def pack_meter_packet(rev, meter_data):
-    return dict(
-        channels=meter_data[:METERING_CHANNELS].tolist(),
-        rev=rev)
 
 
 class DummySPIChannel(object):

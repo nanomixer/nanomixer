@@ -144,14 +144,13 @@ class RoundRobin(Component):
 
 
 class Downmix(object):
-    storage = []
-
     def __init__(self, channel_samples):
         self.gain = [
             [[Addr() for channel in range(num_channels)]
              for bus in range(num_busses_per_core)]
             for core in range(num_cores)]
         self.params = self.gain
+        self.storage = [Addr() for bus in range(num_busses_per_core)]
         program = []
         # FIXME: I think bus needs to be the outer loop.
         for core in range(num_cores):
@@ -166,7 +165,9 @@ class Downmix(object):
                     program.append(
                         instr(channel_samples[channel],
                               self.gain[core][bus][channel]))
-                program.append(Out(bus))
+                program.extend([
+                    Store(self.storage[bus]),
+                    Out(bus)])
         self.program = program
 
 
@@ -203,7 +204,10 @@ HARDWARE_PARAMS = dict(
     num_channels_per_core=num_channels,
     num_biquads_per_channel=num_biquads)
 
-meter_outputs = [Addr() for channel in range(num_channels)]
+MeterAddrs = namedtuple('MeterAddrs', 'c b')
+meter_outputs = MeterAddrs(
+    [Addr() for channel in range(num_channels)],
+    [Addr() for bus in range(num_busses_per_core)])
 assign_addresses(meter_outputs, start_address=512)
 
 constants = Constants([0., 1., 2**-2])
@@ -218,9 +222,10 @@ class Mixer(Component):
 
         # Meter.
         meter_filter_params = self.meter_filter_params = StateVarFilter.make_params()
-        meters = self.meters = [Meter(biquads[channel].input, meter_outputs[channel], meter_filter_params) for channel in range(num_channels)]
+        channel_meters = self.channel_meters = [Meter(biquads[channel].input, meter_outputs.c[channel], meter_filter_params) for channel in range(num_channels)]
+        bus_meters = [Meter(downmix.storage[bus], meter_outputs.b[bus], meter_filter_params) for bus in range(num_busses_per_core)]
 
-        components = [inputs, Nops(3), RoundRobin(biquads), downmix, meters, constants]
+        components = [inputs, Nops(3), RoundRobin(biquads), downmix, channel_meters, bus_meters, constants]
         flat_components = list(flattened(components))
 
         self.program = list(flattened(pluck('program', flat_components)))
