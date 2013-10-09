@@ -251,8 +251,9 @@ class DummyController(Controller):
         self.meter_levels = np.zeros(metadata['num_channels'])
 
     def get_meter(self):
+        offsets = np.array([np.sin(2*np.pi*(time.time() + chan / 4.)) for chan in xrange(metadata['num_channels'])])
         return dict(
-            c=(self.meter_levels + np.sin(2*np.pi*time.time())).tolist(),
+            c=(self.meter_levels + offsets).tolist(),
             b=[np.logaddexp.reduce(self.meter_levels).tolist()]*HARDWARE_PARAMS['num_busses_per_core'])
 
     def set_gain(self, bus, channel, gain):
