@@ -227,10 +227,6 @@ class Filter
     constructor: (@freq, @gain, @q) ->
             @coefficients = ko.computed =>
                 @computePeakingParams(@freq(), @gain(), @q())
-            @coefficients.subscribe((updatedCoefficients) =>
-                debug "subscribe coefficients = " + JSON.stringify(updatedCoefficients)
-                @redrawVisualization()
-                )
 
     class FilterCoefficients
         constructor : (@b0, @b1, @b2, @a0, @a1, @a2) ->
@@ -268,9 +264,6 @@ class Filter
         else
             return new FilterCoefficients(1, 0, 0, 1, 0, 0).normalize()
 
-    redrawVisualization: =>
-        debug "redraw visualization with new coefficients: " + JSON.stringify(@coefficients())
-
 ko.bindingHandlers.dragToAdjust = {
     init: (element, valueAccesor) ->
         {value, scale} = valueAccesor()
@@ -306,10 +299,19 @@ class FilterView
         @gainToPixel = d3.scale.linear().domain([-20, 20]).range([200, -200]).clamp(true)
         @qToPixel = d3.scale.log().domain([.3, 3]).range([200, -200]).clamp(true)
 
+        ## subscribe to model coefficient changes (note: @model refers to an observable)
+        @model().coefficients.subscribe((updatedCoefficients) =>
+                debug "subscribe coefficients = " + JSON.stringify(updatedCoefficients)
+                @redrawVisualization()
+                )
+
     dispose: ->
         for observable in @_observables
             observable.dispose()
         ko.cleanNode(@element)
+
+    redrawVisualization: =>
+        debug "redraw visualization with new coefficients: " + JSON.stringify(@model().coefficients())
 
 class ChannelSection
     constructor: (@containerSelection, @mixer) ->
