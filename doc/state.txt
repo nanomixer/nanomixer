@@ -31,7 +31,7 @@ channels:
   name: "c{chan}/name"
   filter: "c{chan}/f{filt}/{param}", where param is "freq", "gain", or "q"
 
-All fader levels and filter gains are in dB. Pan is -1 (full left) to 0 (center) to 1 (full right).
+All fader levels and filter gains are in dB. Pan is -.5 (full left) to 0 (center) to .5 (full right).
 
 On connect, the client sends {seq: 0, state: {}}, and the server responds with the full current state. The client then responds to the server's response, and the communication loop continues.
 

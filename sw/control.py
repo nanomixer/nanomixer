@@ -31,6 +31,10 @@ MIN_FADER = -180.
 def pack_biquad_coeffs(b, a):
     return [b[0], b[1], b[2], -a[1], -a[2]]
 
+# Panning
+PAN_LAW_DB = 3.
+panning_exponent = PAN_LAW_DB / (20*np.log10(2.))
+
 import re
 bus_name_re = re.compile(r'^b(?P<bus>\d+)/name$')
 fader_re = re.compile(r'^b(?P<bus>\d+)/c(?P<chan>\d+)/(lvl|pan)$')
@@ -166,10 +170,10 @@ class BaseController(object):
         for chan in [int(chan)] if chan is not None else xrange(metadata['num_channels']):
             channel = self.busses[bus][chan]
             level = self.state[channel.level]
+            pan = self.state[channel.pan]
             absLevel = 10. ** (level/20.) * absBusFaderLevel
-            # Until we implement panning...
-            self.set_gain(bus * 2, chan, absLevel)
-            self.set_gain(bus * 2 + 1, chan, absLevel)
+            self.set_gain(bus * 2,     chan, absLevel * (.5 - pan) ** panning_exponent)
+            self.set_gain(bus * 2 + 1, chan, absLevel * (.5 + pan) ** panning_exponent)
 
     def update_for_filter(self, chan, filt, param, val):
         chan = int(chan)
