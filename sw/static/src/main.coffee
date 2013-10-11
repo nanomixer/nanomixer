@@ -101,13 +101,16 @@ class BaseViewModel
 
 class FaderView extends BaseViewModel
     constructor: (@element, @model) ->
-        @_observables = wrapModelObservables @, @model, ['channel', 'level']
+        @_observables = wrapModelObservables @, @model, ['channel', 'level', 'pan']
         @name = @channel().name # FIXME: won't update for new channel maps.
         @posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain())
         @posToPixel = d3.scale.linear()
-        @elt = d3.select(@element)
+        @elt = d3.select(@element).select('.fader')
         @groove = @elt.select('.groove')
         @grip = @elt.select('.grip')
+
+        @panToPixel = d3.scale.linear().domain([-.5, .5]).range([200, -200]).clamp(true)
+
 
         @grooveHeight = ko.observable 20
         @gripHeight = ko.observable 20
@@ -193,18 +196,18 @@ class FaderSection
         ko.computed =>
             faders = @activeBus().faders
 
-            sel = d3.select(@containerSelection).select('.faders').selectAll('.fader').data(faders, (fader) -> ko.unwrap(fader.channel.idx))
+            sel = d3.select(@containerSelection).select('.faders').selectAll('.fader-strip').data(faders, (fader) -> ko.unwrap(fader.channel.idx))
             sel.each((d) -> @viewModel.model(d))
-            sel.enter().append('div').attr('class', 'fader').html(faderTemplate).each((fader) ->
+            sel.enter().append('div').attr('class', 'fader-strip').html(faderTemplate).each((fader) ->
                 model = ko.observable fader
                 @viewModel = new FaderView(this, model)
                 ko.applyBindings(@viewModel, this)
             )
             sel.exit().each((d) -> @viewModel.dispose()).transition().duration(500).style('opacity', 0).remove()
 
-            sel = d3.select(@containerSelection).select('.master-fader').selectAll('.fader').data([@activeBus().masterFader], (d) -> 'MASTER')
+            sel = d3.select(@containerSelection).select('.master-fader').selectAll('.fader-strip').data([@activeBus().masterFader], (d) -> 'MASTER')
             sel.each((d) -> @viewModel.model(d))
-            sel.enter().append('div').attr('class', 'fader').html(faderTemplate).each((fader) ->
+            sel.enter().append('div').attr('class', 'fader-strip').html(faderTemplate).each((fader) ->
                 model = ko.observable fader
                 @viewModel = new FaderView(this, model)
                 ko.applyBindings(@viewModel, this)
@@ -213,10 +216,13 @@ class FaderSection
 
 # Hacking in constants for the groove
 faderTemplate = """
+<div class="fader">
 <canvas class="meter" width="20" data-bind="attr: {height: grooveHeight() + gripHeight()/2 }"></canvas>
 <div class="groove"></div>
 <div class="grip"></div>
+</div>
 <input class="name" data-bind="value: name">
+<div class="pan" data-bind="dragToAdjust: {value: pan, scale: panToPixel}"></div>
 """
 
 ###### Channel View
