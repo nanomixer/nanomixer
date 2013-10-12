@@ -222,11 +222,60 @@ faderTemplate = """
 ###### Channel View
 class Eq
     constructor: (@filters) ->
+        freq = [0..100].map (i) -> 20 * Math.pow(2, i/10)
+        @magnitudes = ko.computed =>
+            @filters.reduce (agg, cur) =>
+                magnitude = @computeMagnitudes(freq, cur.coefficients())
+                agg.multiply(magnitude)
+            , new Magnitudes(freq.map (i) -> 1)
+
+    computeMagnitudes: (freq, coefficients)->
+        c = coefficients.map (real) -> new ComplexNumber(real, 0)
+        new Magnitudes(freq.map (frequency) ->
+            omega = -Math.PI * frequency
+            z = new ComplexNumber(Math.cos(omega), Math.sin(omega))
+            numerator = c.b0.add(c.b1.add(c.b2.multiply(z)).multiply(z)) # b0 + (b1 + b2 * z) * z
+            denominator = new ComplexNumber(1, 0).add(c.a1.add(c.a2.multiply(z)).multiply(z)) # c(1, 0) + (a1 + a2 * z) * z
+            response = numerator.divide(denominator)
+            Math.abs(response.real)
+        )
+
+    class Magnitudes
+        constructor: (@values) ->
+
+        multiply: (other) ->
+            new Magnitudes(_.zip(@values, other.values).map (mag1, mag2) ->
+                mag1 * mag2
+            )
+
+    class ComplexNumber
+        constructor: (@real, @imaginary) ->
+
+        add: (other) =>
+            new ComplexNumber(@real + other.real, @imaginary + other.imaginary)
+
+        multiply: (other) =>
+            new ComplexNumber(@real * other.real - @imaginary * other.imaginary,
+                @real * other.imaginary + @imaginary * other.real)
+
+        conjugate: =>
+            new ComplexNumber(@real, -@imaginary)
+
+        divide: (denominator) =>
+            # division: (a + bi)/(c + di) => (a + bi)(c - di)/(c + di)(c - di)
+            newNumerator = @multiply(denominator.conjugate())
+            newDenominator = denominator.multiply(denominator.conjugate())
+
+            # newDominator only has a real component
+            new ComplexNumber(
+                newNumerator.real / newDenominator.real,
+                newNumerator.imaginary / newDenominator.real
+            )
 
 class Filter
     constructor: (@freq, @gain, @q) ->
-            @coefficients = ko.computed =>
-                @computePeakingParams(@freq(), @gain(), @q())
+        @coefficients = ko.computed =>
+            @computePeakingParams(@freq(), @gain(), @q())
 
     class FilterCoefficients
         constructor : (@b0, @b1, @b2, @a0, @a1, @a2) ->
@@ -235,11 +284,14 @@ class Filter
             a0Inverse = 1 / @a0
             new FilterCoefficients(@b0 * a0Inverse, @b1 * a0Inverse, @b2 * a0Inverse, @a0, @a1 * a0Inverse, @a2 * a0Inverse)
 
+        map: (transform) =>
+            new FilterCoefficients(
+                transform(@b0), transform(@b1), transform(@b2),
+                transform(@a0), transform(@a1), transform(@a2))
+
     ## Peaking params computation
     computePeakingParams: (freq, gain, q) =>
-        debug "compute peaking params"
         convertedFreq = 1 / freq
-        debug "convertedFreq = " + convertedFreq
         clippedFreq = Math.max(0.0, Math.min(convertedFreq, 1.0))
         clippedQ = Math.max(0.0, q)
 
@@ -292,26 +344,16 @@ ko.bindingHandlers.dragToAdjust = {
 
 class FilterView
     constructor: (@element, @model) ->
-        debug 'new FilterView'
         @_observables = wrapModelObservables @, @model, ['freq', 'gain', 'q']
         @freqElt = d3.select(@element).select('.freq')
         @freqToPixel = d3.scale.log().range([0, 300]).domain([20000, 20]).clamp(true)
         @gainToPixel = d3.scale.linear().domain([-20, 20]).range([200, -200]).clamp(true)
         @qToPixel = d3.scale.log().domain([.3, 3]).range([200, -200]).clamp(true)
 
-        ## subscribe to model coefficient changes (note: @model refers to an observable)
-        @model().coefficients.subscribe((updatedCoefficients) =>
-                debug "subscribe coefficients = " + JSON.stringify(updatedCoefficients)
-                @redrawVisualization()
-                )
-
     dispose: ->
         for observable in @_observables
             observable.dispose()
         ko.cleanNode(@element)
-
-    redrawVisualization: =>
-        debug "redraw visualization with new coefficients: " + JSON.stringify(@model().coefficients())
 
 class ChannelSection
     constructor: (@containerSelection, @mixer) ->
@@ -341,7 +383,33 @@ class ChannelSection
             )
             sel.exit().each((d) -> @viewModel.dispose()).transition().duration(500).style('opacity', 0).remove()
 
+            @redrawFilterVisualization()
+            return
+
+    redrawFilterVisualization: =>
+        ko.computed =>
+            channel = @activeChannel()
+            return unless channel?
+            eq = channel.eq
+
+            debug "magnitudes=" + eq.magnitudes().values
+
             # After drawing actual adjustable filters, now add filter graphic
+            graph = d3.select(@containerSelection).select('#eq').append('svg')
+                .attr('width', 500)
+                .attr('height', 500)
+
+            xScale = d3.scale.linear().range([0, 500]).domain([0, 99])
+            yScale = d3.scale.linear().domain([-10, 10]).range([500, 0]) # lower range is higher on screen
+            line = d3.svg.line().x((d, i) ->
+                return xScale(i)
+            )
+            .y((d) ->
+                return yScale(d)
+            )
+            path = graph.append('path')
+            path.attr('d', line([1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]))
+            return
 
     prevChannel: ->
         if @hasPrevChannel()
