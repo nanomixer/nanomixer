@@ -222,16 +222,16 @@ faderTemplate = """
 ###### Channel View
 class Eq
     constructor: (@filters) ->
-        freq = [0..100].map (i) -> 20 * Math.pow(2, i/10)
+        @freq = [0..100].map (i) -> 20 * Math.pow(2, i/10)
         @magnitudes = ko.computed =>
             @filters.reduce (agg, cur) =>
-                magnitude = @computeMagnitudes(freq, cur.coefficients())
+                magnitude = @computeMagnitudes(cur.coefficients())
                 agg.multiply(magnitude)
-            , new Magnitudes(freq.map (i) -> 1)
+            , new Magnitudes(@freq.map (i) -> 1)
 
-    computeMagnitudes: (freq, coefficients)->
+    computeMagnitudes: (coefficients)->
         c = coefficients.map (real) -> new ComplexNumber(real, 0)
-        new Magnitudes(freq.map (frequency) ->
+        new Magnitudes(@freq.map (frequency) ->
             omega = -Math.PI * frequency
             z = new ComplexNumber(Math.cos(omega), Math.sin(omega))
             numerator = c.b0.add(c.b1.add(c.b2.multiply(z)).multiply(z)) # b0 + (b1 + b2 * z) * z
