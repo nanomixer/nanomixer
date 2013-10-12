@@ -298,24 +298,19 @@ class Filter
 
         a = Math.pow(10.0, gain / 40)
 
-        if 0 < clippedFreq < 1
-            if clippedQ > 0
-                w0 = Math.PI * clippedFreq
-                alpha = Math.sin(w0) / (2 * clippedQ)
-                k = Math.cos(w0)
+        w0 = Math.PI * clippedFreq
+        alpha = Math.sin(w0) / (2 * clippedQ)
+        k = Math.cos(w0)
 
-                b0 = 1 + alpha * a
-                b1 = -2 * k
-                b2 = 1 - alpha * a
-                a0 = 1 + alpha / a
-                a1 = -2 * k
-                a2 = 1 - alpha / a
+        b0 = 1 + alpha * a
+        b1 = -2 * k
+        b2 = 1 - alpha * a
+        a0 = 1 + alpha / a
+        a1 = -2 * k
+        a2 = 1 - alpha / a
 
-                return new FilterCoefficients(b0, b1, b2, a0, a1, a2).normalize()
-            else
-                return new FilterCoefficients(a * a, 0, 0, 1, 0, 0).normalize()
-        else
-            return new FilterCoefficients(1, 0, 0, 1, 0, 0).normalize()
+        new FilterCoefficients(b0, b1, b2, a0, a1, a2).normalize()
+
 
 ko.bindingHandlers.dragToAdjust = {
     init: (element, valueAccesor) ->
