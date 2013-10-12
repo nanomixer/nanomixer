@@ -220,6 +220,9 @@ faderTemplate = """
 """
 
 ###### Channel View
+fSamp = 48000
+twoPiOverFs = 2 * Math.PI / fSamp
+
 class Eq
     constructor: (@filters) ->
         @freq = [0..100].map (i) -> 20 * Math.pow(2, i/10)
@@ -232,8 +235,8 @@ class Eq
     computeMagnitudes: (coefficients)->
         c = coefficients.map (real) -> new ComplexNumber(real, 0)
         new Magnitudes(@freq.map (frequency) ->
-            omega = -Math.PI * frequency
-            z = new ComplexNumber(Math.cos(omega), Math.sin(omega))
+            w0 = frequency * twoPiOverFs
+            z = new ComplexNumber(Math.cos(w0), Math.sin(w0))
             numerator = c.b0.add(c.b1.add(c.b2.multiply(z)).multiply(z)) # b0 + (b1 + b2 * z) * z
             denominator = new ComplexNumber(1, 0).add(c.a1.add(c.a2.multiply(z)).multiply(z)) # c(1, 0) + (a1 + a2 * z) * z
             response = numerator.divide(denominator)
@@ -292,21 +295,18 @@ class Filter
 
     ## Peaking params computation
     computePeakingParams: (freq, gain, q) =>
-        convertedFreq = 1 / freq
-        clippedFreq = Math.max(0.0, Math.min(convertedFreq, 1.0))
-        clippedQ = Math.max(0.0, q)
+        w0 = freq * twoPiOverFs
 
         a = Math.pow(10.0, gain / 40)
 
-        w0 = Math.PI * clippedFreq
-        alpha = Math.sin(w0) / (2 * clippedQ)
-        k = Math.cos(w0)
+        alpha = Math.sin(w0) / (2 * q)
+        cosw0 = Math.cos(w0)
 
         b0 = 1 + alpha * a
-        b1 = -2 * k
+        b1 = -2 * cosw0
         b2 = 1 - alpha * a
         a0 = 1 + alpha / a
-        a1 = -2 * k
+        a1 = -2 * cosw0
         a2 = 1 - alpha / a
 
         new FilterCoefficients(b0, b1, b2, a0, a1, a2).normalize()
