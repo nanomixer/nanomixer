@@ -244,7 +244,8 @@ class Eq
         constructor: (@values) ->
 
         multiply: (other) ->
-            new Magnitudes(_.zip(@values, other.values).map (mag1, mag2) ->
+            new Magnitudes(_.zip(@values, other.values).map (values) ->
+                [mag1, mag2] = values
                 mag1 * mag2
             )
 
