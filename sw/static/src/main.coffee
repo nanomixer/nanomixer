@@ -371,6 +371,8 @@ class ChannelSection
         @hasPrevChannel = ko.computed => @activeChannelIdx() > 0
         @hasNextChannel = ko.computed => @activeChannelIdx() < @mixer.channels.length - 1
 
+        @rebindFilterVisualization()
+
         ko.computed =>
             channel = @activeChannel()
             return unless channel?
@@ -384,32 +386,30 @@ class ChannelSection
                 ko.applyBindings(@viewModel, this)
             )
             sel.exit().each((d) -> @viewModel.dispose()).transition().duration(500).style('opacity', 0).remove()
-
-            @rebindFilterVisualization()
             return
 
     rebindFilterVisualization: =>
+        eqElt = d3.select(@containerSelection)
+        width = 500
+        height = 200
+        svg = eqElt.append('svg')
+            .attr('width', width)
+            .attr('height', height)
+
+        xScale = d3.scale.linear().range([0, 500])
+        yScale = d3.scale.linear().domain([0, 5]).range([height, 0]) # lower range is higher on screen
+        line = d3.svg.line()
+            .x((d, i) -> return xScale(i))
+            .y((d) -> return yScale(d))
+        path = svg.append('path')
+
         ko.computed =>
             channel = @activeChannel()
             return unless channel?
             eq = channel.eq
 
-            eqElt = d3.select(@containerSelection).select('#eq')
-            eqElt.selectAll('svg').remove()
-            width = 500
-            height = 200
-            svg = eqElt.append('svg')
-                .attr('width', width)
-                .attr('height', height)
-
-            xScale = d3.scale.linear().range([0, 500]).domain([0, eq.freq.length - 1])
-            yScale = d3.scale.linear().domain([0, 5]).range([height, 0]) # lower range is higher on screen
-            line = d3.svg.line()
-                .x((d, i) -> return xScale(i))
-                .y((d) -> return yScale(d))
-
-            svg.select('path').remove()
-            path = svg.append('path').attr('d', line(eq.magnitudes().values))
+            xScale.domain([0, eq.freq.length - 1])
+            path.attr('d', line(eq.magnitudes().values))
             return
 
     prevChannel: ->
