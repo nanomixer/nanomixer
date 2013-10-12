@@ -384,32 +384,31 @@ class ChannelSection
             )
             sel.exit().each((d) -> @viewModel.dispose()).transition().duration(500).style('opacity', 0).remove()
 
-            @redrawFilterVisualization()
+            @rebindFilterVisualization()
             return
 
-    redrawFilterVisualization: =>
+    rebindFilterVisualization: =>
         ko.computed =>
             channel = @activeChannel()
             return unless channel?
             eq = channel.eq
 
-            debug "magnitudes=" + eq.magnitudes().values
+            eqElt = d3.select(@containerSelection).select('#eq')
+            eqElt.selectAll('svg').remove()
+            width = 500
+            height = 200
+            svg = eqElt.append('svg')
+                .attr('width', width)
+                .attr('height', height)
 
-            # After drawing actual adjustable filters, now add filter graphic
-            graph = d3.select(@containerSelection).select('#eq').append('svg')
-                .attr('width', 500)
-                .attr('height', 500)
+            xScale = d3.scale.linear().range([0, 500]).domain([0, eq.freq.length - 1])
+            yScale = d3.scale.linear().domain([0, 5]).range([height, 0]) # lower range is higher on screen
+            line = d3.svg.line()
+                .x((d, i) -> return xScale(i))
+                .y((d) -> return yScale(d))
 
-            xScale = d3.scale.linear().range([0, 500]).domain([0, 99])
-            yScale = d3.scale.linear().domain([-10, 10]).range([500, 0]) # lower range is higher on screen
-            line = d3.svg.line().x((d, i) ->
-                return xScale(i)
-            )
-            .y((d) ->
-                return yScale(d)
-            )
-            path = graph.append('path')
-            path.attr('d', line([1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]))
+            svg.select('path').remove()
+            path = svg.append('path').attr('d', line(eq.magnitudes().values))
             return
 
     prevChannel: ->
