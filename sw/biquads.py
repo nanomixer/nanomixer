@@ -64,6 +64,8 @@ def bandpass(f0, bw):
     return b, a
 
 def notch(f0, **kw):
+    if 's' in kw:
+        raise ValueError("Shelf slope 's' only makes sense for shelving filters.")
     w0 = f0*twoPiOverFs
     alpha = get_alpha(w0, **kw)
     cosw0 = cos(w0)
@@ -76,6 +78,8 @@ def notch(f0, **kw):
     return b, a
 
 def allpass(f0, **kw):
+    if 's' in kw:
+        raise ValueError("Shelf slope 's' only makes sense for shelving filters.")
     w0 = f0*twoPiOverFs
     alpha = get_alpha(w0, **kw)
     cosw0 = cos(w0)
@@ -88,6 +92,8 @@ def allpass(f0, **kw):
     return b, a
 
 def peaking(f0, dBgain, **kw):
+    if 's' in kw:
+        raise ValueError("Shelf slope 's' only makes sense for shelving filters.")
     A = get_pow(dBgain)
     w0 = f0*twoPiOverFs
     alpha = get_alpha(w0, A=A, **kw)
