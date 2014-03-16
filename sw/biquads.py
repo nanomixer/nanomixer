@@ -20,7 +20,7 @@ def get_common_coeffs(f0, dBgain=None, q=None, bw=None, s=None):
     elif bw:
         alpha = sin(w0)*sinh(np.log(2)/2 * bw * w0/sin(w0) )
     elif s:
-        alpha = sin(w0)/2 * np.sqrt( (A + 1/A)*(1/s - 1) + 2 )
+        alpha = sin(w0)/2 * np.sqrt( (A + 1/A)*(1./s - 1) + 2 )
     else:
         raise TypeError("Invalid combination of keyword arguments")
 
