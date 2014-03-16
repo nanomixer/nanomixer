@@ -13,7 +13,7 @@ def get_common_coeffs(f0, dBgain=None, q=None, bw=None, s=None):
         raise TypeError("Gain (dBgain) cannot be left unassigned if slope (s) is specified")
 
     w0 = f0*twoPiOverFs
-    A = np.sqrt(np.power(10, dBgain/20.)) if dBgain else None
+    A = np.sqrt(np.power(10, dBgain/20.)) if dBgain is not None else None
 
     if q:
         alpha = sin(w0)/(2*q)
