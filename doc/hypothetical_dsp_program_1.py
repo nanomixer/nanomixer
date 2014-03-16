@@ -21,16 +21,18 @@ for chan in range(num_channels):
     x[0] = mixerIO.adat_in[chan]
 
     # Parameters:
-    @subscribe('c{}/f0/*'.format(chan))
-    def compute_biquad_coeffs(state):
+    params = ParamBlock(2, 'b, a')
+    @state.dependent
+    def compute_biquad_coeffs():
         b, a = peaking(
-                f0     = state['c{}/f0/freq'.format(chan)], 
-                dBgain = state['c{}/f0/gain'.format(chan)], 
-                q      = state['c{}/f0/q'.format(chan)])
+                f0     = state.get('c{}/f0/freq'.format(chan)),
+                dBgain = state.get('c{}/f0/gain'.format(chan)),
+                q      = state.get('c{}/f0/q'.format(chan)))
         b, a = normalize(b, a)
-        return Param(b), Param(a)
+        return b, a
 
-    b, a = compute_biquad_coeffs()
+    params.set(compute_biquad_coeffs())
+    b, a = params.b, params.a
 
     # DSP code:
     A  = y[2] * a[2] # could also write as A = Mul(y[2], a[2])
@@ -44,7 +46,7 @@ for chan in range(num_channels):
 
 
 # We can also package code into functions:
-def biquad(input_sample, chan, filt):
+def biquad(state, input_sample, chan, filt):
     x = DelayLine(3)
     y = DelayLine(3)
 
@@ -53,3 +55,31 @@ def biquad(input_sample, chan, filt):
     # ...
 
     return y[0]
+
+
+class State(object):
+    def __init__(self, mem):
+        self.deps = {}
+        self.state = {}
+        self.mem = mem
+        self.cur_func = None
+
+    def dependent(self, func):
+        def wrapped():
+            try:
+                self.cur_func = func
+                return func()
+            finally:
+                self.cur_func = None
+        return wrapped
+
+    def get(self, name):
+        if self.cur_func is not None:
+            self.deps.setdefault(name, []).append(self.cur_func)
+        return self.state[name]
+
+    def apply_update(self, name, value):
+        self.state[name] = value
+        for dep in self.deps[name]:
+            for param_to_update in dep(self):
+                self.mem[param_to_update.addr] = param_to_update.val
