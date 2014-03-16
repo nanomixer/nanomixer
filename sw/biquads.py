@@ -119,4 +119,5 @@ def plot_freqz(b, a, *args, **kw):
     from scipy.signal import freqz
     f = np.logspace(1, np.log(Fs/2)/np.log(10), 512)
     w, h = freqz(b, a, f*twoPiOverFs)
-    plt.loglog(f, np.abs(h), *args, **kw)
+    gain_in_dB = 20*np.log10(np.abs(h))
+    plt.semilogx(f, gain_in_dB, *args, **kw)
