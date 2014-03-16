@@ -1,5 +1,5 @@
 import numpy as np
-from numpy import sin, cos, sinh
+from numpy import sin, cos, sinh, sqrt
 
 # Based on http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
 
@@ -38,6 +38,55 @@ def lowpass(f0, q):
          1-alpha]
     return b, a
 
+def highpass(f0, q):
+    # May yield unstable biquads when quantization is considered
+    w0 = f0*twoPiOverFs
+    alpha = get_alpha(w0, q=q)
+    cosw0 = cos(w0)
+    b = [(1+cosw0)/2,
+         -(1+cosw0),
+         (1+cosw0)/2]
+    a = [1+alpha,
+         -2*cosw0,
+         1-alpha]
+    return b, a
+
+def bandpass(f0, bw):
+    w0 = f0*twoPiOverFs
+    alpha = get_alpha(w0, bw=bw)
+    cosw0 = cos(w0)
+    b = [alpha,
+         0,
+         -alpha]
+    a = [1+alpha,
+         -2*cosw0,
+         1-alpha]
+    return b, a
+
+def notch(f0, **kw):
+    w0 = f0*twoPiOverFs
+    alpha = get_alpha(w0, **kw)
+    cosw0 = cos(w0)
+    b = [1,
+         -2*cosw0,
+         1]
+    a = [1+alpha,
+         -2*cosw0,
+         1-alpha]
+    return b, a
+
+def allpass(f0, **kw):
+    w0 = f0*twoPiOverFs
+    alpha = get_alpha(w0, **kw)
+    cosw0 = cos(w0)
+    b = [1-alpha,
+         -2*cosw0,
+         1+alpha]
+    a = [1+alpha,
+         -2*cosw0,
+         1-alpha]
+    return b, a
+
 def peaking(f0, dBgain, **kw):
     A = get_pow(dBgain)
     w0 = f0*twoPiOverFs
@@ -49,6 +98,34 @@ def peaking(f0, dBgain, **kw):
     a = [1+alpha/A,
          -2*cosw0,
          1-alpha/A]
+    return b, a
+
+def lowshelf(f0, dBgain, **kw):
+    A = get_pow(dBgain)
+    w0 = f0*twoPiOverFs
+    alpha = get_alpha(w0, A=A, **kw)
+    cosw0 = cos(w0)
+    twoRootAAlpha = 2*sqrt(A)*alpha
+    b = [A*((A+1) - (A-1)*cosw0 + twoRootAAlpha),
+         2*A*((A-1) - (A+1)*cosw0),
+         A*((A+1) - (A-1)*cosw0 - twoRootAAlpha)]
+    a = [(A+1) + (A-1)*cosw0 + twoRootAAlpha,
+         -2*((A-1) + (A+1)*cosw0),
+         (A+1) + (A-1)*cosw0 - twoRootAAlpha]
+    return b, a
+
+def highshelf(f0, dBgain, **kw):
+    A = get_pow(dBgain)
+    w0 = f0*twoPiOverFs
+    alpha = get_alpha(w0, A=A, **kw)
+    cosw0 = cos(w0)
+    twoRootAAlpha = 2*sqrt(A)*alpha
+    b = [A*((A+1) + (A-1)*cosw0 + twoRootAAlpha),
+         -2*A*((A-1) + (A+1)*cosw0),
+         A*((A+1) + (A-1)*cosw0 - twoRootAAlpha)]
+    a = [(A+1) - (A-1)*cosw0 + twoRootAAlpha,
+         2*((A-1) - (A+1)*cosw0),
+         (A+1) - (A-1)*cosw0 - twoRootAAlpha]
     return b, a
 
 def plot_freqz(b, a, *args, **kw):
