@@ -1,25 +1,30 @@
 import numpy as np
-from numpy import sin, cos, sinh, sqrt
+from numpy import sin, cos, sinh
 
 # Based on http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
 
 Fs = 48000.
 twoPiOverFs = 2*np.pi/Fs
 
-def get_alpha(w0, **kw):
-    if 'q' in kw:
-        return sin(w0)/(2*kw['q'])
-    elif 'bw' in kw:
-        return sin(w0)*sinh(np.log(2)/2 * kw['bw'] * w0/sin(w0) )
-    elif 's' in kw:
-        A = kw['A']
-        S = kw['s']
-        return sin(w0)/2 * np.sqrt( (A + 1/A)*(1/S - 1) + 2 )
-    else:
-        raise ValueError("Should have gotten q, bw, or s.")
+def get_common_coeffs(f0, dBgain=None, q=None, bw=None, s=None):
+    if (q, bw, s).count(None) != 2:
+        raise TypeError("Exactly one bandwidth-type keyword (q, bw, s) must be specified")
+    elif s and (dBgain is None):
+        raise TypeError("Gain (dBgain) cannot be left unassigned if slope (s) is specified")
 
-def get_pow(dBgain, is_shelving=False):
-    return np.sqrt(np.power(10, dBgain/20.))
+    w0 = f0*twoPiOverFs
+    A = np.sqrt(np.power(10, dBgain/20.)) if dBgain else None
+
+    if q:
+        alpha = sin(w0)/(2*q)
+    elif bw:
+        alpha = sin(w0)*sinh(np.log(2)/2 * bw * w0/sin(w0) )
+    elif s:
+        alpha = sin(w0)/2 * np.sqrt( (A + 1/A)*(1/s - 1) + 2 )
+    else:
+        raise TypeError("Invalid combination of keyword arguments")
+
+    return alpha, cos(w0), A
 
 def normalize(b, a):
     b = map(float, b)
@@ -27,9 +32,7 @@ def normalize(b, a):
     return [b[0]/a[0], b[1]/a[0], b[2]/a[0]], [1.0, a[1]/a[0], a[2]/a[0]]
 
 def lowpass(f0, q):
-    w0 = f0*twoPiOverFs
-    alpha = get_alpha(w0, q=q)
-    cosw0 = cos(w0)
+    alpha, cosw0, _ = get_common_coeffs(f0, q=q)
     b = [(1-cosw0)/2,
          1-cosw0,
          (1-cosw0)/2]
@@ -40,9 +43,7 @@ def lowpass(f0, q):
 
 def highpass(f0, q):
     # May yield unstable biquads when quantization is considered
-    w0 = f0*twoPiOverFs
-    alpha = get_alpha(w0, q=q)
-    cosw0 = cos(w0)
+    alpha, cosw0, _ = get_common_coeffs(f0, q=q)
     b = [(1+cosw0)/2,
          -(1+cosw0),
          (1+cosw0)/2]
@@ -52,9 +53,7 @@ def highpass(f0, q):
     return b, a
 
 def bandpass(f0, bw):
-    w0 = f0*twoPiOverFs
-    alpha = get_alpha(w0, bw=bw)
-    cosw0 = cos(w0)
+    alpha, cosw0, _ = get_common_coeffs(f0, bw=bw)
     b = [alpha,
          0,
          -alpha]
@@ -63,12 +62,8 @@ def bandpass(f0, bw):
          1-alpha]
     return b, a
 
-def notch(f0, **kw):
-    if 's' in kw:
-        raise ValueError("Shelf slope 's' only makes sense for shelving filters.")
-    w0 = f0*twoPiOverFs
-    alpha = get_alpha(w0, **kw)
-    cosw0 = cos(w0)
+def notch(f0, q=None, bw=None):
+    alpha, cosw0, _ = get_common_coeffs(f0, q=q, bw=bw)
     b = [1,
          -2*cosw0,
          1]
@@ -77,12 +72,8 @@ def notch(f0, **kw):
          1-alpha]
     return b, a
 
-def allpass(f0, **kw):
-    if 's' in kw:
-        raise ValueError("Shelf slope 's' only makes sense for shelving filters.")
-    w0 = f0*twoPiOverFs
-    alpha = get_alpha(w0, **kw)
-    cosw0 = cos(w0)
+def allpass(f0, q=None, bw=None):
+    alpha, cosw0, _ = get_common_coeffs(f0, q=q, bw=bw)
     b = [1-alpha,
          -2*cosw0,
          1+alpha]
@@ -91,13 +82,8 @@ def allpass(f0, **kw):
          1-alpha]
     return b, a
 
-def peaking(f0, dBgain, **kw):
-    if 's' in kw:
-        raise ValueError("Shelf slope 's' only makes sense for shelving filters.")
-    A = get_pow(dBgain)
-    w0 = f0*twoPiOverFs
-    alpha = get_alpha(w0, A=A, **kw)
-    cosw0 = cos(w0)
+def peaking(f0, dBgain, q=None, bw=None):
+    alpha, cosw0, A = get_common_coeffs(f0, dBgain=dBgain, q=q, bw=bw)
     b = [1+alpha*A,
          -2*cosw0,
          1-alpha*A]
@@ -107,11 +93,8 @@ def peaking(f0, dBgain, **kw):
     return b, a
 
 def lowshelf(f0, dBgain, **kw):
-    A = get_pow(dBgain)
-    w0 = f0*twoPiOverFs
-    alpha = get_alpha(w0, A=A, **kw)
-    cosw0 = cos(w0)
-    twoRootAAlpha = 2*sqrt(A)*alpha
+    alpha, cosw0, A = get_common_coeffs(f0, dBgain=dBgain, **kw)
+    twoRootAAlpha = 2*np.sqrt(A)*alpha
     b = [A*((A+1) - (A-1)*cosw0 + twoRootAAlpha),
          2*A*((A-1) - (A+1)*cosw0),
          A*((A+1) - (A-1)*cosw0 - twoRootAAlpha)]
@@ -121,11 +104,8 @@ def lowshelf(f0, dBgain, **kw):
     return b, a
 
 def highshelf(f0, dBgain, **kw):
-    A = get_pow(dBgain)
-    w0 = f0*twoPiOverFs
-    alpha = get_alpha(w0, A=A, **kw)
-    cosw0 = cos(w0)
-    twoRootAAlpha = 2*sqrt(A)*alpha
+    alpha, cosw0, A = get_common_coeffs(f0, dBgain=dBgain, **kw)
+    twoRootAAlpha = 2*np.sqrt(A)*alpha
     b = [A*((A+1) + (A-1)*cosw0 + twoRootAAlpha),
          -2*A*((A-1) + (A+1)*cosw0),
          A*((A+1) + (A-1)*cosw0 - twoRootAAlpha)]
