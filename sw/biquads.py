@@ -52,8 +52,8 @@ def highpass(f0, q):
          1-alpha]
     return b, a
 
-def bandpass(f0, bw):
-    alpha, cosw0, _ = get_common_coeffs(f0, bw=bw)
+def bandpass(f0, q=None, bw=None):
+    alpha, cosw0, _ = get_common_coeffs(f0, q=q, bw=bw)
     b = [alpha,
          0,
          -alpha]
