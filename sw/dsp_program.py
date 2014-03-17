@@ -192,7 +192,7 @@ class Meter(object):
         ]
 
 
-num_channels = 16
+num_channels = 8
 
 # channel strip
 num_channel_biquads = 5
