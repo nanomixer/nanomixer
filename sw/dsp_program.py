@@ -144,13 +144,12 @@ class RoundRobin(Component):
 
 
 class DownmixToBus(object):
-    def __init__(self, channel_samples):
+    def __init__(self, inputs, output):
         self.gain = [
             [Addr() for channel in range(num_channels)]
             for core in range(num_cores)]
         self.params = self.gain
-        self.downmixed_sample = Addr()
-        self.storage = [self.downmixed_sample]
+        self.storage = []
         program = []
         for core in range(num_cores):
             for channel in range(num_channels):
@@ -161,16 +160,18 @@ class DownmixToBus(object):
                 else:
                     instr = Mac
                 program.append(
-                    instr(channel_samples[channel],
+                    instr(inputs[channel],
                           self.gain[core][channel]))
-            program.extend([Store(self.downmixed_sample)])
+            program.extend([Store(output)])
         self.program = program
 
 class BusStrip(object):
-    def __init__(self, downmixed_sample, num_biquads, bus):
+    def __init__(self, num_biquads, bus):
         self.biquad_chain = BiquadChain(num_biquads)
+        self.input = self.biquad_chain.input
         self.params = self.biquad_chain.params
         self.storage = self.biquad_chain.storage
+        self.output = self.biquad_chain.output
         self.program = self.biquad_chain.program + [
             Load(self.biquad_chain.output),
             Out(bus)]
@@ -223,17 +224,21 @@ class Mixer(Component):
         inputs = self.inputs = [Input(channel, channel_biquads[channel].input) for channel in range(num_channels)]
 
         channel_outputs = [channel_biquads[channel].output for channel in range(num_channels)]
-        downmixes = self.downmixes = [DownmixToBus(channel_outputs) for bus in range(num_busses_per_core)]
 
         bus_strips = self.bus_strips = [
-            BusStrip(downmixes[bus].downmixed_sample, num_biquads_per_bus, bus)
+            BusStrip(num_biquads_per_bus, bus)
+            for bus in range(num_busses_per_core)]
+
+        # Downmix, writing into the bus strip input
+        downmixes = self.downmixes = [
+            DownmixToBus(inputs=channel_outputs, output=bus_strips[bus].input)
             for bus in range(num_busses_per_core)]
 
         # Meter.
         meter_filter_params = self.meter_filter_params = StateVarFilter.make_params()
         channel_meters = self.channel_meters = [Meter(channel_biquads[channel].input, meter_outputs.c[channel], meter_filter_params) for channel in range(num_channels)]
         bus_meters = [
-            Meter(downmixes[bus].downmixed_sample, meter_outputs.b[bus], meter_filter_params)
+            Meter(bus_strips[bus].output, meter_outputs.b[bus], meter_filter_params)
             for bus in range(num_busses_per_core)]
 
         components = [
