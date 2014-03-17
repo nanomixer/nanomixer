@@ -143,31 +143,29 @@ class RoundRobin(Component):
         self.program = list(roundrobin(*program_parts))
 
 
-class Downmix(object):
-    def __init__(self, channel_samples):
+class DownmixToBus(object):
+    def __init__(self, channel_samples, bus):
         self.gain = [
-            [[Addr() for channel in range(num_channels)]
-             for bus in range(num_busses_per_core)]
+            [Addr() for channel in range(num_channels)]
             for core in range(num_cores)]
         self.params = self.gain
-        self.storage = [Addr() for bus in range(num_busses_per_core)]
+        self.downmixed_sample = Addr()
+        self.storage = [self.downmixed_sample]
         program = []
-        # FIXME: I think bus needs to be the outer loop.
         for core in range(num_cores):
-            for bus in range(num_busses_per_core):
-                for channel in range(num_channels):
-                    if core == 0 and channel == 0:
-                        instr = Mul
-                    elif core != 0 and channel == 0:
-                        instr = RotMac
-                    else:
-                        instr = Mac
-                    program.append(
-                        instr(channel_samples[channel],
-                              self.gain[core][bus][channel]))
-                program.extend([
-                    Store(self.storage[bus]),
-                    Out(bus)])
+            for channel in range(num_channels):
+                if core == 0 and channel == 0:
+                    instr = Mul
+                elif core != 0 and channel == 0:
+                    instr = RotMac
+                else:
+                    instr = Mac
+                program.append(
+                    instr(channel_samples[channel],
+                          self.gain[core][channel]))
+            program.extend([
+                Store(self.downmixed_sample),
+                Out(bus)])
         self.program = program
 
 
@@ -217,15 +215,17 @@ class Mixer(Component):
         biquads = self.biquads = [BiquadChain(num_biquads) for channel in range(num_channels)]
         inputs = self.inputs = [Input(channel, biquads[channel].input) for channel in range(num_channels)]
 
-        # FIXME: will probably become by bus.
-        downmix = self.downmix = Downmix([biquads[channel].output for channel in range(num_channels)])
+        channel_outputs = [biquads[channel].output for channel in range(num_channels)]
+        downmixes = self.downmixes = [DownmixToBus(channel_outputs, bus) for bus in range(num_busses_per_core)]
 
         # Meter.
         meter_filter_params = self.meter_filter_params = StateVarFilter.make_params()
         channel_meters = self.channel_meters = [Meter(biquads[channel].input, meter_outputs.c[channel], meter_filter_params) for channel in range(num_channels)]
-        bus_meters = [Meter(downmix.storage[bus], meter_outputs.b[bus], meter_filter_params) for bus in range(num_busses_per_core)]
+        bus_meters = [
+            Meter(downmixes[bus].downmixed_sample, meter_outputs.b[bus], meter_filter_params)
+            for bus in range(num_busses_per_core)]
 
-        components = [inputs, Nops(3), RoundRobin(biquads), downmix, channel_meters, bus_meters, constants]
+        components = [inputs, Nops(3), RoundRobin(biquads), downmixes, channel_meters, bus_meters, constants]
         flat_components = list(flattened(components))
 
         self.program = list(flattened(pluck('program', flat_components)))
@@ -252,7 +252,7 @@ def parameter_base_addr_for_biquad(channel, biquad):
     return mixer.biquads[channel].params[biquad][0].addr
 
 def address_for_mixdown_gain(core, channel, bus):
-    return mixer.downmix.gain[core][bus][channel].addr
+    return mixer.downmixes[bus].gain[core][channel].addr
 
 constants_base = constants.base
 meter_filter_param_base = mixer.meter_filter_params[0].addr
