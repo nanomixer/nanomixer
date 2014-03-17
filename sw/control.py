@@ -3,7 +3,7 @@ import random
 from biquads import normalize, filter_types
 import wireformat
 from dsp_program import (
-    HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain,
+    HARDWARE_PARAMS, parameter_base_addr_for_channel_biquad, address_for_mixdown_gain,
     constants, meter_filter_param_base, StateVarFilter)
 import logging
 from collections import namedtuple
@@ -212,7 +212,7 @@ class Controller(BaseController):
         b, a = normalize(b, a)
         self._set_parameter_memory(
             core=core,
-            addr=parameter_base_addr_for_biquad(channel=channel, biquad=biquad),
+            addr=parameter_base_addr_for_channel_biquad(channel=channel, biquad=biquad),
             data=pack_biquad_coeffs(b, a))
 
     def set_gain(self, bus, channel, gain):

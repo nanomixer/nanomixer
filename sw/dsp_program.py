@@ -189,7 +189,7 @@ class Meter(object):
 num_channels = 16
 
 # channel strip
-num_biquads = 5
+num_channel_biquads = 5
 
 # mixdown
 num_cores = 1
@@ -200,7 +200,7 @@ HARDWARE_PARAMS = dict(
     num_cores=num_cores,
     num_busses_per_core=num_busses_per_core,
     num_channels_per_core=num_channels,
-    num_biquads_per_channel=num_biquads)
+    num_biquads_per_channel=num_channel_biquads)
 
 MeterAddrs = namedtuple('MeterAddrs', 'c b')
 meter_outputs = MeterAddrs(
@@ -212,20 +212,20 @@ constants = Constants([0., 1., 2**-2])
 
 class Mixer(Component):
     def __init__(self):
-        biquads = self.biquads = [BiquadChain(num_biquads) for channel in range(num_channels)]
-        inputs = self.inputs = [Input(channel, biquads[channel].input) for channel in range(num_channels)]
+        channel_biquads = self.channel_biquads = [BiquadChain(num_channel_biquads) for channel in range(num_channels)]
+        inputs = self.inputs = [Input(channel, channel_biquads[channel].input) for channel in range(num_channels)]
 
-        channel_outputs = [biquads[channel].output for channel in range(num_channels)]
+        channel_outputs = [channel_biquads[channel].output for channel in range(num_channels)]
         downmixes = self.downmixes = [DownmixToBus(channel_outputs, bus) for bus in range(num_busses_per_core)]
 
         # Meter.
         meter_filter_params = self.meter_filter_params = StateVarFilter.make_params()
-        channel_meters = self.channel_meters = [Meter(biquads[channel].input, meter_outputs.c[channel], meter_filter_params) for channel in range(num_channels)]
+        channel_meters = self.channel_meters = [Meter(channel_biquads[channel].input, meter_outputs.c[channel], meter_filter_params) for channel in range(num_channels)]
         bus_meters = [
             Meter(downmixes[bus].downmixed_sample, meter_outputs.b[bus], meter_filter_params)
             for bus in range(num_busses_per_core)]
 
-        components = [inputs, Nops(3), RoundRobin(biquads), downmixes, channel_meters, bus_meters, constants]
+        components = [inputs, Nops(3), RoundRobin(channel_biquads), downmixes, channel_meters, bus_meters, constants]
         flat_components = list(flattened(components))
 
         self.program = list(flattened(pluck('program', flat_components)))
@@ -248,8 +248,8 @@ next_sample_addr = assign_addresses(mixer.storage, 0)
 ##
 ## Exports
 ##
-def parameter_base_addr_for_biquad(channel, biquad):
-    return mixer.biquads[channel].params[biquad][0].addr
+def parameter_base_addr_for_channel_biquad(channel, biquad):
+    return mixer.channel_biquads[channel].params[biquad][0].addr
 
 def address_for_mixdown_gain(core, channel, bus):
     return mixer.downmixes[bus].gain[core][channel].addr
