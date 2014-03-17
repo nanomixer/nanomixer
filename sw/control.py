@@ -3,7 +3,9 @@ import random
 from biquads import normalize, filter_types
 import wireformat
 from dsp_program import (
-    HARDWARE_PARAMS, parameter_base_addr_for_channel_biquad, address_for_mixdown_gain,
+    HARDWARE_PARAMS,
+    parameter_base_addr_for_channel_biquad, parameter_base_addr_for_bus_biquad,
+    address_for_mixdown_gain,
     constants, meter_filter_param_base, StateVarFilter)
 import logging
 from collections import namedtuple
@@ -40,6 +42,7 @@ bus_name_re = re.compile(r'^b(?P<bus>\d+)/name$')
 fader_re = re.compile(r'^b(?P<bus>\d+)/c(?P<chan>\d+)/(lvl|pan)$')
 master_fader_re = re.compile(r'b(?P<bus>\d+)/(lvl|pan)')
 filter_re = re.compile(r'^c(?P<chan>\d+)/f(?P<filt>\d+)/(?P<param>type|freq|gain|q)$')
+bus_filter_re = re.compile(r'^b(?P<bus>\d+)/f(?P<filt>\d+)/(?P<param>type|freq|gain|q)$')
 channel_name_re = re.compile(r'c(?P<chan>\d+)/name$')
 
 Fader = namedtuple('Fader', 'level, pan')
@@ -49,7 +52,8 @@ Channel = namedtuple('Channel', 'name, filters')
 metadata = dict(
     num_busses=HARDWARE_PARAMS['num_cores'] * HARDWARE_PARAMS['num_busses_per_core'] / 2, # HACK.
     num_channels=HARDWARE_PARAMS['num_cores'] * HARDWARE_PARAMS['num_channels_per_core'],
-    num_biquads_per_channel=HARDWARE_PARAMS['num_biquads_per_channel'])
+    num_biquads_per_channel=HARDWARE_PARAMS['num_biquads_per_channel'],
+    num_biquads_per_bus=HARDWARE_PARAMS['num_biquads_per_bus'])
 
 # index -> (core, channel/bus)
 channel_map = {idx: (0, idx) for idx in range(metadata['num_channels'])}
@@ -72,7 +76,8 @@ class BaseController(object):
         self.routes = [
             [bus_name_re, None],
             [fader_re, self.update_for_fader],
-            [filter_re, self.update_for_filter],
+            [filter_re, self.update_for_channel_filter],
+            [bus_filter_re, self.update_for_bus_filter],
             [master_fader_re, self.update_for_fader],
             [channel_name_re, None]]
 
@@ -183,12 +188,23 @@ class BaseController(object):
             self.set_gain(bus * 2,     chan, absLevel * (.5 - pan) ** panning_exponent)
             self.set_gain(bus * 2 + 1, chan, absLevel * (.5 + pan) ** panning_exponent)
 
-    def update_for_filter(self, chan, filt, param, val):
+    def update_for_channel_filter(self, chan, filt, param, val):
         chan = int(chan)
         filt = int(filt)
         filter = self.channels[chan].filters[filt]
-        self.set_biquad(
+        self.set_channel_biquad(
             chan, filt,
+            self.state[filter.type],
+            self.state[filter.freq],
+            self.state[filter.gain],
+            self.state[filter.q])
+
+    def update_for_bus_filter(self, bus, filt, param, val):
+        bus = int(bus)
+        filt = int(filt)
+        filter = self.busses[bus].filters[filt]
+        self.set_bus_biquad(
+            bus, filt,
             self.state[filter.type],
             self.state[filter.freq],
             self.state[filter.gain],
@@ -206,13 +222,22 @@ class Controller(BaseController):
             c=raw[:metadata['num_channels']].tolist(),
             b=raw[metadata['num_channels']:].tolist())
 
-    def set_biquad(self, channel, biquad, typ, freq, gain, q):
+    def set_channel_biquad(self, channel, biquad, typ, freq, gain, q):
         core, ch = channel_map[channel]
         b, a = filter_types[typ](f0=freq, dBgain=gain, q=q)
         b, a = normalize(b, a)
         self._set_parameter_memory(
             core=core,
             addr=parameter_base_addr_for_channel_biquad(channel=channel, biquad=biquad),
+            data=pack_biquad_coeffs(b, a))
+
+    def set_bus_biquad(self, bus, biquad, typ, freq, gain, q):
+        bus_core, bus_idx = bus_map[bus]
+        b, a = filter_types[typ](f0=freq, dBgain=gain, q=q)
+        b, a = normalize(b, a)
+        self._set_parameter_memory(
+            core=bus_core,
+            addr=parameter_base_addr_for_bus_biquad(bus=bus, biquad=biquad),
             data=pack_biquad_coeffs(b, a))
 
     def set_gain(self, bus, channel, gain):

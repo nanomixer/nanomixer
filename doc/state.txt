@@ -26,12 +26,13 @@ A state update packet is a JSON object mapping control names to current values. 
 buses:
   name: "b{bus}/name"
   faders: "b{bus}/c{chan}/(lvl|pan)"
+  filter: "b{bus}/f{filt}/{param}", see below for filter params.
   master fader: "b{bus}/(lvl|pan)"
 channels:
   name: "c{chan}/name"
-  filter: "c{chan}/f{filt}/{param}", where param is "type", "freq", "gain", or "q"
+  filter: "c{chan}/f{filt}/{param}", see below for filter params.
 
-All fader levels and filter gains are in dB. Pan is -.5 (full left) to 0 (center) to .5 (full right). Frequencies are in Hz. Filter types are one of:
+All fader levels and filter gains are in dB. Pan is -.5 (full left) to 0 (center) to .5 (full right). Filter parameters are "type", "freq", "gain", or "q". Frequencies are in Hz. Filter types are one of:
  - peaking
  - lowpass
  - highpass
