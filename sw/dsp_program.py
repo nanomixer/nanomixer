@@ -225,7 +225,9 @@ class Mixer(Component):
         channel_outputs = [channel_biquads[channel].output for channel in range(num_channels)]
         downmixes = self.downmixes = [DownmixToBus(channel_outputs) for bus in range(num_busses_per_core)]
 
-        bus_strips = self.bus_strips = [BusStrip(downmixes[bus].downmixed_sample, num_biquads_per_bus, bus)]
+        bus_strips = self.bus_strips = [
+            BusStrip(downmixes[bus].downmixed_sample, num_biquads_per_bus, bus)
+            for bus in range(num_busses_per_core)]
 
         # Meter.
         meter_filter_params = self.meter_filter_params = StateVarFilter.make_params()

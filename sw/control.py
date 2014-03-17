@@ -48,6 +48,7 @@ channel_name_re = re.compile(r'c(?P<chan>\d+)/name$')
 Fader = namedtuple('Fader', 'level, pan')
 Filter = namedtuple('Filter', 'type, freq, gain, q')
 Channel = namedtuple('Channel', 'name, filters')
+Bus = namedtuple('Bus', 'downmix, filters')
 
 metadata = dict(
     num_busses=HARDWARE_PARAMS['num_cores'] * HARDWARE_PARAMS['num_busses_per_core'] / 2, # HACK.
@@ -62,6 +63,9 @@ bus_map = {idx: (0, idx) for idx in range(metadata['num_busses'] * 2)} # HACK.
 METERING_CHANNELS = HARDWARE_PARAMS['num_channels_per_core'] + HARDWARE_PARAMS['num_busses_per_core']
 METERING_PACKET_SIZE = METERING_CHANNELS
 SPI_BUF_SIZE_IN_WORDS = METERING_PACKET_SIZE
+
+initial_filter_frequencies = [250, 500, 1000, 6000, 12000]
+
 
 class InvalidSnapshot(Exception):
     pass
@@ -93,10 +97,12 @@ class BaseController(object):
                 name = "Master"
             else:
                 name = "Aux {}".format(bus)
+            # Masters
             set_initial_state('b{bus}/name'.format(bus=bus), name)
             set_initial_state('b{bus}/lvl'.format(bus=bus), 0.)
             set_initial_state('b{bus}/pan'.format(bus=bus), 0.)
-            self.busses.append(chan_params)
+
+            # Downmix
             for channel in range(metadata['num_channels']):
                 level_name = 'b{bus}/c{chan}/lvl'.format(bus=bus, chan=channel)
                 pan_name = 'b{bus}/c{chan}/pan'.format(bus=bus, chan=channel)
@@ -104,10 +110,29 @@ class BaseController(object):
                 set_initial_state(level_name, MIN_FADER)
                 set_initial_state(pan_name, 0.)
 
+            # Bus filters
+            bus_filters = []
+            for filt, freq in enumerate(initial_filter_frequencies):
+                names = {
+                    param: 'b{bus}/f{filt}/{param}'.format(bus=bus, filt=filt, param=param)
+                    for param in ['type', 'freq', 'gain', 'q']}
+                bus_filters.append(Filter(**names))
+                if filt == 0:
+                    typ = 'highshelf'
+                elif filt == len(initial_filter_frequencies) - 1:
+                    typ = 'lowshelf'
+                else:
+                    typ = 'peaking'
+                set_initial_state(names['type'], typ)
+                set_initial_state(names['freq'], freq)
+                set_initial_state(names['gain'], 0.)
+                set_initial_state(names['q'], np.sqrt(2.)/2)
+            self.busses.append(Bus(downmix=chan_params, filters=bus_filters))
+
+
         self.channels = []
         for channel in range(metadata['num_channels']):
             assert metadata['num_biquads_per_channel'] == 5
-            initial_filter_frequencies = [250, 500, 1000, 6000, 12000]
             filts = []
             chan_name = "c{chan}/name".format(chan=channel)
             self.channels.append(Channel(chan_name, filts))
@@ -181,7 +206,7 @@ class BaseController(object):
         busFaderLevel = self.state['b{bus}/lvl'.format(bus=bus)]
         absBusFaderLevel = 10. ** (busFaderLevel/20.)
         for chan in [int(chan)] if chan is not None else xrange(metadata['num_channels']):
-            channel = self.busses[bus][chan]
+            channel = self.busses[bus].downmix[chan]
             level = self.state[channel.level]
             pan = self.state[channel.pan]
             absLevel = 10. ** (level/20.) * absBusFaderLevel
