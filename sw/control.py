@@ -118,9 +118,9 @@ class BaseController(object):
                     for param in ['type', 'freq', 'gain', 'q']}
                 bus_filters.append(Filter(**names))
                 if filt == 0:
-                    typ = 'highshelf'
-                elif filt == len(initial_filter_frequencies) - 1:
                     typ = 'lowshelf'
+                elif filt == len(initial_filter_frequencies) - 1:
+                    typ = 'highshelf'
                 else:
                     typ = 'peaking'
                 set_initial_state(names['type'], typ)
@@ -143,9 +143,9 @@ class BaseController(object):
                     for param in ['type', 'freq', 'gain', 'q']}
                 filts.append(Filter(**names))
                 if filt == 0:
-                    typ = 'highshelf'
-                elif filt == len(initial_filter_frequencies) - 1:
                     typ = 'lowshelf'
+                elif filt == len(initial_filter_frequencies) - 1:
+                    typ = 'highshelf'
                 else:
                     typ = 'peaking'
                 set_initial_state(names['type'], typ)
