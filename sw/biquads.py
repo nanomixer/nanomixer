@@ -114,6 +114,16 @@ def highshelf(f0, dBgain, **kw):
          (A+1) - (A-1)*cosw0 - twoRootAAlpha]
     return b, a
 
+filter_types = dict(
+    peaking=peaking,
+    lowpass=lowpass,
+    highpass=highpass,
+    bandpass=bandpass,
+    notch=notch,
+    allpass=allpass,
+    lowshelf=lowshelf,
+    highshelf=highshelf)
+
 def plot_freqz(b, a, *args, **kw):
     import matplotlib.pyplot as plt
     from scipy.signal import freqz

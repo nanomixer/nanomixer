@@ -29,9 +29,17 @@ buses:
   master fader: "b{bus}/(lvl|pan)"
 channels:
   name: "c{chan}/name"
-  filter: "c{chan}/f{filt}/{param}", where param is "freq", "gain", or "q"
+  filter: "c{chan}/f{filt}/{param}", where param is "type", "freq", "gain", or "q"
 
-All fader levels and filter gains are in dB. Pan is -.5 (full left) to 0 (center) to .5 (full right).
+All fader levels and filter gains are in dB. Pan is -.5 (full left) to 0 (center) to .5 (full right). Frequencies are in Hz. Filter types are one of:
+ - peaking
+ - lowpass
+ - highpass
+ - bandpass
+ - notch
+ - allpass
+ - lowshelf
+ - highshelf
 
 On connect, the client sends {seq: 0, state: {}}, and the server responds with the full current state. The client then responds to the server's response, and the communication loop continues.
 

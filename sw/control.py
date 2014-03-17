@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from biquads import normalize, peaking
+from biquads import normalize, filter_types
 import wireformat
 from dsp_program import (
     HARDWARE_PARAMS, parameter_base_addr_for_biquad, address_for_mixdown_gain,
@@ -39,11 +39,11 @@ import re
 bus_name_re = re.compile(r'^b(?P<bus>\d+)/name$')
 fader_re = re.compile(r'^b(?P<bus>\d+)/c(?P<chan>\d+)/(lvl|pan)$')
 master_fader_re = re.compile(r'b(?P<bus>\d+)/(lvl|pan)')
-filter_re = re.compile(r'^c(?P<chan>\d+)/f(?P<filt>\d+)/(?P<param>freq|gain|q)$')
+filter_re = re.compile(r'^c(?P<chan>\d+)/f(?P<filt>\d+)/(?P<param>type|freq|gain|q)$')
 channel_name_re = re.compile(r'c(?P<chan>\d+)/name$')
 
 Fader = namedtuple('Fader', 'level, pan')
-Filter = namedtuple('Filter', 'freq, gain, q')
+Filter = namedtuple('Filter', 'type, freq, gain, q')
 Channel = namedtuple('Channel', 'name, filters')
 
 metadata = dict(
@@ -102,15 +102,23 @@ class BaseController(object):
         self.channels = []
         for channel in range(metadata['num_channels']):
             assert metadata['num_biquads_per_channel'] == 5
+            initial_filter_frequencies = [250, 500, 1000, 6000, 12000]
             filts = []
             chan_name = "c{chan}/name".format(chan=channel)
             self.channels.append(Channel(chan_name, filts))
             set_initial_state(chan_name, "Ch{}".format(channel+1))
-            for filt, freq in enumerate([250, 500, 1000, 6000, 12000]):
+            for filt, freq in enumerate(initial_filter_frequencies):
                 names = {
                     param: 'c{chan}/f{filt}/{param}'.format(chan=channel, filt=filt, param=param)
-                    for param in ['freq', 'gain', 'q']}
-                filts.append(Filter(names['freq'], names['gain'], names['q']))
+                    for param in ['type', 'freq', 'gain', 'q']}
+                filts.append(Filter(**names))
+                if filt == 0:
+                    typ = 'highshelf'
+                elif filt == len(initial_filter_frequencies) - 1:
+                    typ = 'lowshelf'
+                else:
+                    typ = 'peaking'
+                set_initial_state(names['type'], typ)
                 set_initial_state(names['freq'], freq)
                 set_initial_state(names['gain'], 0.)
                 set_initial_state(names['q'], np.sqrt(2.)/2)
@@ -181,6 +189,7 @@ class BaseController(object):
         filter = self.channels[chan].filters[filt]
         self.set_biquad(
             chan, filt,
+            self.state[filter.type],
             self.state[filter.freq],
             self.state[filter.gain],
             self.state[filter.q])
@@ -197,9 +206,9 @@ class Controller(BaseController):
             c=raw[:metadata['num_channels']].tolist(),
             b=raw[metadata['num_channels']:].tolist())
 
-    def set_biquad(self, channel, biquad, freq, gain, q):
+    def set_biquad(self, channel, biquad, typ, freq, gain, q):
         core, ch = channel_map[channel]
-        b, a = peaking(f0=freq, dBgain=gain, q=q)
+        b, a = filter_types[typ](f0=freq, dBgain=gain, q=q)
         b, a = normalize(b, a)
         self._set_parameter_memory(
             core=core,
