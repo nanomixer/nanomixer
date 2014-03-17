@@ -121,7 +121,8 @@ class BaseController(object):
                     typ = 'highshelf'
                 elif filt == len(initial_filter_frequencies) - 1:
                     typ = 'lowshelf'
-                typ = 'peaking'
+                else:
+                    typ = 'peaking'
                 set_initial_state(names['type'], typ)
                 set_initial_state(names['freq'], freq)
                 set_initial_state(names['gain'], 0.)
