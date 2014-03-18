@@ -11,7 +11,8 @@
     "console-polyfill": "~0.1.0",
     "jquery": "~2.1",
     "lodash": "~2.4.1",
-    "d3": "~3.4.2"
+    "d3": "~3.4.2",
+    "react": "~0.9.0"
   },
   "overrides": {
     "jquery": {

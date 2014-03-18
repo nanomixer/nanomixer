@@ -99,6 +99,32 @@ class BaseViewModel
             observable.dispose()
         ko.cleanNode(@element)
 
+D = React.DOM
+
+Meter = React.createClass
+    componentDidMount: ->
+        @paint()
+
+    componentDidUpdate: ->
+        @paint()
+
+    paint: ->
+        {posToPixel, posToDb, level, grooveHeight} = @props
+        ctx = @getDOMNode().getContext('2d')
+        ctx.clearRect(0, 0, 1000, 1000)
+        y = posToPixel(posToDb.invert(level))
+        gradient = ctx.createLinearGradient(0, 0, 20, grooveHeight)
+        gradient.addColorStop(0, 'rgba(255, 0, 0, .2)')
+        gradient.addColorStop(.5, 'rgba(255, 255, 0, .2)')
+        gradient.addColorStop(1, 'rgba(0, 255, 0, .2)')
+        ctx.fillStyle = gradient
+        ctx.fillRect(0, y, 1000, 1000)
+
+    render: ->
+        {width, height} = @props
+        D.canvas {className: 'meter', width, height}
+
+
 class FaderView extends BaseViewModel
     constructor: (@element, @model) ->
         @_observables = wrapModelObservables @, @model, ['channel', 'level', 'pan']
@@ -115,16 +141,16 @@ class FaderView extends BaseViewModel
         @grooveHeight = ko.observable 20
         @gripHeight = ko.observable 20
 
-        ctx = @elt.select('canvas').node().getContext('2d')
         ko.computed =>
-            ctx.clearRect(0, 0, 1000, 1000)
-            y = @posToPixel(@posToDb.invert(@channel().signalLevel()))
-            gradient = ctx.createLinearGradient(0, 0, 20, @grooveHeight())
-            gradient.addColorStop(0, 'rgba(255, 0, 0, .2)')
-            gradient.addColorStop(.5, 'rgba(255, 255, 0, .2)')
-            gradient.addColorStop(1, 'rgba(0, 255, 0, .2)')
-            ctx.fillStyle = gradient
-            ctx.fillRect(0, y, 1000, 1000)
+            React.renderComponent(
+                Meter({
+                    width: 20, height: @grooveHeight() + @gripHeight()/2, level: @channel().signalLevel(),
+                    posToPixel: @posToPixel,
+                    posToDb: @posToDb,
+                    grooveHeight: @grooveHeight()
+                }),
+                d3.select(@element).select('.meter-container').node()
+            )
 
         @level.subscribe @setPosition, this
         @setPosition(@level())
@@ -217,7 +243,7 @@ class FaderSection
 # Hacking in constants for the groove
 faderTemplate = """
 <div class="fader">
-<canvas class="meter" width="20" data-bind="attr: {height: grooveHeight() + gripHeight()/2 }"></canvas>
+<div class="meter-container"></div>
 <div class="groove"></div>
 <div class="grip"></div>
 </div>
