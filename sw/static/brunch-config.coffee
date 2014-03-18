@@ -1,11 +1,17 @@
+# Workaround stylus-brunch not defining the URL inclusion.
+# from: https://github.com/KATT/stylus-brunch-issues-29/commit/b3c3de4571d0dbb6b4d32396445027f942924a7a
+stylus = require './node_modules/stylus'
+
 exports.config =
   # See http://brunch.readthedocs.org/en/latest/config.html for documentation.
   plugins:
     static_jade:
       extension: ".static.jade"
     stylus:
+      defines:
+        url: stylus.url()
       paths: [
-        './app/assets/images',
+        './app/assets/images'
       ]
 
   files:

@@ -5,7 +5,7 @@ from socketio import socketio_manage
 from resource import Resource
 import logging
 
-STATIC_FILES_AT = os.path.join(os.path.dirname(__file__), 'static', 'build')
+STATIC_FILES_AT = os.path.join(os.path.dirname(__file__), 'static', 'public')
 
 # Flask routes
 app = Flask(__name__)
