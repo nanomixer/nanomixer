@@ -1,0 +1,27 @@
+{
+  "name": "test",
+  "version": "0.1.0",
+  "main": "_public/js/app.js",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "components"
+  ],
+  "dependencies": {
+    "console-polyfill": "~0.1.0",
+    "jquery": "~2.1",
+    "lodash": "~2.4.1",
+    "d3": "~3.4.2"
+  },
+  "overrides": {
+    "jquery": {
+      "main": "dist/jquery.js"
+    },
+    "showdown": {
+      "main": "src/showdown.js"
+    },
+    "director": {
+      "main": "build/director.js"
+    }
+  }
+}

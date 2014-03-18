@@ -1,0 +1,26 @@
+{
+  "author": "Nanomixer Project",
+  "name": "nanomixer-ui",
+  "description": "Nanomixer user interface",
+  "version": "0.0.1",
+  "homepage": "https://github.com/nanomixer/nanomixer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nanomixer/nanomixer"
+  },
+  "scripts": {
+    "start": "brunch watch --server",
+    "test": "brunch test"
+  },
+  "dependencies": {
+    "jade-brunch": "~1.5.1",
+    "javascript-brunch": ">= 1.0 < 1.8",
+    "coffee-script-brunch": "~1.7.3",
+    "css-brunch": "~1.7.0",
+    "stylus-brunch": "~1.7.0",
+    "static-jade-brunch": "~1.7.0",
+    "uglify-js-brunch": "~1.7.6",
+    "clean-css-brunch": "~1.7.1",
+    "auto-reload-brunch": "~1.7.1"
+  }
+}
