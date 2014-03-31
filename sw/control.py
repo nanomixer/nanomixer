@@ -135,12 +135,12 @@ def logical_to_physical(state, mixer, set_memory):
 
     def get_state_params(name_format, base_kv, params):
         assert not isinstance(params, basestring)
-        return [get_state_param(param) for param in params]
+        return [get_state_param(name_format, base_kv, param) for param in params]
 
     # Channel filters
     for channel, biquad_chain in enumerate(mixer.channel_biquads):
         for biquad_idx, biquad_params in enumerate(biquad_chain.params):
-            typ, freq, gain, q = get_state_params(state_names.channel_filter, dict(channel=channel, biquad=biquad_idx), ['type', 'freq', 'gain', 'q'])
+            typ, freq, gain, q = get_state_params(state_names.channel_filter, dict(channel=channel, filt=biquad_idx), ['type', 'freq', 'gain', 'q'])
 
             b, a = filter_types[typ](f0=freq, dBgain=gain, q=q)
             b, a = normalize(b, a)
@@ -153,7 +153,7 @@ def logical_to_physical(state, mixer, set_memory):
     # Bus filters
     for bus, bus_strip in enumerate(mixer.bus_strips):
         for biquad_idx, biquad_params in enumerate(bus_strip.biquad_chain.params):
-            typ, freq, gain, q = get_state_params(state_names.channel_filter, dict(bus=bus, biquad=biquad_idx), ['type', 'freq', 'gain', 'q'])
+            typ, freq, gain, q = get_state_params(state_names.channel_filter, dict(bus=bus, filt=biquad_idx), ['type', 'freq', 'gain', 'q'])
 
             b, a = filter_types[typ](f0=freq, dBgain=gain, q=q)
             b, a = normalize(b, a)
@@ -200,7 +200,7 @@ class Controller(object):
         if not os.path.exists(self.snapshot_base_dir):
             os.makedirs(self.snapshot_base_dir)
 
-        self.state = get_initial_state()
+        self.state = get_initial_state(metadata)
 
         try:
             self.load_snapshot()
@@ -313,6 +313,7 @@ class IOThread(threading.Thread):
         self._read_buf = np.empty(self.spi_words, dtype=np.uint64)
 
     def __setitem__(self, addr, data):
+        # TODO: de-dupe / only keep the latest thing to write, and don't write things that are the same as what's already there.
         self._write_queue.append((addr, data))
 
     def get_meter(self):
