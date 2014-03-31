@@ -128,6 +128,9 @@ def get_initial_state(metadata):
 
 
 def logical_to_physical(state, mixer, set_memory):
+    """
+    State comes in as logical, here we figure out how to set_memory in the physical mixer to match.
+    """
 
     def get_state_param(name_format, base_kv, param):
         assert isinstance(param, basestring)
@@ -136,6 +139,9 @@ def logical_to_physical(state, mixer, set_memory):
     def get_state_params(name_format, base_kv, params):
         assert not isinstance(params, basestring)
         return [get_state_param(name_format, base_kv, param) for param in params]
+
+    # TODO: grab this from metadata?
+    num_physical_buses = len(mixer.downmixes)
 
     # Channel filters
     for channel, biquad_chain in enumerate(mixer.channel_biquads):
@@ -151,9 +157,15 @@ def logical_to_physical(state, mixer, set_memory):
                 data=pack_biquad_coeffs(b, a))
 
     # Bus filters
-    for bus, bus_strip in enumerate(mixer.bus_strips):
+    logical_bus_for_physical_bus = [None] * num_physical_buses
+    for logical_bus, physical_buses in enumerate(logical_bus_to_physical_bus_mapping):
+        for physical_bus in physical_buses:
+            logical_bus_for_physical_bus[physical_bus] = logical_bus
+
+    for physical_bus, bus_strip in enumerate(mixer.bus_strips):
         for biquad_idx, biquad_params in enumerate(bus_strip.biquad_chain.params):
-            typ, freq, gain, q = get_state_params(state_names.channel_filter, dict(bus=bus, filt=biquad_idx), ['type', 'freq', 'gain', 'q'])
+            logical_bus = logical_bus_for_physical_bus[physical_bus]
+            typ, freq, gain, q = get_state_params(state_names.bus_filter, dict(bus=logical_bus, filt=biquad_idx), ['type', 'freq', 'gain', 'q'])
 
             b, a = filter_types[typ](f0=freq, dBgain=gain, q=q)
             b, a = normalize(b, a)
@@ -164,11 +176,11 @@ def logical_to_physical(state, mixer, set_memory):
                 data=pack_biquad_coeffs(b, a))
 
     # Downmix buses
-    num_downmix_channels = len(mixer.downmixes[0].gain)
-    gain_for_physical_bus = np.zeros((len(mixer.downmixes), num_downmix_channels))
+    num_downmix_channels = len(mixer.downmixes[0].gain[0]) # FIXME: hardcoded core 0.
+    gain_for_physical_bus = np.zeros((num_physical_buses, num_downmix_channels))
 
     for logical_bus, physical_buses in enumerate(logical_bus_to_physical_bus_mapping):
-        for channel in xrange(gain_for_physical_bus):
+        for channel in xrange(num_downmix_channels):
             level = get_state_param(state_names.fader, dict(bus=logical_bus, channel=channel), 'lvl')
             bus_output_level = get_state_param(state_names.bus, dict(bus=logical_bus), 'lvl')
             absBusFaderLevel = 10. ** (bus_output_level / 20.)
@@ -184,11 +196,12 @@ def logical_to_physical(state, mixer, set_memory):
                 gain_for_physical_bus[right, channel] = absLevel * (.5 + pan) ** panning_exponent
 
     for bus, downmix in enumerate(mixer.downmixes):
-        for channel, gain_addr in enumerate(downmix.gain):
+        gain_addresses = downmix.gain[0] #  FIXME: hardcoded core 0
+        for channel, gain_addr in enumerate(gain_addresses):
             set_memory(
                 core=0,  # hardcoded, until we can test multi-core and get the right abstraction.
                 addr=gain_addr,
-                data=[gain_for_physical_bus[bus][channel]])
+                data=[gain_for_physical_bus[bus, channel]])
 
 
 
@@ -287,6 +300,7 @@ class DummyController(Controller):
             b=[np.logaddexp.reduce(self.meter_levels).tolist()]*HARDWARE_PARAMS['num_busses_per_core'])
 
     def set_gain(self, bus, channel, gain):
+        # NOTE that this doesn't actually work as intended anymore because we no longer call set_gain.
         super(DummyController, self).set_gain(bus, channel, gain)
         self.meter_levels[channel] = 20 * np.log10(gain)
 

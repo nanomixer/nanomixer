@@ -21,7 +21,7 @@ The server responds with a message:
 
 The client always responds to a server message with another message, possibly with an empty state update, to ensure that communication flow continues.
 
-A state update packet is a JSON object mapping control names to current values. Control names are strings, constructed as follows:
+A state update packet is a JSON object mapping *logical* control names (e.g., the master level of a stereo bus, not the raw mixdown matrix values) to current values. Control names are strings, constructed as follows:
 
 buses:
   name: "b{bus}/name"
