@@ -273,12 +273,7 @@ class Controller(object):
             self._set_parameter_memory(core=core, addr=meter_filter_param_base,
                 data=self.get_metering_filter_params())
 
-        for control, value in self.state.iteritems():
-            if control == 'metadata':
-                continue
-            handled = self.apply_update(control, value)
-            if not handled:
-                raise NameError("Unhandled name: {}".format(control))
+        logical_to_physical(self.state, mixer, self._set_parameter_memory)
 
     def get_metering_filter_params(self):
         return StateVarFilter.encode_params(**METERING_LPF_PARAMS)
