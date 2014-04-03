@@ -293,6 +293,20 @@ class FilterView
             observable.dispose()
         ko.cleanNode(@element)
 
+FilterVis = React.createClass
+    render: ->
+        {width, height, magnitudes} = @props
+
+        xScale = d3.scale.linear().domain([0, magnitudes.length - 1]).range([0, 500])
+        yScale = d3.scale.linear().domain([0, 5]).range([height, 0]) # lower range is higher on screen
+
+        line = d3.svg.line()
+            .x((d, i) -> xScale(i))
+            .y((d) -> yScale(d))
+
+        D.svg {width, height},
+            D.path {d: line(magnitudes)}
+
 class ChannelSection
     constructor: (@containerSelection, @mixer) ->
         @activeChannelIdx = ko.observable null
@@ -307,7 +321,16 @@ class ChannelSection
         @hasPrevChannel = ko.computed => @activeChannelIdx() > 0
         @hasNextChannel = ko.computed => @activeChannelIdx() < @mixer.channels.length - 1
 
-        @rebindFilterVisualization()
+        ko.computed =>
+            channel = @activeChannel()
+            return unless channel?
+            eq = channel.eq
+            debug d3.select(@containerSelection).select('.filtervis').node().nodeType
+            React.renderComponent(
+                FilterVis {width: 500, height: 200, magnitudes: eq.magnitudes().values}
+                d3.select(@containerSelection).select('.filtervis').node()
+            )
+            return
 
         ko.computed =>
             channel = @activeChannel()
@@ -322,30 +345,6 @@ class ChannelSection
                 ko.applyBindings(@viewModel, this)
             )
             sel.exit().each((d) -> @viewModel.dispose()).transition().duration(500).style('opacity', 0).remove()
-            return
-
-    rebindFilterVisualization: =>
-        eqElt = d3.select(@containerSelection)
-        width = 500
-        height = 200
-        svg = eqElt.append('svg')
-            .attr('width', width)
-            .attr('height', height)
-
-        xScale = d3.scale.linear().range([0, 500])
-        yScale = d3.scale.linear().domain([0, 5]).range([height, 0]) # lower range is higher on screen
-        line = d3.svg.line()
-            .x((d, i) -> return xScale(i))
-            .y((d) -> return yScale(d))
-        path = svg.append('path')
-
-        ko.computed =>
-            channel = @activeChannel()
-            return unless channel?
-            eq = channel.eq
-
-            xScale.domain([0, eq.freq.length - 1])
-            path.attr('d', line(eq.magnitudes().values))
             return
 
     prevChannel: ->
