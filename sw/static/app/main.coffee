@@ -307,35 +307,66 @@ FilterVis = React.createClass
         D.svg {width, height},
             D.path {d: line(magnitudes)}
 
+ChannelOrBusChooser = React.createClass
+    render: ->
+        name = 'ChannelOrBusChooser'
+        changed = (type, num) => @props.changed(type, num)
+        channels = for channel, i in @props.channels
+            D.label {},
+                D.input {name, type: 'radio', onChange: changed.bind(this, 'channel', i)}
+                channel.name()
+        buses = for bus, i in @props.buses
+            D.label {},
+                D.input {name, type: 'radio', onChange: changed.bind(this, 'bus', i)}
+                bus.name()
+        D.div {},
+            D.div {},
+                "Channels:",
+                channels,
+            D.div {},
+                "Buses:",
+                buses
+
 class ChannelSection
     constructor: (@containerSelection, @mixer) ->
-        @activeChannelIdx = ko.observable null
-        @activeChannel = ko.computed =>
-            return unless @activeChannelIdx()?
-            @mixer.channels[@activeChannelIdx()]
+        @activeStripType = ko.observable null
+        @activeStripIdx = ko.observable null
+        @activeStrip = ko.computed =>
+            return unless @activeStripType()? and @activeStripIdx()?
+            if @activeStripType() is 'channel'
+                @mixer.channels[@activeStripIdx()]
+            else
+                @mixer.buses[@activeStripIdx()]
 
         @title = ko.computed =>
-            return 'No channel' unless @activeChannel()?
-            "Channel #{@activeChannelIdx()+1} (#{@activeChannel().name()})"
+            return 'No channel' unless @activeStrip()?
+            typeName = if @activeStripType() is 'channel' then "Channel" else "Bus"
+            "#{typeName} #{@activeStripIdx()+1} (#{@activeStrip().name()})"
+        eq = ko.computed => @activeStrip()?.eq
 
-        @hasPrevChannel = ko.computed => @activeChannelIdx() > 0
-        @hasNextChannel = ko.computed => @activeChannelIdx() < @mixer.channels.length - 1
+        elt = d3.select(@containerSelection)
 
         ko.computed =>
-            channel = @activeChannel()
-            return unless channel?
-            eq = channel.eq
-            debug d3.select(@containerSelection).select('.filtervis').node().nodeType
+            changed = (type, num) =>
+                @activeStripType type
+                @activeStripIdx num
+                return
             React.renderComponent(
-                FilterVis {width: 500, height: 200, magnitudes: eq.magnitudes().values}
+                ChannelOrBusChooser(channels: @mixer.channels, buses: @mixer.buses, changed: changed),
+                elt.select('.chooser').node()
+            )
+
+        ko.computed =>
+            return unless eq()?
+            React.renderComponent(
+                FilterVis({width: 500, height: 200, magnitudes: eq().magnitudes().values})
                 d3.select(@containerSelection).select('.filtervis').node()
             )
             return
 
         ko.computed =>
-            channel = @activeChannel()
-            return unless channel?
-            filters = channel.eq.filters
+            return unless eq()?
+            filters = eq().filters
 
             sel = d3.select(@containerSelection).select('#eq').selectAll('.filter').data(filters)
             sel.each((d) -> @viewModel.model(d))
@@ -346,14 +377,6 @@ class ChannelSection
             )
             sel.exit().each((d) -> @viewModel.dispose()).transition().duration(500).style('opacity', 0).remove()
             return
-
-    prevChannel: ->
-        if @hasPrevChannel()
-            @activeChannelIdx @activeChannelIdx() - 1
-
-    nextChannel: ->
-        if @hasNextChannel()
-            @activeChannelIdx @activeChannelIdx() + 1
 
 filterTemplate = """
 <div class="freq" data-bind="dragToAdjust: {value: freq, scale: freqToPixel}"></div>
@@ -371,7 +394,8 @@ class UIView
 
         ko.applyBindings this
         @faderSection.setActiveFaders()
-        @channelSection.activeChannelIdx 0
+        @channelSection.activeStripType 'channel'
+        @channelSection.activeStripIdx 0
 
     snapshot: ->
         checkpoint = true
