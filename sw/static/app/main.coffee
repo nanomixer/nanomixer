@@ -91,7 +91,7 @@ class Channel
         @signalLevel = ko.observable 0
 
 class Bus
-    constructor: (@channels, @faders, @masterFader, @name) ->
+    constructor: (@channels, @faders, @eq, @masterFader, @name) ->
 
 class BaseViewModel
     dispose: ->
@@ -486,13 +486,19 @@ initializeMixerState = (state) ->
                 level: getCv("b#{bus}/c#{chan}/lvl")
                 pan: getCv("b#{bus}/c#{chan}/pan")
             }
+        filters = for filt in [0...metadata.num_biquads_per_bus]
+            new Filter(
+                getCv("b#{bus}/f#{filt}/freq"),
+                getCv("b#{bus}/f#{filt}/gain"),
+                getCv("b#{bus}/f#{filt}/q"))
+        eq = new Eq(filters)
         busName = getCv("b#{bus}/name")
         masterFader = {
             channel: new Channel(null, busName, null)
             level: getCv("b#{bus}/lvl")
             pan: getCv("b#{bus}/pan")
         }
-        new Bus(channels, faders, masterFader, busName)
+        new Bus(channels, faders, eq, masterFader, busName)
     mixer = {channels, buses}
     ui = new UIView(mixer)
 
