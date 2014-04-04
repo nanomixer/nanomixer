@@ -234,7 +234,7 @@ MuteButton = React.createClass
         isMuted = @props.state.get @levelParamName()
         className = 'mute-button'
         className = className + " muted" if isMuted
-        D.div {className, onClick: @handleClick}, "mute"
+        D.button {className, onClick: @handleClick}, "mute"
 
     handleClick: ->
         levelParamName = @levelParamName()
