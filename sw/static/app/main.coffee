@@ -151,15 +151,16 @@ D = React.DOM
 
 Meter = React.createClass
     componentDidMount: ->
+        state.onChange => @paint()
         @paint()
 
-    componentDidUpdate: ->
-        @paint()
+    shouldComponentUpdate: -> false
 
     paint: ->
+        level = state.getChannelMeter(@props.channel)
         ctx = @getDOMNode().getContext('2d')
         ctx.clearRect(0, 0, 1000, 1000)
-        y = posToPixel(posToDb.invert(@props.level))
+        y = posToPixel(posToDb.invert(level))
         gradient = ctx.createLinearGradient(0, 0, 20, grooveHeight)
         gradient.addColorStop(0, 'rgba(255, 0, 0, .2)')
         gradient.addColorStop(.5, 'rgba(255, 255, 0, .2)')
@@ -263,7 +264,7 @@ ChannelViewInMix = React.createClass
         {state, bus, channel} = @props
 
         D.div {className: 'channel-view-in-mix'},
-            Meter({width: 20, height: grooveHeight, level: state.getChannelMeter(channel)})
+            Meter({width: 20, height: grooveHeight, channel})
             D.div {className: 'name'}, state.getParam('channel', {channel}, 'name')
 
 MixerView = React.createClass
