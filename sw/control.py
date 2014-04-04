@@ -285,15 +285,14 @@ class DummyController(Controller):
         self.meter_levels = np.zeros(metadata['num_channels'])
 
     def get_meter(self):
+        bus = 0
+        core = 0
+        cur_gains = [self.io_thread.desired_param_mem[addr] for addr in mixer.downmixes[bus].gain[core]]
+        meter_levels = 20 * np.log10(np.array(cur_gains))
         offsets = np.array([np.sin(2*np.pi*(time.time() + chan / 4.)) for chan in xrange(metadata['num_channels'])])
         return dict(
-            c=(self.meter_levels + offsets).tolist(),
-            b=[np.logaddexp.reduce(self.meter_levels).tolist()]*HARDWARE_PARAMS['num_busses_per_core'])
-
-    def set_gain(self, bus, channel, gain):
-        # NOTE that this doesn't actually work as intended anymore because we no longer call set_gain.
-        super(DummyController, self).set_gain(bus, channel, gain)
-        self.meter_levels[channel] = 20 * np.log10(gain)
+            c=(meter_levels + offsets).tolist(),
+            b=[np.logaddexp.reduce(meter_levels).tolist()]*HARDWARE_PARAMS['num_busses_per_core'])
 
 
 
