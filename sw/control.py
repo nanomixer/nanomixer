@@ -68,6 +68,7 @@ metadata = dict(
     num_biquads_per_bus=HARDWARE_PARAMS['num_biquads_per_bus'])
 
 initial_filter_frequencies = [250, 500, 1000, 6000, 12000]
+solo_bus_index = len(logical_bus_to_physical_bus_mapping) - 1
 
 
 class InvalidSnapshot(Exception):
@@ -86,6 +87,8 @@ def get_initial_state(metadata):
     for bus in range(metadata['num_busses']):
         if bus == 0:
             name = "Master"
+        elif bus == solo_bus_index:
+            name = "Solo"
         else:
             name = "Aux {}".format(bus)
         # Masters
@@ -110,7 +113,7 @@ def get_initial_state(metadata):
 
     for channel in range(metadata['num_channels']):
         assert metadata['num_biquads_per_channel'] == len(initial_filter_frequencies)
-        set_state_params(state_names.channel, dict(channel=channel), name="Ch{}".format(channel+1), mute=True)
+        set_state_params(state_names.channel, dict(channel=channel), name="Ch{}".format(channel+1), mute=True, pfl=False)
 
         for filt, freq in enumerate(initial_filter_frequencies):
             if filt == 0:
@@ -199,9 +202,10 @@ def logical_to_physical(state, mixer, set_memory, memoizer):
         bus_output_level = get_state_param(state_names.bus, dict(bus=logical_bus), 'lvl')
         absBusFaderLevel = 10. ** (bus_output_level / 20.)
         for channel in xrange(num_downmix_channels):
-            mute = get_state_param(state_names.channel, dict(channel=channel), 'mute')
-            if mute:
+            if get_state_param(state_names.channel, dict(channel=channel), 'mute'):
                 absLevel = 0
+            elif logical_bus == solo_bus_index:
+                absLevel = 1. if get_state_param(state_names.channel, dict(channel=channel), 'pfl') else 0
             else:
                 level = get_state_param(state_names.fader, dict(bus=logical_bus, channel=channel), 'lvl')
                 absLevel = 10. ** (level/20.) * absBusFaderLevel

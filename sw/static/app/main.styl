@@ -70,12 +70,17 @@ body
             font-family sans-serif
             fill text-color
 
-.mute-button
+.mute-button, .pfl-button
     text-align center
     height 20px
     width 100%
-    &.muted
-        background red
+
+.mute-button.enabled
+    background red
+
+.pfl-button.enabled
+    color white
+    background #333
 
 .master-fader
     background black
