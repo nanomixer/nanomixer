@@ -248,7 +248,7 @@ class Controller(object):
         if control not in self.state:
             return False
         self.state[control] = value
-        logical_to_physical(self.state, mixer, self._set_parameter_memory)
+        self._update_state()
         return True
 
     def get_meter(self):
@@ -269,10 +269,16 @@ class Controller(object):
             self._set_parameter_memory(core=core, addr=meter_filter_param_base,
                 data=self.get_metering_filter_params())
 
-        logical_to_physical(self.state, mixer, self._set_parameter_memory)
-
     def get_metering_filter_params(self):
         return StateVarFilter.encode_params(**METERING_LPF_PARAMS)
+
+    def _update_state(self):
+        new_memory = np.zeros((HARDWARE_PARAMS['num_cores'], WORDS_PER_CORE))
+        def set_memory(core, addr, data):
+            new_memory[core][int(addr):int(addr)+len(data)]  = data
+        logical_to_physical(self.state, mixer, set_memory)
+        new_memory = new_memory.ravel()
+        self.io_thread[0:len(new_memory)] = new_memory
 
     def _set_parameter_memory(self, core, addr, data):
         start = core * WORDS_PER_CORE + int(addr)
