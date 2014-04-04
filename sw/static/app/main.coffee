@@ -174,42 +174,8 @@ Meter = React.createClass
 
 
 
-#         @dragBehavior = d3.behavior.drag()
-#             .on('dragstart', => d3.event.sourceEvent.stopPropagation()) # silence other listeners
-#             .on('drag', @drag)
-#             .origin( =>
-#                 {x: 0, y: @posToPixel(@posToDb.invert(@level()))})
-#         @grip.call(@dragBehavior)
-
-#         @resize()
-#         winSize.rect.subscribe @resize, this
-
-#     drag: =>
-#         y = d3.event.y
-#         newVal = @posToDb(@posToPixel.invert(y))
-#         @level newVal
-
-#     resize: ->
-#         grooveHeight = $(@groove.node()).height()
-#         @grooveHeight grooveHeight
-#         gripHeight = $(@grip.node()).height()
-#         @gripHeight gripHeight
-
-#         @setPosition @level()
-
-
 faderTicks = [MIN_FADER, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10]
 faderLabels = ['\u221e', '60', '50', '40', '30', '20', '10', '5', 'U', '5', '10']
-
-
-#     gripTopForDb: (dB) ->
-#         Math.round(@posToPixel(@posToDb.invert(dB)) - @gripHeight()/2)
-
-#     setPosition: (dB) ->
-#         debug 'setPosition'
-#         y = @gripTopForDb dB
-#         @grip.style('top', "#{y}px")
-
 
 SVGText = React.createClass
   _setAttrs: ->
@@ -233,6 +199,7 @@ SVGText = React.createClass
       dy = false
     D.text {x, y, dy, style: {fontSize}, children}
 
+
 ScaleView = React.createClass
     shouldComponentUpdate: -> false
 
@@ -251,6 +218,7 @@ ScaleView = React.createClass
 
 faderWidth = 60
 grooveHeight = 300
+grooveWidth = 4
 gripWidth = 35
 gripHeight = gripWidth * 2
 posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain())
@@ -259,16 +227,49 @@ panToPixel = d3.scale.linear().domain([-.5, .5]).range([200, -200]).clamp(true)
 
 
 ChannelViewInMix = React.createClass
+    componentDidMount: ->
+        {state, bus, channel} = @props
+
+        grip = @refs.grip.getDOMNode()
+        levelParamName = state.format 'fader', {bus, channel, param: 'lvl'}
+
+        dragBehavior = d3.behavior.drag()
+            .on('dragstart', =>
+                d3.event.sourceEvent.stopPropagation() # silence other listeners
+                state.grab(levelParamName)
+                )
+            .on('drag', @drag)
+            .on('dragend', => state.release(levelParamName))
+            .origin( =>
+                {x: 0, y: posToPixel(posToDb.invert(@getLevel()))})
+        d3.select(grip).call(dragBehavior)
+
+    getLevel: ->
+        {state, bus, channel} = @props
+        state.getFormat 'fader', {bus, channel, param: 'lvl'}
+
+    drag: ->
+        {state, bus, channel} = @props
+        y = d3.event.y
+        newVal = posToDb(posToPixel.invert(y))
+        state.setFormat 'fader', {bus, channel, param: 'lvl'}, newVal
+
     render: ->
         {state, bus, channel} = @props
 
+        gripTop = Math.round(posToPixel(posToDb.invert(@getLevel())) - gripHeight/2)
+
         D.div {className: 'channel-view-in-mix'},
-            D.div {className: 'fader'},
+            D.div {className: 'fader', style: {height: grooveHeight + gripHeight}},
                 D.div {
                     className: 'groove',
-                    style: {height: grooveHeight, top: gripHeight / 2, width: 4, left: (faderWidth - grooveWidth) / 2}}
-                ScaleView({})
+                    style: {height: grooveHeight, top: gripHeight / 2, width: grooveWidth, left: (faderWidth - grooveWidth) / 2}}
                 Meter({width: 20, height: grooveHeight + gripHeight / 2, channel})
+                ScaleView({})
+                D.div {
+                    className: 'grip', ref: 'grip',
+                    style: {top: gripTop, left: (faderWidth - gripWidth) / 2, width: gripWidth, height: gripHeight}
+                }
             D.div {className: 'name', style: {width: faderWidth}}, state.getParam('channel', {channel}, 'name')
             DragToAdjustText({state, name: state.format('fader', {bus, channel, param: 'pan'}), scale: panToPixel})
 

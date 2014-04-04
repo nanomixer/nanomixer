@@ -1,8 +1,5 @@
 fader-height = 576px
-fader-width = 60px
 name-height = 16px
-grip-width = 35px
-grip-height = (grip-width * 2)
 
 bg-color = #303030
 text-color = darken(#dbdbdb, 40)
@@ -38,7 +35,6 @@ body
     float left
 
     .name
-        width fader-width
         border 1px inset transparent
         text-align center
         background #111
@@ -51,17 +47,13 @@ body
     .meter
         width 20px
         position absolute
-        left 0
+        right 10px
     .groove
         background black
         position absolute
-        left ((fader-width - @width) / 2)
 
     .grip
-        width grip-width
-        height grip-height
         position absolute
-        left ((fader-width - @width) / 2)
 
         background: #897e6c
         background-image: url('fader.png')
@@ -69,6 +61,7 @@ body
 
 
     .scale
+        position absolute
         line
             stroke text-color
             stroke-width 1.5px
