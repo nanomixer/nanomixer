@@ -254,36 +254,19 @@ Meter = React.createClass
 #         y = @gripTopForDb dB
 #         @grip.style('top', "#{y}px")
 
+ChannelViewInMix = React.createClass
+    render: ->
+        {state, bus, channel} = @props
+        D.div {className: 'channel-view-in-mix'},
+            D.div {className: 'name'}, state.getParam('channel', {channel}, 'name')
 
-# class FaderSection
-#     constructor: (@containerSelection, @mixer) ->
-#         @activeBusIdx = ko.observable "0"
-#         @activeBus = ko.computed =>
-#             @mixer.buses[+@activeBusIdx()]
-#         @busNames = ko.computed =>
-#             (bus.name() for bus in @mixer.buses)
-#         @elts = []
+MixerView = React.createClass
+    render: ->
+        {state, bus} = @props
+        D.div {},
+            for channel in [0...state.metadata.num_channels]
+                ChannelViewInMix({state, bus, channel})
 
-#     setActiveFaders: ->
-#         ko.computed =>
-#             faders = @activeBus().faders
-
-#             sel = d3.select(@containerSelection).select('.faders').selectAll('.fader-strip').data(faders, (fader) -> ko.unwrap(fader.channel.idx))
-#             sel.each((d) -> @viewModel.model(d))
-#             sel.enter().append('div').attr('class', 'fader-strip').html(faderTemplate).each((fader) ->
-#                 model = ko.observable fader
-#                 @viewModel = new FaderView(this, model)
-#                 ko.applyBindings(@viewModel, this)
-#             )
-#             sel.exit().each((d) -> @viewModel.dispose()).transition().duration(500).style('opacity', 0).remove()
-
-#             sel = d3.select(@containerSelection).select('.master-fader').selectAll('.fader-strip').data([@activeBus().masterFader], (d) -> 'MASTER')
-#             sel.each((d) -> @viewModel.model(d))
-#             sel.enter().append('div').attr('class', 'fader-strip').html(faderTemplate).each((fader) ->
-#                 model = ko.observable fader
-#                 @viewModel = new FaderView(this, model)
-#                 ko.applyBindings(@viewModel, this)
-#             )
 
 
 # # Hacking in constants for the groove
@@ -414,14 +397,15 @@ Nav = React.createClass
         checkpoint = true
 
     render: ->
-        itemNames = switch @props.section
+        {section, idx} = @props
+        itemNames = switch section
             when 'mix' then @props.busNames
             when 'channel' then @props.channelNames
             when 'bus' then @props.busNames
 
         items = for item, i in itemNames
             D.label {},
-                D.input {type: 'radio', onChange: @props.itemChanged.bind(this, i)}
+                D.input {type: 'radio', onChange: @props.itemChanged.bind(this, i), checked: idx is i}
                 item
 
 
@@ -453,9 +437,9 @@ UI = React.createClass
         busNames = (state.getParam('bus', {bus}, 'name') for bus in [0...state.metadata.num_busses])
 
         D.div {},
-            Nav({section, channelNames, busNames, itemChanged, kindChanged})
+            Nav({section, idx, channelNames, busNames, itemChanged, kindChanged})
             switch section
-                when 'mix' then D.div({}, "Mix!")
+                when 'mix' then MixerView({state, bus: idx})
                 when 'channel' then ChannelStripView({state, stripType: 'channel', idx})
                 when 'bus' then ChannelStripView({state, stripType: 'bus', idx})
 
