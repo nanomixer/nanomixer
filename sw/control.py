@@ -269,6 +269,8 @@ class Controller(object):
             self._set_parameter_memory(core=core, addr=meter_filter_param_base,
                 data=self.get_metering_filter_params())
 
+        self._update_state()
+
     def get_metering_filter_params(self):
         return StateVarFilter.encode_params(**METERING_LPF_PARAMS)
 
