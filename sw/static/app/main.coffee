@@ -54,6 +54,7 @@ class State
         @_changed()
 
     getChannelMeter: (channel) -> @_meters.c[channel]
+    getBusMeter: (bus) -> @_meters.b[bus]
 
     handleUpdate: (msg) ->
         if msg.seq == 0
@@ -226,51 +227,65 @@ panToPixel = d3.scale.linear().domain([-.5, .5]).range([200, -200]).clamp(true)
 
 
 ChannelViewInMix = React.createClass
+    levelParamName: ->
+        {state, bus, channel} = @props
+        if channel is 'master'
+            state.format 'bus', {bus, param: 'lvl'}
+        else
+            state.format 'fader', {bus, channel, param: 'lvl'}
+
     componentDidMount: ->
         {state, bus, channel} = @props
 
         grip = @refs.grip.getDOMNode()
-        levelParamName = state.format 'fader', {bus, channel, param: 'lvl'}
 
         dragBehavior = d3.behavior.drag()
             .on('dragstart', =>
                 d3.event.sourceEvent.stopPropagation() # silence other listeners
-                state.grab(levelParamName)
+                state.grab(@levelParamName())
                 )
             .on('drag', @drag)
-            .on('dragend', => state.release(levelParamName))
+            .on('dragend', => state.release(@levelParamName()))
             .origin( =>
                 {x: 0, y: posToPixel(posToDb.invert(@getLevel()))})
         d3.select(grip).call(dragBehavior)
 
     getLevel: ->
         {state, bus, channel} = @props
-        state.getFormat 'fader', {bus, channel, param: 'lvl'}
+        state.get @levelParamName()
 
     drag: ->
         {state, bus, channel} = @props
         y = d3.event.y
         newVal = posToDb(posToPixel.invert(y))
-        state.setFormat 'fader', {bus, channel, param: 'lvl'}, newVal
+        state.set @levelParamName(), newVal
 
     render: ->
         {state, bus, channel} = @props
 
         gripTop = Math.round(posToPixel(posToDb.invert(@getLevel())) - gripHeight/2)
+        if channel is 'master'
+            channelName = state.getParam('bus', {bus}, 'name')
+            signalLevel = state.getBusMeter(bus)
+            panner = false
+        else
+            channelName = state.getParam('channel', {channel}, 'name')
+            signalLevel = state.getChannelMeter(channel)
+            panner = DragToAdjustText({state, name: state.format('fader', {bus, channel, param: 'pan'}), scale: panToPixel})
 
         D.div {className: 'channel-view-in-mix'},
             D.div {className: 'fader', style: {height: grooveHeight + gripHeight}},
                 D.div {
                     className: 'groove',
                     style: {height: grooveHeight, top: gripHeight / 2, width: grooveWidth, left: (faderWidth - grooveWidth) / 2}}
-                Meter({width: 20, height: grooveHeight + gripHeight / 2, level: state.getChannelMeter(channel)})
+                Meter({width: 20, height: grooveHeight + gripHeight / 2, level: signalLevel})
                 ScaleView({})
                 D.div {
                     className: 'grip', ref: 'grip',
                     style: {top: gripTop, left: (faderWidth - gripWidth) / 2, width: gripWidth, height: gripHeight}
                 }
-            D.div {className: 'name', style: {width: faderWidth}}, state.getParam('channel', {channel}, 'name')
-            DragToAdjustText({state, name: state.format('fader', {bus, channel, param: 'pan'}), scale: panToPixel})
+            D.div {className: 'name', style: {width: faderWidth}}, channelName
+            panner
 
 MixerView = React.createClass
     render: ->
@@ -278,6 +293,8 @@ MixerView = React.createClass
         D.div {},
             for channel in [0...state.metadata.num_channels]
                 ChannelViewInMix({state, bus, channel})
+            D.div {className: "master-fader"},
+                ChannelViewInMix({state, bus, channel: 'master'})
 
 
 
