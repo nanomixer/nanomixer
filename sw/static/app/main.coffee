@@ -262,7 +262,7 @@ ChannelViewInMix = React.createClass
         D.div {className: 'channel-view-in-mix'},
             D.div {className: 'fader'},
                 ScaleView({})
-                Meter({width: 20, height: grooveHeight, channel})
+                Meter({width: 20, height: grooveHeight + gripHeight / 2, channel})
             D.div {className: 'name'}, state.getParam('channel', {channel}, 'name')
             DragToAdjustText({state, name: state.format('fader', {bus, channel, param: 'pan'}), scale: panToPixel})
 
