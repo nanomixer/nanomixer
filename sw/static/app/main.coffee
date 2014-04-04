@@ -384,8 +384,14 @@ ChannelOrBusChooser = React.createClass
 FilterBankView = React.createClass
     render: ->
         {state, nameFormat, which, numFilters} = @props
+        labels = D.div {className: "labels"},
+            D.div {className: "freq"}, "Freq"
+            D.div {className: "gain"}, "Gain"
+            D.div {className: "q"}, "Q"
 
-        D.div {},
+
+        D.div {className: 'filterbank'},
+            labels,
             for filter in [0...numFilters]
                 FilterView({state, nameFormat, which: copyWith(which, {filter})})
 
