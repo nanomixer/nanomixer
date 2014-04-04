@@ -364,6 +364,11 @@ DragToAdjustText = React.createClass
         format = defaultFormat unless format?
         @transferPropsTo(D.div({}, format(state.get(name))))
 
+formatFreq = (freq) ->
+    if freq > 900
+        "#{d3.round(freq/1000, 1)}k"
+    else
+        "#{d3.round(freq, 0)}"
 
 FilterView = React.createClass
     render: ->
@@ -373,7 +378,7 @@ FilterView = React.createClass
         q = state.format(nameFormat, copyWith(which, {param: 'q'}))
         D.div {className: 'filter'},
             state.getFormat nameFormat, copyWith(which, {param: 'type'})
-            DragToAdjustText {className: 'freq', state, name: freq, scale: freqToPixel}
+            DragToAdjustText {className: 'freq', state, name: freq, scale: freqToPixel, format: formatFreq}
             DragToAdjustText {className: 'gain', state, name: gain, scale: gainToPixel}
             DragToAdjustText {className: 'q', state, name: q, scale: qToPixel}
 
