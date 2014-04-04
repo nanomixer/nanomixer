@@ -173,33 +173,6 @@ Meter = React.createClass
         D.canvas {className: 'meter', width, height}
 
 
-# class FaderView extends BaseViewModel
-#     constructor: (@element, @model) ->
-#         @_observables = wrapModelObservables @, @model, ['channel', 'level', 'pan']
-#         @name = @channel().name # FIXME: won't update for new channel maps.
-#         @elt = d3.select(@element).select('.fader')
-#         @groove = @elt.select('.groove')
-#         @grip = @elt.select('.grip')
-
-#
-
-
-#         @grooveHeight = ko.observable 20
-#         @gripHeight = ko.observable 20
-
-#         ko.computed =>
-#             React.renderComponent(
-#                 Meter({
-#                     width: 20, height: @grooveHeight() + @gripHeight()/2, level: @channel().signalLevel(),
-#                     posToPixel: @posToPixel,
-#                     posToDb: @posToDb,
-#                     grooveHeight: @grooveHeight()
-#                 }),
-#                 d3.select(@element).select('.meter-container').node()
-#             )
-
-#         @level.subscribe @setPosition, this
-#         @setPosition(@level())
 
 #         @dragBehavior = d3.behavior.drag()
 #             .on('dragstart', => d3.event.sourceEvent.stopPropagation()) # silence other listeners
@@ -224,25 +197,10 @@ Meter = React.createClass
 
 #         @setPosition @level()
 
-#         @elt.selectAll('svg.scale').remove()
-#         scale = @elt.append('svg').attr('class', 'scale')
-#             .attr('width', 20)
-#             .attr('height', grooveHeight + gripHeight)
-#             .append('g').attr('transform', 'translate(20, 0)')
-#         faderTicks = [MIN_FADER, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10]
-#         faderLabels = ['\u221e', '60', '50', '40', '30', '20', '10', '5', 'U', '5', '10']
 
-#         for [dB, label] in _.zip(faderTicks, faderLabels)
-#             y = @posToPixel(@posToDb.invert(dB))
-#             scale.append('line')
-#                 .attr('x1', -5).attr('x2', 0)
-#                 .attr('y1', y).attr('y2', y)
-#             scale.append('text')
-#                 .attr('dy', '.35em')
-#                 .attr('text-anchor', 'end')
-#                 .attr('x', -8)
-#                 .attr('y', y)
-#                 .text(label)
+faderTicks = [MIN_FADER, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10]
+faderLabels = ['\u221e', '60', '50', '40', '30', '20', '10', '5', 'U', '5', '10']
+
 
 #     gripTopForDb: (dB) ->
 #         Math.round(@posToPixel(@posToDb.invert(dB)) - @gripHeight()/2)
@@ -253,7 +211,44 @@ Meter = React.createClass
 #         @grip.style('top', "#{y}px")
 
 
-grooveHeight = 100
+SVGText = React.createClass
+  _setAttrs: ->
+    {textAnchor, dy} = @props
+    @getDOMNode().setAttribute('text-anchor', textAnchor) if textAnchor?
+    @getDOMNode().setAttribute('dy', dy) if dy?
+
+  componentDidMount: ->
+    @_setAttrs()
+
+  componentDidUpdate: ->
+    @_setAttrs()
+
+  render: ->
+    {x, y, baseline, fontSize, children} = @props
+    if baseline == 'middle'
+      dy = '.35em'
+    else if baseline == 'top'
+      dy = '.71em'
+    else
+      dy = false
+    D.text {x, y, dy, style: {fontSize}, children}
+
+ScaleView = React.createClass
+    shouldComponentUpdate: -> false
+
+    render: ->
+        lines = []
+        labels = []
+        for [dB, label] in _.zip(faderTicks, faderLabels)
+            y = posToPixel(posToDb.invert(dB))
+            lines.push D.line({x1: -5, x2: 0, y1: y, y2: y})
+            labels.push SVGText({dy: '.35em', textAnchor: 'end', x: -8, y: y}, label)
+
+        D.svg {className: 'scale', width: 20, height: grooveHeight + gripHeight},
+            D.g {transform: 'translate(20, 0)'}, lines, labels
+
+
+grooveHeight = 300
 gripWidth = 35
 gripHeight = gripWidth * 2
 posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain())
@@ -265,7 +260,9 @@ ChannelViewInMix = React.createClass
         {state, bus, channel} = @props
 
         D.div {className: 'channel-view-in-mix'},
-            Meter({width: 20, height: grooveHeight, channel})
+            D.div {className: 'fader'},
+                ScaleView({})
+                Meter({width: 20, height: grooveHeight, channel})
             D.div {className: 'name'}, state.getParam('channel', {channel}, 'name')
             DragToAdjustText({state, name: state.format('fader', {bus, channel, param: 'pan'}), scale: panToPixel})
 
@@ -285,8 +282,6 @@ MixerView = React.createClass
 # <div class="groove"></div>
 # <div class="grip"></div>
 # </div>
-# <input class="name" data-bind="value: name">
-# <div class="pan" data-bind="dragToAdjust: {value: pan, scale: panToPixel}"></div>
 # """
 
 ###### Channel View
