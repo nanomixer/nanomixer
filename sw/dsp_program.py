@@ -173,6 +173,8 @@ class BusStrip(object):
         self.storage = self.biquad_chain.storage
         self.output = self.biquad_chain.output
         self.program = self.biquad_chain.program + [
+            Nop(),
+            Nop(),
             Load(self.biquad_chain.output),
             Out(bus)]
 
