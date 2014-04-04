@@ -29,6 +29,7 @@ class State
             throw new Exception("Missing param in getParam(#{kind}, #{params}) (#{param})") unless params[param]?
             params[param]
         stateNames[kind].replace(/{(\w+)}/g, getParam)
+    formatParam: (kind, baseParams, param) -> @format(kind, copyWith(baseParams, {param}))
 
     getClientValue: (name) ->
         throw new Exception("Missing state value: #{name}") unless @_client[name]?
@@ -40,7 +41,7 @@ class State
         updateQueue[name] = value
         @_changed()
 
-    getParam: (kind, baseParams, param) -> @get(@format(kind, copyWith(baseParams, {param})))
+    getParam: (kind, baseParams, param) -> @get(@formatParam(kind, baseParams, param))
     getFormat: (kind, params) -> @get(@format(kind, params))
     setFormat: (kind, params, value) -> @set(@format(kind, params), value)
 
@@ -404,18 +405,24 @@ FilterBankView = React.createClass
                 FilterView({state, nameFormat, which: copyWith(which, {filter})})
 
 ChannelStripView = React.createClass
-    render: ->
-        {state, stripType, idx} = @props
-
+    getInitialState: -> @getTypeDependentState(@props)
+    componentWillReceiveProps: (props) -> @setState @getTypeDependentState(props)
+    getTypeDependentState: (props) ->
+        {state, stripType, idx} = props
         switch stripType
             when 'channel'
                 typeName = "Channel"
-                name = state.getParam('channel', {channel: idx}, 'name')
+                nameParam = state.formatParam('channel', {channel: idx}, 'name')
             when 'bus'
                 typeName = "Bus"
-                name = state.getParam('bus', {bus: idx}, 'name')
+                nameParam = state.formatParam('bus', {bus: idx}, 'name')
             else
                 throw new Exception("Unknown strip type #{stripType}")
+        {typeName, nameParam, name: state.get(nameParam)}
+
+    render: ->
+        {state, stripType, idx} = @props
+        {typeName, name} = @state
 
         title = "#{name} (#{typeName} #{idx+1})"
 
@@ -433,8 +440,16 @@ ChannelStripView = React.createClass
 
         D.div {},
             D.h1 {}, title
+            D.button {onClick: @rename}, "Rename"
             FilterBankView({state, nameFormat, which, numFilters})
 
+    rename: ->
+        {state} = @props
+        {nameParam} = @state
+        prevName = state.get nameParam
+        newName = prompt "New name?", prevName
+        if newName.length > 0
+            state.set nameParam, newName
 
 Nav = React.createClass
     saveSnapshot: ->
