@@ -334,30 +334,37 @@ DragToAdjustText = React.createClass
     displayName: "DragToAdjustText"
 
     componentDidMount: ->
-        {state, name, scale} = @props
-        node = @getDOMNode()
-        d3node = d3.select(node)
-
+        {state, name, scale, horiz} = @props
         dragBehavior = d3.behavior.drag()
-            .on('dragstart', ->
-                d3.event.sourceEvent.stopPropagation() # silence other listeners
-                d3node.classed("adjusting", true)
-                state.grab(name)
-            ).on('drag', @dragged
-            ).on('dragend', ->
-                d3node.classed("adjusting", false)
-                state.release(name)
-            ).origin( =>
-                {x: 0, y: scale(state.get(name))})
-        d3node.call(dragBehavior)
+            .on('dragstart', @dragStart)
+            .on('drag', @dragged)
+            .on('dragend', @dragEnd)
+            .origin(@origin)
+        d3.select(@getDOMNode()).call(dragBehavior)
+
+    dragStart: ->
+        {state, name} = @props
+        d3.event.sourceEvent.stopPropagation() # silence other listeners
+        d3.select(@getDOMNode()).classed("adjusting", true)
+        state.grab(name)
 
     dragged: ->
-        {state, name, scale} = @props
-        state.set name, scale.invert(d3.event.y)
+        {state, name, scale, horiz} = @props
+        val = if horiz then d3.event.x else d3.event.y
+        state.set name, scale.invert(val)
+
+    dragEnd: ->
+        {state, name} = @props
+        d3.select(@getDOMNode()).classed("adjusting", false)
+        state.release(name)
+
+    origin: ->
+        {state, name, scale, horiz} = @props
+        val = scale(state.get(name))
+        if horiz then {x: val, y: 0} else {x: 0, y: val}
 
     componentWillUnmount: ->
         d3.select(@getDOMNode()).on('.drag', null)
-
 
     render: ->
         {state, name, format} = @props
