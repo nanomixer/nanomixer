@@ -55,8 +55,6 @@ logic                meter_wr_en;
 logic [PC_WIDTH-1:0] pc;
 logic [INSTR_WIDTH-1:0] instruction;
 
-logic adat_data_ready;
-
 
 /***** MODULE INSTANTIATION & CONNECTIONS: *****/
 
@@ -89,7 +87,6 @@ meter_mem meter_mem_inst (
 adat_in adat_in0 (
     .clk(adat_in_clk),
     .adat_async(adat_async_in0),
-    .data_ready(adat_data_ready),
     .audio_bus(audio_inputs[0:7])
 );
 
@@ -100,8 +97,7 @@ adat_in adat_in1 (
 );
 
 adat_out adat_out0 (
-    .clk(adat_in_clk),
-    .start(adat_data_ready),
+    .clk(adat_out_clk),
     .reset_n,
     .timecode(1'b0),
     .midi(1'b0),
@@ -111,8 +107,7 @@ adat_out adat_out0 (
 );
 
 adat_out adat_out1 (
-    .clk(adat_in_clk),
-    .start(adat_data_ready),
+    .clk(adat_out_clk),
     .reset_n,
     .timecode(1'b0),
     .midi(1'b0),
