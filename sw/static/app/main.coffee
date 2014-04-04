@@ -280,13 +280,66 @@ ko.bindingHandlers.dragToAdjust = {
         ko.bindingHandlers.text.update(element, -> text)
 }
 
-class FilterView
-    constructor: (@element, @model) ->
-        @_observables = wrapModelObservables @, @model, ['freq', 'gain', 'q']
-        @freqElt = d3.select(@element).select('.freq')
-        @freqToPixel = d3.scale.log().range([0, 300]).domain([20000, 20]).clamp(true)
-        @gainToPixel = d3.scale.linear().domain([-20, 20]).range([200, -200]).clamp(true)
-        @qToPixel = d3.scale.log().domain([.3, 3]).range([200, -200]).clamp(true)
+
+freqToPixel = d3.scale.log().range([0, 300]).domain([20000, 20]).clamp(true)
+gainToPixel = d3.scale.linear().domain([-20, 20]).range([200, -200]).clamp(true)
+qToPixel = d3.scale.log().domain([.3, 3]).range([200, -200]).clamp(true)
+
+State =
+    format: (kind, params) ->
+        getParam = (param) ->
+            debug "Missing param in getParam(#{kind}, #{params}) (#{param})" unless params[param]?
+            params[param]
+        stateNames[kind].replace(/{(\w+)}/g, getParam
+
+    subscribeTo: (name, callback) ->
+
+    unsubscribe: (subscription) -> subscription.dispose()
+
+
+FilterView = React.createClass
+    getDependentStateNames: (props) ->
+        {kind, which} = props
+        for param in ['freq', 'gain', 'q']
+            State.format(kind, _.extend(which, {param}))
+
+    componentWillMount: ->
+        @subscriptions = {}
+        for name in @getDependentStateNames(@props)
+            @subscriptions[name] = State.subscribeTo(name, @forceUpdate)
+
+    componentWillReceiveProps: (newProps) ->
+        newDependentStateNames = _.uniq(@getDependentStateNames(newProps))
+        toUnsubscribe = _.object(_.keys(@subscriptions))
+        for name in newDependentStateNames
+            if name in toUnsubscribe
+                # Actually it was used, so don't unsubscribe.
+                delete toUnsubscribe[name]
+            else
+                # New subscription.
+                @subscriptions[name] = State.subscribeTo()
+
+                State.unsubscribe(@subscriptions[name])
+
+
+
+
+    componentWillUnmount: ->
+        for name, subscription of @subscriptions
+            State.unsubscribe(subscription)
+        return
+
+    render: ->
+        D.div {className: 'filter'},
+            DragToAdjustText {className: 'freq', value: State.getClientValue({param: 'freq'}, onChange: @setter({param: 'freq'}))}
+
+filterTemplate = """
+<div class="freq" data-bind="dragToAdjust: {value: freq, scale: freqToPixel}"></div>
+<div class="gain" data-bind="dragToAdjust: {value: gain, scale: gainToPixel}"></div>
+<div class="q" data-bind="dragToAdjust: {value: q, scale: qToPixel}"></div>
+"""
+
+
 
     dispose: ->
         for observable in @_observables
@@ -327,6 +380,19 @@ ChannelOrBusChooser = React.createClass
                 "Buses:",
                 buses
 
+stateNames =
+    bus: 'b{bus}/{param}'
+    channel: 'c{channel}/{param}'
+    fader: 'b{bus}/c{channel}/{param}'
+    channel_filter: 'c{channel}/f{filt}/{param}'
+    bus_filter: 'b{bus}/f{filt}/{param}'
+
+FilterBankView = React.createClass
+    render: ->
+        {nameFormat, which} = @props
+        D.div {},
+            (FilterView({nameFormat, which: _.extend(which, {filter})}) for filter in [0...5])
+
 class ChannelSection
     constructor: (@containerSelection, @mixer) ->
         @activeStripType = ko.observable null
@@ -366,23 +432,23 @@ class ChannelSection
 
         ko.computed =>
             return unless eq()?
-            filters = eq().filters
 
-            sel = d3.select(@containerSelection).select('#eq').selectAll('.filter').data(filters)
-            sel.each((d) -> @viewModel.model(d))
-            sel.enter().append('div').attr('class', 'filter').html(filterTemplate).each((filter) ->
-                model = ko.observable filter
-                @viewModel = new FilterView(this, model)
-                ko.applyBindings(@viewModel, this)
-            )
-            sel.exit().each((d) -> @viewModel.dispose()).transition().duration(500).style('opacity', 0).remove()
+            idx = @activeStripIdx()
+            switch @activeStripType()
+                when 'channel'
+                    nameFormat = stateNames.channel_filter
+                    which = {channel: idx}
+                when 'bus'
+                    nameFormat = stateNames.bus_filter
+                    which = {bus: idx}
+                else
+                    debug "Unknown strip type", @activeStripType()
+
+            React.renderComponent(
+                FilterBankView({nameFormat, which}),
+                elt.select('#eq').node())
+
             return
-
-filterTemplate = """
-<div class="freq" data-bind="dragToAdjust: {value: freq, scale: freqToPixel}"></div>
-<div class="gain" data-bind="dragToAdjust: {value: gain, scale: gainToPixel}"></div>
-<div class="q" data-bind="dragToAdjust: {value: q, scale: qToPixel}"></div>
-"""
 
 
 class UIView
