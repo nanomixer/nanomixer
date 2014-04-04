@@ -402,6 +402,12 @@ Nav = React.createClass
     saveSnapshot: ->
         checkpoint = true
 
+    shouldComponentUpdate: (nextProps, nextState) ->
+        props = ['section', 'idx', 'busNames', 'channelNames']
+        not _.isEqual(
+            _.pick(nextProps, props...)
+            _.pick(@props, props...))
+
     render: ->
         {section, idx} = @props
         itemNames = switch section
