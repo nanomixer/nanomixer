@@ -368,6 +368,7 @@ FilterView = React.createClass
         gain = state.format(nameFormat, copyWith(which, {param: 'gain'}))
         q = state.format(nameFormat, copyWith(which, {param: 'q'}))
         D.div {className: 'filter'},
+            state.getFormat nameFormat, copyWith(which, {param: 'type'})
             DragToAdjustText {className: 'freq', state, name: freq, scale: freqToPixel}
             DragToAdjustText {className: 'gain', state, name: gain, scale: gainToPixel}
             DragToAdjustText {className: 'q', state, name: q, scale: qToPixel}
@@ -391,6 +392,7 @@ FilterBankView = React.createClass
     render: ->
         {state, nameFormat, which, numFilters} = @props
         labels = D.div {className: "labels"},
+            D.div {className: 'type'}, "Type"
             D.div {className: "freq"}, "Freq"
             D.div {className: "gain"}, "Gain"
             D.div {className: "q"}, "Q"
