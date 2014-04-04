@@ -281,14 +281,6 @@ MixerView = React.createClass
 
 
 
-# # Hacking in constants for the groove
-# faderTemplate = """
-# <div class="fader">
-# <div class="groove"></div>
-# <div class="grip"></div>
-# </div>
-# """
-
 ###### Channel View
 {Filter, Eq} = require 'eq'
 
