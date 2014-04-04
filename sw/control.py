@@ -127,8 +127,34 @@ def get_initial_state(metadata):
     return state
 
 
+import marshal
+class OneStepMemoizer(object):
+    def __init__(self):
+        self.cur = {}
+        self.next = {}
 
-def logical_to_physical(state, mixer, set_memory):
+    def get(self, func, *a, **kw):
+        key = marshal.dumps((a, kw))
+        if key in self.cur:
+            val = self.cur[key]
+        else:
+            val = func(*a, **kw)
+            self.cur[key] = val
+        self.next[key] = val
+        return val
+
+    def advance(self):
+        self.cur = self.next
+        self.next = {}
+
+
+def compute_biquad_param_mem(typ, **kw):
+    b, a = filter_types[typ](**kw)
+    b, a = normalize(b, a)
+    return pack_biquad_coeffs(b, a)
+
+
+def logical_to_physical(state, mixer, set_memory, memoizer):
     """
     State comes in as logical, here we figure out how to set_memory in the physical mixer to match.
     """
@@ -149,13 +175,10 @@ def logical_to_physical(state, mixer, set_memory):
         for biquad_idx, biquad_params in enumerate(biquad_chain.params):
             typ, freq, gain, q = get_state_params(state_names.channel_filter, dict(channel=channel, filt=biquad_idx), ['type', 'freq', 'gain', 'q'])
 
-            b, a = filter_types[typ](f0=freq, dBgain=gain, q=q)
-            b, a = normalize(b, a)
-
             set_memory(
                 core=0,  # hardcoded, until we can test multi-core and get the right abstraction.
                 addr=biquad_params[0].addr,
-                data=pack_biquad_coeffs(b, a))
+                data=memoizer.get(compute_biquad_param_mem, typ=typ, f0=freq, dBgain=gain, q=q))
 
     # Bus filters
     for physical_bus, bus_strip in enumerate(mixer.bus_strips):
@@ -163,13 +186,10 @@ def logical_to_physical(state, mixer, set_memory):
             logical_bus = logical_bus_for_physical_bus[physical_bus]
             typ, freq, gain, q = get_state_params(state_names.bus_filter, dict(bus=logical_bus, filt=biquad_idx), ['type', 'freq', 'gain', 'q'])
 
-            b, a = filter_types[typ](f0=freq, dBgain=gain, q=q)
-            b, a = normalize(b, a)
-
             set_memory(
                 core=0,  # hardcoded, until we can test multi-core and get the right abstraction.
                 addr=biquad_params[0].addr,
-                data=pack_biquad_coeffs(b, a))
+                data=memoizer.get(compute_biquad_param_mem, typ=typ, f0=freq, dBgain=gain, q=q))
 
     # Downmix buses
     num_downmix_channels = len(mixer.downmixes[0].gain[0]) # FIXME: hardcoded core 0.
@@ -222,6 +242,7 @@ class Controller(object):
             os.makedirs(self.snapshot_base_dir)
 
         self.state = get_initial_state(metadata)
+        self.memoizer = OneStepMemoizer()
 
         try:
             self.load_snapshot()
@@ -276,7 +297,8 @@ class Controller(object):
         desired_param_mem = self.io_thread.desired_param_mem
         def set_memory(core, addr, data):
             desired_param_mem[int(addr):int(addr)+len(data)] = data
-        logical_to_physical(self.state, mixer, set_memory)
+        logical_to_physical(self.state, mixer, set_memory, self.memoizer)
+        self.memoizer.advance()
 
 
 class DummyController(Controller):
