@@ -224,7 +224,7 @@ gripWidth = 35
 gripHeight = gripWidth * 2
 posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain())
 posToPixel = d3.scale.linear().domain([0, 1]).range([grooveHeight+gripHeight/2, gripHeight/2])
-panToPixel = d3.scale.linear().domain([-.5, .5]).range([200, -200]).clamp(true)
+panToPixel = d3.scale.linear().domain([-.5, .5]).range([-200, 200]).clamp(true)
 
 StateToggleButton = React.createClass
     render: ->
@@ -285,7 +285,7 @@ ChannelViewInMix = React.createClass
         else
             channelName = state.getParam('channel', {channel}, 'name')
             signalLevel = state.getChannelMeter(channel)
-            panner = DragToAdjustText({state, name: state.format('fader', {bus, channel, param: 'pan'}), scale: panToPixel})
+            panner = DragToAdjustText({state, name: state.format('fader', {bus, channel, param: 'pan'}), scale: panToPixel, horiz: true, style: {textAlign: 'center'}})
             muteButton = StateToggleButton {state, className: 'mute-button', name: state.format 'channel', {channel, param: 'mute'}}, "mute"
             pflButton = StateToggleButton {state, className: 'pfl-button', name: state.format 'channel', {channel, param: 'pfl'}}, "PFL"
 
