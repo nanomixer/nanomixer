@@ -6,7 +6,7 @@
 module adat_in (
 	input bit clk, rst, // Requires a 98.304 MHz clock & syncronous reset
 	input bit adat_async, // Raw asynchronous ADAT input
-	output bit data_valid, data_ready,
+	output bit data_valid, data_ready, bit_clock,
 	output bit timecode, midi, smux, // User bits per ADAT specification
 	output bit signed [23:0] audio_bus [0:7] // 8 channels @ 24 bits
 );
@@ -29,6 +29,8 @@ always_ff @(posedge clk) begin
 		sync_counter <= '0; // Reset sync-detect counter whenever input changes
 	else
 		sync_counter <= sync_counter + 2'b1; // Otherwise, increment sync-detect counter
+
+	bit_clock = tic_counter[2];
 end
 
 initial begin
