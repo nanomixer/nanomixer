@@ -181,7 +181,7 @@ Meter = React.createClass
 #         @groove = @elt.select('.groove')
 #         @grip = @elt.select('.grip')
 
-#         @panToPixel = d3.scale.linear().domain([-.5, .5]).range([200, -200]).clamp(true)
+#
 
 
 #         @grooveHeight = ko.observable 20
@@ -258,6 +258,7 @@ gripWidth = 35
 gripHeight = gripWidth * 2
 posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain())
 posToPixel = d3.scale.linear().domain([0, 1]).range([grooveHeight+gripHeight/2, gripHeight/2])
+panToPixel = d3.scale.linear().domain([-.5, .5]).range([200, -200]).clamp(true)
 
 ChannelViewInMix = React.createClass
     render: ->
@@ -266,6 +267,7 @@ ChannelViewInMix = React.createClass
         D.div {className: 'channel-view-in-mix'},
             Meter({width: 20, height: grooveHeight, channel})
             D.div {className: 'name'}, state.getParam('channel', {channel}, 'name')
+            DragToAdjustText({state, name: state.format('fader', {bus, channel, param: 'pan'}), scale: panToPixel})
 
 MixerView = React.createClass
     render: ->
