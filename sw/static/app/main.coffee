@@ -328,6 +328,8 @@ qToPixel = d3.scale.log().domain([.3, 3]).range([200, -200]).clamp(true)
 
 
 
+defaultFormat = d3.format(',.1f')
+
 DragToAdjustText = React.createClass
     displayName: "DragToAdjustText"
 
@@ -358,8 +360,9 @@ DragToAdjustText = React.createClass
 
 
     render: ->
-        {state, name} = @props
-        @transferPropsTo(D.div({}, d3.round(state.get(name), 2)))
+        {state, name, format} = @props
+        format = defaultFormat unless format?
+        @transferPropsTo(D.div({}, format(state.get(name))))
 
 
 FilterView = React.createClass
