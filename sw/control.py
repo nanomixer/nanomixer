@@ -200,6 +200,18 @@ def logical_to_physical(state, mixer, set_memory):
                 data=[gain_for_physical_bus[bus, channel]])
 
 
+    for core in xrange(HARDWARE_PARAMS['num_cores']):
+        # Set constants.
+        set_memory(
+            core=core,
+            addr=constants.base,
+            data=constants.constants)
+
+        # Special metering filter.
+    set_memory(core=core, addr=meter_filter_param_base, data=StateVarFilter.encode_params(**METERING_LPF_PARAMS))
+
+
+
 
 class Controller(object):
     def __init__(self, io_thread, snapshot_base_dir='snapshots'):
@@ -258,21 +270,7 @@ class Controller(object):
             b=raw[metadata['num_channels']:].tolist())
 
     def dump_state_to_mixer(self):
-        for core in xrange(HARDWARE_PARAMS['num_cores']):
-            # Set constants.
-            self._set_parameter_memory(
-                core=core,
-                addr=constants.base,
-                data=constants.constants)
-
-            # Special metering filter.
-            self._set_parameter_memory(core=core, addr=meter_filter_param_base,
-                data=self.get_metering_filter_params())
-
         self._update_state()
-
-    def get_metering_filter_params(self):
-        return StateVarFilter.encode_params(**METERING_LPF_PARAMS)
 
     def _update_state(self):
         new_memory = np.zeros((HARDWARE_PARAMS['num_cores'], WORDS_PER_CORE))
