@@ -225,6 +225,21 @@ posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain())
 posToPixel = d3.scale.linear().domain([0, 1]).range([grooveHeight+gripHeight/2, gripHeight/2])
 panToPixel = d3.scale.linear().domain([-.5, .5]).range([200, -200]).clamp(true)
 
+MuteButton = React.createClass
+    levelParamName: ->
+        {state, channel} = @props
+        state.format 'channel', {channel, param: 'mute'}
+
+    render: ->
+        isMuted = @props.state.get @levelParamName()
+        className = 'mute-button'
+        className = className + " muted" if isMuted
+        D.div {className, onClick: @handleClick}, "mute"
+
+    handleClick: ->
+        levelParamName = @levelParamName()
+        isMuted = @props.state.get levelParamName
+        @props.state.set levelParamName, !isMuted
 
 ChannelViewInMix = React.createClass
     levelParamName: ->
@@ -268,10 +283,12 @@ ChannelViewInMix = React.createClass
             channelName = state.getParam('bus', {bus}, 'name')
             signalLevel = state.getBusMeter(bus)
             panner = false
+            muteButton = false
         else
             channelName = state.getParam('channel', {channel}, 'name')
             signalLevel = state.getChannelMeter(channel)
             panner = DragToAdjustText({state, name: state.format('fader', {bus, channel, param: 'pan'}), scale: panToPixel})
+            muteButton = MuteButton {state, channel}
 
         D.div {className: 'channel-view-in-mix'},
             D.div {className: 'fader', style: {height: grooveHeight + gripHeight}},
@@ -284,6 +301,7 @@ ChannelViewInMix = React.createClass
                     className: 'grip', ref: 'grip',
                     style: {top: gripTop, left: (faderWidth - gripWidth) / 2, width: gripWidth, height: gripHeight}
                 }
+            muteButton
             D.div {className: 'name', style: {width: faderWidth}}, channelName
             panner
 

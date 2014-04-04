@@ -29,7 +29,7 @@ buses:
   filter: "b{bus}/f{filt}/{param}", see below for filter params.
   master fader: "b{bus}/(lvl|pan)"
 channels:
-  name: "c{chan}/name"
+  params: "c{chan}/(name|mute)"
   filter: "c{chan}/f{filt}/{param}", see below for filter params.
 
 All fader levels and filter gains are in dB. Pan is -.5 (full left) to 0 (center) to .5 (full right). Filter parameters are "type", "freq", "gain", or "q". Frequencies are in Hz. Filter types are one of:

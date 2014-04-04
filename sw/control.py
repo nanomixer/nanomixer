@@ -110,7 +110,7 @@ def get_initial_state(metadata):
 
     for channel in range(metadata['num_channels']):
         assert metadata['num_biquads_per_channel'] == len(initial_filter_frequencies)
-        set_state_params(state_names.channel, dict(channel=channel), name="Ch{}".format(channel+1))
+        set_state_params(state_names.channel, dict(channel=channel), name="Ch{}".format(channel+1), mute=True)
 
         for filt, freq in enumerate(initial_filter_frequencies):
             if filt == 0:
@@ -196,11 +196,15 @@ def logical_to_physical(state, mixer, set_memory, memoizer):
     gain_for_physical_bus = np.zeros((num_physical_buses, num_downmix_channels))
 
     for logical_bus, physical_buses in enumerate(logical_bus_to_physical_bus_mapping):
+        bus_output_level = get_state_param(state_names.bus, dict(bus=logical_bus), 'lvl')
+        absBusFaderLevel = 10. ** (bus_output_level / 20.)
         for channel in xrange(num_downmix_channels):
-            level = get_state_param(state_names.fader, dict(bus=logical_bus, channel=channel), 'lvl')
-            bus_output_level = get_state_param(state_names.bus, dict(bus=logical_bus), 'lvl')
-            absBusFaderLevel = 10. ** (bus_output_level / 20.)
-            absLevel = 10. ** (level/20.) * absBusFaderLevel
+            mute = get_state_param(state_names.channel, dict(channel=channel), 'mute')
+            if mute:
+                absLevel = 0
+            else:
+                level = get_state_param(state_names.fader, dict(bus=logical_bus, channel=channel), 'lvl')
+                absLevel = 10. ** (level/20.) * absBusFaderLevel
             if len(physical_buses) == 1:
                 # Mono.
                 gain_for_physical_bus[physical_buses[0], channel] = absLevel
