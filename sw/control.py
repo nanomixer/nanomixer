@@ -49,6 +49,18 @@ logical_bus_to_physical_bus_mapping = [
 ]
 
 
+def invert_mapping(logical_bus_to_physical_bus_mapping, num_physical_buses):
+    logical_bus_for_physical_bus = [None] * num_physical_buses
+    for logical_bus, physical_buses in enumerate(logical_bus_to_physical_bus_mapping):
+        for physical_bus in physical_buses:
+            logical_bus_for_physical_bus[physical_bus] = logical_bus
+    return logical_bus_for_physical_bus
+
+num_physical_buses = HARDWARE_PARAMS['num_busses_per_core'] * HARDWARE_PARAMS['num_cores']
+
+logical_bus_for_physical_bus = invert_mapping(logical_bus_to_physical_bus_mapping, num_physical_buses)
+
+
 metadata = dict(
     num_busses=len(logical_bus_to_physical_bus_mapping),
     num_channels=HARDWARE_PARAMS['num_cores'] * HARDWARE_PARAMS['num_channels_per_core'],
@@ -146,11 +158,6 @@ def logical_to_physical(state, mixer, set_memory):
                 data=pack_biquad_coeffs(b, a))
 
     # Bus filters
-    logical_bus_for_physical_bus = [None] * num_physical_buses
-    for logical_bus, physical_buses in enumerate(logical_bus_to_physical_bus_mapping):
-        for physical_bus in physical_buses:
-            logical_bus_for_physical_bus[physical_bus] = logical_bus
-
     for physical_bus, bus_strip in enumerate(mixer.bus_strips):
         for biquad_idx, biquad_params in enumerate(bus_strip.biquad_chain.params):
             logical_bus = logical_bus_for_physical_bus[physical_bus]
