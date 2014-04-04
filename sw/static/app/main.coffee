@@ -151,16 +151,15 @@ D = React.DOM
 
 Meter = React.createClass
     componentDidMount: ->
-        state.onChange => @paint()
         @paint()
 
-    shouldComponentUpdate: -> false
+    componentDidUpdate: ->
+        @paint()
 
     paint: ->
-        level = state.getChannelMeter(@props.channel)
         ctx = @getDOMNode().getContext('2d')
         ctx.clearRect(0, 0, 1000, 1000)
-        y = posToPixel(posToDb.invert(level))
+        y = posToPixel(posToDb.invert(@props.level))
         gradient = ctx.createLinearGradient(0, 0, 20, grooveHeight)
         gradient.addColorStop(0, 'rgba(255, 0, 0, .5)')
         gradient.addColorStop(.5, 'rgba(255, 255, 0, .5)')
@@ -264,7 +263,7 @@ ChannelViewInMix = React.createClass
                 D.div {
                     className: 'groove',
                     style: {height: grooveHeight, top: gripHeight / 2, width: grooveWidth, left: (faderWidth - grooveWidth) / 2}}
-                Meter({width: 20, height: grooveHeight + gripHeight / 2, channel})
+                Meter({width: 20, height: grooveHeight + gripHeight / 2, level: state.getChannelMeter(channel)})
                 ScaleView({})
                 D.div {
                     className: 'grip', ref: 'grip',
@@ -315,14 +314,21 @@ DragToAdjustText = React.createClass
                 d3.event.sourceEvent.stopPropagation() # silence other listeners
                 d3node.classed("adjusting", true)
                 state.grab(name)
-            ).on('drag', =>
-                state.set name, scale.invert(d3.event.y)
+            ).on('drag', @dragged
             ).on('dragend', ->
                 d3node.classed("adjusting", false)
                 state.release(name)
             ).origin( =>
                 {x: 0, y: scale(state.get(name))})
         d3node.call(dragBehavior)
+
+    dragged: ->
+        {state, name, scale} = @props
+        state.set name, scale.invert(d3.event.y)
+
+    componentWillUnmount: ->
+        d3.select(@getDOMNode()).on('.drag', null)
+
 
     render: ->
         {state, name} = @props
