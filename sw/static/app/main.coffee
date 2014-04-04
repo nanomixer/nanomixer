@@ -217,7 +217,7 @@ ScaleView = React.createClass
 
 
 faderWidth = 60
-grooveHeight = 300
+grooveHeight = 400
 grooveWidth = 4
 gripWidth = 35
 gripHeight = gripWidth * 2
