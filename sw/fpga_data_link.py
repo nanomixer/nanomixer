@@ -2,7 +2,6 @@ import numpy as np
 import random
 import wireformat
 import threading
-import collections
 
 from dsp_program import HARDWARE_PARAMS
 
@@ -33,19 +32,15 @@ class IOThread(threading.Thread):
         self.spi_channel = spi_channel
         self.spi_words = spi_channel.buf_size_in_words
         self._param_mem_contents = np.zeros(param_mem_size, dtype=np.float64)
-        self._param_mem_dirty = np.zeros(param_mem_size, dtype=np.uint8)
+        self._param_mem_dirty = np.zeros(param_mem_size, dtype=np.bool)
         self._meter_revision = -1
         self._meter_mem_contents = (
             self._meter_revision, np.zeros(METERING_PACKET_SIZE, dtype=np.float64))
-        self._write_queue = collections.deque()
+        self.desired_param_mem = np.zeros(param_mem_size, dtype=np.float64)
 
         # Buffers in terms of words.
         self._write_buf = np.empty(self.spi_words, dtype=np.uint64)
         self._read_buf = np.empty(self.spi_words, dtype=np.uint64)
-
-    def __setitem__(self, addr, data):
-        # TODO: de-dupe / only keep the latest thing to write, and don't write things that are the same as what's already there.
-        self._write_queue.append((addr, data))
 
     def get_meter(self):
         return self._meter_mem_contents
@@ -53,20 +48,10 @@ class IOThread(threading.Thread):
     def shutdown(self):
         self._shutdown = True
 
-    def handle_queued_memory_mods(self):
-        while True:
-            try:
-                item = self._write_queue.popleft()
-            except IndexError:
-                break
-            addr, data = item
-            self._param_mem_contents[addr] = data
-            self._param_mem_dirty[addr] = 1
-
     def dump_to_mif(self, outfile):
         self.handle_queued_memory_mods()
-        write_buf = np.empty(len(self._param_mem_contents), dtype=np.uint64)
-        wireformat.floats_to_fixeds(self._param_mem_contents, PARAM_INT_BITS, PARAM_FRAC_BITS, write_buf.view(np.int64))
+        write_buf = np.empty(len(self.desired_param_mem), dtype=np.uint64)
+        wireformat.floats_to_fixeds(self.desired_param_mem, PARAM_INT_BITS, PARAM_FRAC_BITS, write_buf.view(np.int64))
         print >>outfile, "DEPTH = {};".format(len(write_buf))
         print >>outfile, "WIDTH = {};".format(36)
         print >>outfile, "ADDRESS_RADIX = HEX;"
@@ -84,6 +69,8 @@ class IOThread(threading.Thread):
         meter_packet = np.zeros(METERING_PACKET_SIZE, dtype=np.float64)
         first_meter_index_needed = 0
         while True:
+            # Diff the memory with the desired memory
+            np.not_equal(self.desired_param_mem, self._param_mem_contents, out=self._param_mem_dirty)
             dirty = self._param_mem_dirty.nonzero()[0]
             meter_words_desired = METERING_PACKET_SIZE - first_meter_index_needed
             if len(dirty) == 0:
@@ -94,7 +81,7 @@ class IOThread(threading.Thread):
                 first_param_send_index = random.randrange(max(0, len(self._param_mem_contents) - self.spi_words))
             else:
                 first_param_send_index = dirty[0]
-            param_data_to_send = self._param_mem_contents[first_param_send_index:]
+            param_data_to_send = self.desired_param_mem[first_param_send_index:]
             if len(param_data_to_send) > self.spi_words:
                 param_data_to_send = param_data_to_send[:self.spi_words]
             words_in_transfer = len(param_data_to_send)
@@ -112,8 +99,8 @@ class IOThread(threading.Thread):
                 write_addr=first_param_send_index,
                 write_data=write_buf)
 
-            # Mark param memory segment not dirty.
-            self._param_mem_dirty[first_param_send_index:first_param_send_index+words_in_transfer] = 0
+            # Transfer successful (we hope; SPI provides no error checking...)
+            self._param_mem_contents[first_param_send_index:first_param_send_index+words_in_transfer] = param_data_to_send
 
             # Extract the metering data we got.
             meter_vals_read = read_buf[:meter_words_desired]

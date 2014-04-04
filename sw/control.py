@@ -273,16 +273,10 @@ class Controller(object):
         self._update_state()
 
     def _update_state(self):
-        new_memory = np.zeros((HARDWARE_PARAMS['num_cores'], WORDS_PER_CORE))
+        desired_param_mem = self.io_thread.desired_param_mem
         def set_memory(core, addr, data):
-            new_memory[core][int(addr):int(addr)+len(data)]  = data
+            desired_param_mem[int(addr):int(addr)+len(data)] = data
         logical_to_physical(self.state, mixer, set_memory)
-        new_memory = new_memory.ravel()
-        self.io_thread[0:len(new_memory)] = new_memory
-
-    def _set_parameter_memory(self, core, addr, data):
-        start = core * WORDS_PER_CORE + int(addr)
-        self.io_thread[start:start+len(data)] = data
 
 
 class DummyController(Controller):
