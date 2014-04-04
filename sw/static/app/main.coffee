@@ -423,7 +423,7 @@ ChannelStripView = React.createClass
 
         channelNames = (state.getParam('channel', {channel}, 'name') for channel in [0...state.metadata.num_channels])
         busNames = (state.getParam('bus', {bus}, 'name') for bus in [0...state.metadata.num_busses])
-        ChannelOrBusChooser(channelNames, busNames, changed: activeSelectionChanged)
+
 
         # FilterVis({width: 500, height: 200, magnitudes: eq().magnitudes().values})
 
@@ -438,7 +438,8 @@ ChannelStripView = React.createClass
                 numFilters = state.metadata.num_biquads_per_bus
 
         D.div {},
-            title,
+            D.h1 {}, title
+            ChannelOrBusChooser({channelNames, busNames, changed: activeSelectionChanged})
             FilterBankView({state, nameFormat, which, numFilters})
 
 
