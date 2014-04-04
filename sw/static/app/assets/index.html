@@ -7,30 +7,10 @@
     <link rel="stylesheet" href="css/app.css">
   </head>
   <body data-bind="attr: {class: activeSection()+'-active'}">
-    <div class="nav">
-      <div class="mode-picker">
-        <button data-bind="click: goMix">Mix</button><button data-bind="click: goChan">Chan</button>
-      </div>
-      <!-- ko with: faderSection -->
-      <div class="buspicker" data-bind="foreach: busNames">
-        <label>
-          <input type="radio" name="activeBusIdx" data-bind="value: $index, checked: $parent.activeBusIdx">
-          <span data-bind="text: $data"></span>
-        </label>
-      </div>
-      <!-- /ko -->
-      <button data-bind="click: snapshot">Save</button>
-    </div>
     <div class="section" id="faders" data-bind="with: faderSection">
       <div class="faders"></div>
       <div class="master-fader"></div>
     </div>
-    <div class="section" id="channel" data-bind="with: channelSection">
-      <h1 data-bind="text: title"></h1>
-      <div class="chooser"></div>
-      <div class="filtervis"></div>
-    </div>
-    <!--div id="status" data-bind="text: meterRev"></div-->
     <script type="text/javascript" src="js/vendor.js"></script>
     <script type="text/javascript" src="js/app.js"></script>
     <script>require('main');</script>

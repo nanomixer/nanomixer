@@ -361,25 +361,6 @@ FilterVis = React.createClass
         D.svg {width, height},
             D.path {d: line(magnitudes)}
 
-ChannelOrBusChooser = React.createClass
-    render: ->
-        name = 'ChannelOrBusChooser'
-        changed = (type, num) => @props.changed(type, num)
-        channels = for channel, i in @props.channelNames
-            D.label {},
-                D.input {name, type: 'radio', onChange: changed.bind(this, 'channel', i)}
-                channel
-        buses = for bus, i in @props.busNames
-            D.label {},
-                D.input {name, type: 'radio', onChange: changed.bind(this, 'bus', i)}
-                bus
-        D.div {},
-            D.div {},
-                "Channels:",
-                channels,
-            D.div {},
-                "Buses:",
-                buses
 
 FilterBankView = React.createClass
     render: ->
@@ -396,17 +377,8 @@ FilterBankView = React.createClass
                 FilterView({state, nameFormat, which: copyWith(which, {filter})})
 
 ChannelStripView = React.createClass
-    getInitialState: ->
-        {
-            stripType: 'channel'
-            idx: 0
-        }
-
     render: ->
-        {state} = @props
-        {stripType, idx} = @state
-
-        return D.div {}, "Waiting for server..." unless state.metadata?
+        {state, stripType, idx} = @props
 
         switch stripType
             when 'channel'
@@ -419,11 +391,6 @@ ChannelStripView = React.createClass
                 throw new Exception("Unknown strip type #{stripType}")
 
         title = "#{name} (#{typeName} #{idx+1})"
-        activeSelectionChanged = (stripType, idx) => @setState {stripType, idx}
-
-        channelNames = (state.getParam('channel', {channel}, 'name') for channel in [0...state.metadata.num_channels])
-        busNames = (state.getParam('bus', {bus}, 'name') for bus in [0...state.metadata.num_busses])
-
 
         # FilterVis({width: 500, height: 200, magnitudes: eq().magnitudes().values})
 
@@ -439,14 +406,59 @@ ChannelStripView = React.createClass
 
         D.div {},
             D.h1 {}, title
-            ChannelOrBusChooser({channelNames, busNames, changed: activeSelectionChanged})
             FilterBankView({state, nameFormat, which, numFilters})
 
 
+Nav = React.createClass
+    saveSnapshot: ->
+        checkpoint = true
 
-    # snapshot: ->
-    #     checkpoint = true
+    render: ->
+        itemNames = switch @props.section
+            when 'mix' then @props.busNames
+            when 'channel' then @props.channelNames
+            when 'bus' then @props.busNames
+
+        items = for item, i in itemNames
+            D.label {},
+                D.input {type: 'radio', onChange: @props.itemChanged.bind(this, i)}
+                item
 
 
-ui = React.renderComponent(ChannelStripView({state}), document.body)
+        D.div {className: 'nav'},
+            D.div {className: "mode-picker"},
+                D.button {onClick: @props.kindChanged.bind(this, 'mix')}, "Mix"
+                D.button {onClick: @props.kindChanged.bind(this, 'channel')}, "Channel"
+                D.button {onClick: @props.kindChanged.bind(this, 'bus')}, "Bus"
+            D.div {className: "item-picker"}, items
+            D.button {onClick: @saveSnapshot}, 'Save'
+
+UI = React.createClass
+    getInitialState: -> {
+        section: 'mix'
+        idx: 0
+    }
+
+    render: ->
+        {state} = @props
+
+        return D.div {}, "Waiting for server..." unless state.metadata?
+
+        {section, idx} = @state
+
+        kindChanged = (section) => @setState {section}
+        itemChanged = (idx) => @setState {idx}
+
+        channelNames = (state.getParam('channel', {channel}, 'name') for channel in [0...state.metadata.num_channels])
+        busNames = (state.getParam('bus', {bus}, 'name') for bus in [0...state.metadata.num_busses])
+
+        D.div {},
+            Nav({section, channelNames, busNames, itemChanged, kindChanged})
+            switch section
+                when 'mix' then D.div({}, "Mix!")
+                when 'channel' then ChannelStripView({state, stripType: 'channel', idx})
+                when 'bus' then ChannelStripView({state, stripType: 'bus', idx})
+
+
+ui = React.renderComponent(UI({state}), document.body)
 state.onChange -> ui.setProps({state})
