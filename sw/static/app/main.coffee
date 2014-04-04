@@ -301,7 +301,7 @@ ChannelViewInMix = React.createClass
                 }
             pflButton
             muteButton
-            D.div {className: 'name', style: {width: faderWidth}}, channelName
+            D.div {className: 'name'}, channelName
             panner
 
 MixerView = React.createClass
