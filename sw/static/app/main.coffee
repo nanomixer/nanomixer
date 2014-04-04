@@ -248,6 +248,8 @@ ScaleView = React.createClass
             D.g {transform: 'translate(20, 0)'}, lines, labels
 
 
+
+faderWidth = 60
 grooveHeight = 300
 gripWidth = 35
 gripHeight = gripWidth * 2
@@ -255,15 +257,19 @@ posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain())
 posToPixel = d3.scale.linear().domain([0, 1]).range([grooveHeight+gripHeight/2, gripHeight/2])
 panToPixel = d3.scale.linear().domain([-.5, .5]).range([200, -200]).clamp(true)
 
+
 ChannelViewInMix = React.createClass
     render: ->
         {state, bus, channel} = @props
 
         D.div {className: 'channel-view-in-mix'},
             D.div {className: 'fader'},
+                D.div {
+                    className: 'groove',
+                    style: {height: grooveHeight, top: gripHeight / 2, width: 4, left: (faderWidth - grooveWidth) / 2}}
                 ScaleView({})
                 Meter({width: 20, height: grooveHeight + gripHeight / 2, channel})
-            D.div {className: 'name'}, state.getParam('channel', {channel}, 'name')
+            D.div {className: 'name', style: {width: faderWidth}}, state.getParam('channel', {channel}, 'name')
             DragToAdjustText({state, name: state.format('fader', {bus, channel, param: 'pan'}), scale: panToPixel})
 
 MixerView = React.createClass
@@ -278,7 +284,6 @@ MixerView = React.createClass
 # # Hacking in constants for the groove
 # faderTemplate = """
 # <div class="fader">
-# <div class="meter-container"></div>
 # <div class="groove"></div>
 # <div class="grip"></div>
 # </div>
