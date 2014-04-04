@@ -128,9 +128,6 @@ class IOThread(threading.Thread):
             if self._shutdown:
                 return
 
-            # Handle queued memory modifications
-            self.handle_queued_memory_mods()
-
             # Do SPI send-recv's
             self.do_send_recvs()
 

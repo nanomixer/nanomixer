@@ -287,7 +287,7 @@ class DummyController(Controller):
     def get_meter(self):
         bus = 0
         core = 0
-        cur_gains = [self.io_thread.desired_param_mem[addr] for addr in mixer.downmixes[bus].gain[core]]
+        cur_gains = [self.io_thread._param_mem_contents[addr] + 1e-6 for addr in mixer.downmixes[bus].gain[core]]
         meter_levels = 20 * np.log10(np.array(cur_gains))
         offsets = np.array([np.sin(2*np.pi*(time.time() + chan / 4.)) for chan in xrange(metadata['num_channels'])])
         return dict(
@@ -298,6 +298,10 @@ class DummyController(Controller):
 
 class DummySPIChannel(object):
     buf_size_in_words = SPI_BUF_SIZE_IN_WORDS
+
+    def transfer(self, **kw):
+        import time
+        time.sleep(.1)
 
 
 import os
@@ -316,7 +320,4 @@ io_thread = IOThread(param_mem_size=1024, spi_channel=spi_channel)
 controller = controller_class(io_thread)
 controller.dump_state_to_mixer()
 
-if ON_TGT_HARDWARE:
-    io_thread.start()
-else:
-    print "Not on target hardware, not starting IO thread."
+io_thread.start()
