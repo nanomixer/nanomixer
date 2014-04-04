@@ -21,7 +21,7 @@ class State
         @_server = {}
         @_grabbed = {}
         @metadata = null
-        @meters = null
+        @_meters = null
         @_changeListeners = []
 
     format: (kind, params) ->
@@ -53,6 +53,8 @@ class State
         delete @_grabbed[name]
         @_changed()
 
+    getChannelMeter: (channel) -> @_meters.c[channel]
+
     handleUpdate: (msg) ->
         if msg.seq == 0
             @_client = _.clone(msg.state)
@@ -64,7 +66,7 @@ class State
                 @_server[name] = value
                 @_client[name] = value unless @_grabbed[name]
 
-        @_meters = msg.meters
+        @_meters = msg.meter
         @_changed()
 
     onChange: (func) -> @_changeListeners.push(func)
@@ -103,7 +105,7 @@ sendUpdate = ->
     checkpoint = false
     updateQueue = {}
 
-throttledSendUpdate = _.throttle sendUpdate, 1000#/30
+throttledSendUpdate = _.throttle sendUpdate, 1000/30
 
 
 
@@ -175,8 +177,6 @@ Meter = React.createClass
 #     constructor: (@element, @model) ->
 #         @_observables = wrapModelObservables @, @model, ['channel', 'level', 'pan']
 #         @name = @channel().name # FIXME: won't update for new channel maps.
-#         @posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain())
-#         @posToPixel = d3.scale.linear()
 #         @elt = d3.select(@element).select('.fader')
 #         @groove = @elt.select('.groove')
 #         @grip = @elt.select('.grip')
@@ -221,9 +221,7 @@ Meter = React.createClass
 #         @grooveHeight grooveHeight
 #         gripHeight = $(@grip.node()).height()
 #         @gripHeight gripHeight
-#         @posToPixel
-#             .domain([0, 1])
-#             .range([grooveHeight+gripHeight/2, gripHeight/2])
+
 #         @setPosition @level()
 
 #         @elt.selectAll('svg.scale').remove()
@@ -254,10 +252,19 @@ Meter = React.createClass
 #         y = @gripTopForDb dB
 #         @grip.style('top', "#{y}px")
 
+
+grooveHeight = 100
+gripWidth = 35
+gripHeight = gripWidth * 2
+posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain())
+posToPixel = d3.scale.linear().domain([0, 1]).range([grooveHeight+gripHeight/2, gripHeight/2])
+
 ChannelViewInMix = React.createClass
     render: ->
         {state, bus, channel} = @props
+
         D.div {className: 'channel-view-in-mix'},
+            Meter({width: 20, height: grooveHeight, posToPixel, posToDb, level: state.getChannelMeter(channel), grooveHeight})
             D.div {className: 'name'}, state.getParam('channel', {channel}, 'name')
 
 MixerView = React.createClass
