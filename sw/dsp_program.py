@@ -176,7 +176,7 @@ class BusStrip(object):
             Nop(),
             Nop(),
             Load(self.biquad_chain.output),
-            Out(bus)]
+            Out(bus, comment='End of BusStrip {}'.format(bus))]
 
 class Meter(object):
     def __init__(self, input, output, params):
