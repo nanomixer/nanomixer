@@ -202,18 +202,20 @@ def logical_to_physical(state, mixer, set_memory, memoizer):
         bus_output_level = get_state_param(state_names.bus, dict(bus=logical_bus), 'lvl')
         absBusFaderLevel = 10. ** (bus_output_level / 20.)
         for channel in xrange(num_downmix_channels):
-            if get_state_param(state_names.channel, dict(channel=channel), 'mute'):
-                absLevel = 0
-            elif logical_bus == solo_bus_index:
+            if logical_bus == solo_bus_index:
+                # Solo bus is entirely controlled by PFLs. Notably, independent of muting.
                 absLevel = 1. if get_state_param(state_names.channel, dict(channel=channel), 'pfl') else 0
+            elif get_state_param(state_names.channel, dict(channel=channel), 'mute'):
+                absLevel = 0
             else:
+                # Combine the effect of the bus fader with the channel fader to get the gain matrix entry.
                 level = get_state_param(state_names.fader, dict(bus=logical_bus, channel=channel), 'lvl')
                 absLevel = 10. ** (level/20.) * absBusFaderLevel
             if len(physical_buses) == 1:
                 # Mono.
                 gain_for_physical_bus[physical_buses[0], channel] = absLevel
             else:
-                # Stereo.
+                # Stereo: compute panning (0 = center).
                 pan = get_state_param(state_names.fader, dict(bus=logical_bus, channel=channel), 'pan')
                 left, right = physical_buses
                 gain_for_physical_bus[left , channel] = absLevel * (.5 - pan) ** panning_exponent
