@@ -471,21 +471,22 @@ Nav = React.createClass
         checkpoint = true
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        props = ['section', 'idx', 'busNames', 'channelNames']
+        props = ['section', 'indices', 'busNames', 'channelNames']
         not _.isEqual(
             _.pick(nextProps, props...)
             _.pick(@props, props...))
 
     render: ->
-        {section, idx} = @props
+        {section, indices} = @props
         itemNames = switch section
             when 'mix' then @props.busNames
             when 'channel' then @props.channelNames
             when 'bus' then @props.busNames
+        idx = indices[section]
 
         items = for item, i in itemNames
             D.label {},
-                D.input {type: 'radio', onChange: @props.itemChanged.bind(this, i), checked: idx is i}
+                D.input {type: 'radio', onChange: @props.indexChanged.bind(this, i), checked: idx is i}
                 item
 
 
@@ -500,7 +501,7 @@ Nav = React.createClass
 UI = React.createClass
     getInitialState: -> {
         section: 'mix'
-        idx: 0
+        indices: {mix: 0, channel: 0, bus: 0}
     }
 
     render: ->
@@ -508,20 +509,23 @@ UI = React.createClass
 
         return D.div {}, "Waiting for server..." unless state.metadata?
 
-        {section, idx} = @state
+        {section, indices} = @state
 
         kindChanged = (section) => @setState {section}
-        itemChanged = (idx) => @setState {idx}
+        indexChanged = (idx) =>
+            change = {}
+            change[section] = {$set: idx}
+            @setState {indices: React.addons.update(indices, change)}
 
         channelNames = (state.getParam('channel', {channel}, 'name') for channel in [0...state.metadata.num_channels])
         busNames = (state.getParam('bus', {bus}, 'name') for bus in [0...state.metadata.num_busses])
 
         D.div {},
-            Nav({section, idx, channelNames, busNames, itemChanged, kindChanged})
+            Nav({section, indices, channelNames, busNames, indexChanged, kindChanged})
             switch section
-                when 'mix' then MixerView({state, bus: idx})
-                when 'channel' then ChannelStripView({state, stripType: 'channel', idx})
-                when 'bus' then ChannelStripView({state, stripType: 'bus', idx})
+                when 'mix' then MixerView({state, bus: indices.mix})
+                when 'channel' then ChannelStripView({state, stripType: 'channel', idx: indices.channel})
+                when 'bus' then ChannelStripView({state, stripType: 'bus', idx: indices.bus})
 
 
 ui = React.renderComponent(UI({state}), document.body)
