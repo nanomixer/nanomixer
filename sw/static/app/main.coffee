@@ -152,6 +152,7 @@ faderLevelToText = (value) ->
 D = React.DOM
 
 Meter = React.createClass
+    displayName: "Meter"
     componentDidMount: ->
         @paint()
 
@@ -179,6 +180,7 @@ faderTicks = [MIN_FADER, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10]
 faderLabels = ['\u221e', '60', '50', '40', '30', '20', '10', '5', 'U', '5', '10']
 
 SVGText = React.createClass
+  displayName: "SVGText"
   _setAttrs: ->
     {textAnchor, dy} = @props
     @getDOMNode().setAttribute('text-anchor', textAnchor) if textAnchor?
@@ -202,6 +204,7 @@ SVGText = React.createClass
 
 
 ScaleView = React.createClass
+    displayName: 'ScaleView'
     shouldComponentUpdate: -> false
 
     render: ->
@@ -227,6 +230,7 @@ posToPixel = d3.scale.linear().domain([0, 1]).range([grooveHeight+gripHeight/2, 
 panToPixel = d3.scale.linear().domain([-.5, .5]).range([-200, 200]).clamp(true)
 
 StateToggleButton = React.createClass
+    displayName: 'StateToggleButton'
     render: ->
         {state, name, className, children} = @props
         enabled = state.get name
@@ -239,6 +243,7 @@ StateToggleButton = React.createClass
         state.set name, !enabled
 
 ChannelViewInMix = React.createClass
+    displayName: 'ChannelViewInMix'
     levelParamName: ->
         {state, bus, channel} = @props
         if channel is 'master'
@@ -306,6 +311,7 @@ ChannelViewInMix = React.createClass
             panner
 
 MixerView = React.createClass
+    displayName: 'MixerView'
     render: ->
         {state, bus} = @props
         D.div {},
@@ -323,9 +329,6 @@ MixerView = React.createClass
 freqToPixel = d3.scale.log().range([0, 300]).domain([20000, 20]).clamp(true)
 gainToPixel = d3.scale.linear().domain([-20, 20]).range([200, -200]).clamp(true)
 qToPixel = d3.scale.log().domain([.3, 3]).range([200, -200]).clamp(true)
-
-
-
 
 
 defaultFormat = d3.format(',.1f')
@@ -378,6 +381,7 @@ formatFreq = (freq) ->
         "#{d3.round(freq, 0)}"
 
 FilterView = React.createClass
+    displayName: 'FilterView'
     render: ->
         {state, nameFormat, which} = @props
         freq = state.format(nameFormat, copyWith(which, {param: 'freq'}))
@@ -390,6 +394,7 @@ FilterView = React.createClass
             DragToAdjustText {className: 'q', state, name: q, scale: qToPixel}
 
 FilterVis = React.createClass
+    displayName: 'FilterVis'
     render: ->
         {width, height, magnitudes} = @props
 
@@ -405,6 +410,7 @@ FilterVis = React.createClass
 
 
 FilterBankView = React.createClass
+    displayName: 'FilterBankView'
     render: ->
         {state, nameFormat, which, numFilters} = @props
         labels = D.div {className: "labels"},
@@ -420,6 +426,7 @@ FilterBankView = React.createClass
                 FilterView({state, nameFormat, which: copyWith(which, {filter})})
 
 ChannelStripView = React.createClass
+    displayName: 'ChannelStripView'
     getInitialState: -> @getTypeDependentState(@props)
     componentWillReceiveProps: (props) -> @setState @getTypeDependentState(props)
     getTypeDependentState: (props) ->
@@ -467,6 +474,7 @@ ChannelStripView = React.createClass
             state.set nameParam, newName
 
 Nav = React.createClass
+    displayName: 'Nav'
     saveSnapshot: ->
         checkpoint = true
 
@@ -499,6 +507,7 @@ Nav = React.createClass
             D.button {onClick: @saveSnapshot}, 'Save'
 
 UI = React.createClass
+    displayName: 'UI'
     getInitialState: -> {
         section: 'mix'
         indices: {mix: 0, channel: 0, bus: 0}
