@@ -246,6 +246,7 @@ StateToggleButton = React.createClass
 
 ChannelViewInMix = React.createClass
     displayName: 'ChannelViewInMix'
+    getInitialState: -> {}
     levelParamName: ->
         {state, bus, channel} = @props
         if channel is 'master'
@@ -262,9 +263,13 @@ ChannelViewInMix = React.createClass
             .on('dragstart', =>
                 d3.event.sourceEvent.stopPropagation() # silence other listeners
                 state.grab(@levelParamName())
+                @setState {grabbed: true}
                 )
             .on('drag', @drag)
-            .on('dragend', => state.release(@levelParamName()))
+            .on('dragend', =>
+                state.release(@levelParamName())
+                @setState {grabbed: false}
+                )
             .origin( =>
                 {x: 0, y: posToPixel(posToDb.invert(@getLevel()))})
         d3.select(grip).call(dragBehavior)
@@ -281,6 +286,7 @@ ChannelViewInMix = React.createClass
 
     render: ->
         {state, bus, channel} = @props
+        {grabbed} = @state
 
         gripTop = Math.round(posToPixel(posToDb.invert(@getLevel())) - gripHeight/2)
         if channel is 'master'
@@ -304,7 +310,7 @@ ChannelViewInMix = React.createClass
                 Meter({width: 20, height: grooveHeight + gripHeight / 2, level: signalLevel})
                 ScaleView({})
                 D.div {
-                    className: 'grip', ref: 'grip',
+                    className: 'grip' + (if grabbed then ' grabbed' else ''), ref: 'grip',
                     style: {top: gripTop, left: (faderWidth - gripWidth) / 2, width: gripWidth, height: gripHeight}
                 }
             pflButton
