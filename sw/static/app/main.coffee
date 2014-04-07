@@ -212,8 +212,8 @@ ScaleView = React.createClass
         labels = []
         for [dB, label] in _.zip(faderTicks, faderLabels)
             y = posToPixel(posToDb.invert(dB))
-            lines.push D.line({x1: -5, x2: 0, y1: y, y2: y})
-            labels.push SVGText({dy: '.35em', textAnchor: 'end', x: -8, y: y}, label)
+            lines.push D.line({key: y, x1: -5, x2: 0, y1: y, y2: y})
+            labels.push SVGText({key: y, dy: '.35em', textAnchor: 'end', x: -8, y: y}, label)
 
         D.svg {className: 'scale', width: 20, height: grooveHeight + gripHeight},
             D.g {transform: 'translate(20, 0)'}, lines, labels
@@ -316,7 +316,7 @@ MixerView = React.createClass
         {state, bus} = @props
         D.div {},
             for channel in [0...state.metadata.num_channels]
-                ChannelViewInMix({state, bus, channel})
+                ChannelViewInMix({key: channel, state, bus, channel})
             D.div {className: "master-fader"},
                 ChannelViewInMix({state, bus, channel: 'master'})
 
@@ -423,7 +423,7 @@ FilterBankView = React.createClass
         D.div {className: 'filterbank'},
             labels,
             for filter in [0...numFilters]
-                FilterView({state, nameFormat, which: copyWith(which, {filter})})
+                FilterView({key: filter, state, nameFormat, which: copyWith(which, {filter})})
 
 ChannelStripView = React.createClass
     displayName: 'ChannelStripView'
@@ -493,7 +493,7 @@ Nav = React.createClass
         idx = indices[section]
 
         items = for item, i in itemNames
-            D.label {},
+            D.label {key: i},
                 D.input {type: 'radio', onChange: @props.indexChanged.bind(this, i), checked: idx is i}
                 item
 
