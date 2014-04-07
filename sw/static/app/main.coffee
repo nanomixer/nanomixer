@@ -235,14 +235,14 @@ StateToggleButton = React.createClass
     displayName: 'StateToggleButton'
     render: ->
         {state, name, className, children} = @props
-        enabled = state.get name
-        className = className + " enabled" if enabled
+        active = state.get name
+        className = className + " active" if active
         D.button {className, onClick: @handleClick}, children
 
     handleClick: ->
         {state, name} = @props
-        enabled = state.get name
-        state.set name, !enabled
+        active = state.get name
+        state.set name, !active
 
 ChannelViewInMix = React.createClass
     displayName: 'ChannelViewInMix'
@@ -495,16 +495,14 @@ Nav = React.createClass
         idx = indices[section]
 
         items = for item, i in itemNames
-            D.label {key: i},
-                D.input {type: 'radio', onChange: @props.indexChanged.bind(this, i), checked: idx is i}
-                item
+            D.button {key: i, onClick: @props.indexChanged.bind(this, i), className: idx is i and 'active'}, item
 
 
         D.div {className: 'nav'},
             D.div {className: "mode-picker"},
-                D.button {onClick: @props.kindChanged.bind(this, 'mix')}, "Mix"
-                D.button {onClick: @props.kindChanged.bind(this, 'channel')}, "Channel"
-                D.button {onClick: @props.kindChanged.bind(this, 'bus')}, "Bus"
+                D.button {className: section == 'mix' and 'active', onClick: @props.kindChanged.bind(this, 'mix')}, "Mix"
+                D.button {className: section == 'channel' and 'active', onClick: @props.kindChanged.bind(this, 'channel')}, "Channel"
+                D.button {className: section == 'bus' and 'active', onClick: @props.kindChanged.bind(this, 'bus')}, "Bus"
             D.div {className: "item-picker"}, items
             D.button {onClick: @saveSnapshot}, 'Save'
 

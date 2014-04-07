@@ -2,7 +2,8 @@ fader-height = 576px
 name-height = 16px
 
 bg-color = #303030
-text-color = darken(#dbdbdb, 40)
+light-text-color = #dbdbdb
+text-color = darken(light-text-color, 40)
 
 *
     -moz-box-sizing border-box
@@ -20,6 +21,17 @@ body
 h1
     margin 0
 
+button
+    border 1px outset black
+    background bg-color
+    color light-text-color
+
+    &.active
+        color black
+
+    &:focus
+        outline none
+
 .nav
     position absolute
     top 0
@@ -30,9 +42,17 @@ h1
 
     .mode-picker, .item-picker
         display inline-block
+        button
+            margin 0
+        button.active
+            background #5a5aff
+        margin-right 25px
 
     button
         height 30px
+
+    & > button
+        float right
 
 .channel-view-in-mix
     float left
@@ -42,8 +62,6 @@ h1
         text-align center
         background #111
         color white
-        &:hover
-            border-color white
 
 .fader
     position relative
@@ -78,12 +96,11 @@ h1
     height 20px
     width 100%
 
-.mute-button.enabled
-    background red
+.mute-button.active
+    background #AC0000
 
-.pfl-button.enabled
-    color white
-    background #333
+.pfl-button.active
+    background yellow
 
 .master-fader
     background black
