@@ -17,12 +17,6 @@
   "overrides": {
     "jquery": {
       "main": "dist/jquery.js"
-    },
-    "showdown": {
-      "main": "src/showdown.js"
-    },
-    "director": {
-      "main": "build/director.js"
     }
   }
 }
