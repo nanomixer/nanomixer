@@ -17,6 +17,7 @@ The server responds with a message:
     "seq": the client message sequence number to which this message is a response,
     "state": a state update object,
     "meter": a metering packet, described below.
+    "snapshot_saved": present (and boolean true) if a snapshot has been saved.
 }.
 
 The client always responds to a server message with another message, possibly with an empty state update, to ensure that communication flow continues.

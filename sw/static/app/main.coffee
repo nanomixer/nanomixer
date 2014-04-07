@@ -95,6 +95,8 @@ socket.on 'msg', (msg) ->
     state.handleUpdate msg
 
     # ui.meterRev lastSeqReceived
+    if msg.snapshot_saved
+        alert 'Snapshot saved!'
 
     # Request another update.
     throttledSendUpdate()
