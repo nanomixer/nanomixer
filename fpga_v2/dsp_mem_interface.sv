@@ -4,7 +4,8 @@
 interface dsp_mem_interface #(
    SAMPLE_WIDTH = 36,   SAMPLE_ADDR_WIDTH = 10,
    PARAM_WIDTH  = 36,   PARAM_ADDR_WIDTH  = 10,
-   IO_WIDTH     = 24,   IO_ADDR_WIDTH     = 10
+   IO_WIDTH     = 24,   IO_ADDR_WIDTH     = 10,
+   PHYSICAL_IO_PER_CORE = 8
 ) (
    input  logic clk, reset_n, // CPU clock & asyncronous reset
 
@@ -20,8 +21,8 @@ interface dsp_mem_interface #(
    output logic [PARAM_ADDR_WIDTH-1:0] param_rd_addr,
    output logic                        param_rd_en,
 
-   input  logic [IO_WIDTH-1:0] audio_inputs  [0:15],
-   output logic [IO_WIDTH-1:0] audio_outputs [0:15]
+   input  logic [IO_WIDTH-1:0] core_inputs  [0:PHYSICAL_IO_PER_CORE-1],
+   output logic [IO_WIDTH-1:0] core_outputs [0:PHYSICAL_IO_PER_CORE-1]
 );
 
 
@@ -61,8 +62,8 @@ modport dsp_io_bus (
 /***** IO ADDRESSING LOGIC: *****/
 
 always_ff @(posedge clk) begin
-   if (io_rd_en) io_rd_data <= audio_inputs[io_rd_addr[3:0]];
-   if (io_wr_en) audio_outputs[io_wr_addr[3:0]] <= io_wr_data;
+   if (io_rd_en) io_rd_data <= core_inputs[io_rd_addr];  // WARNING: io_rd_addr is implicitly truncated
+   if (io_wr_en) core_outputs[io_wr_addr] <= io_wr_data; // WARNING: io_rd_addr is implicitly truncated
 end
 
 endinterface

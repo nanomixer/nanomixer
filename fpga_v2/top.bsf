@@ -20,9 +20,9 @@ applicable agreement for further details.
 */
 (header "symbol" (version "1.1"))
 (symbol
-	(rect 16 16 264 224)
+	(rect 16 16 264 256)
 	(text "top" (rect 5 0 16 12)(font "Arial" ))
-	(text "inst" (rect 8 192 20 204)(font "Arial" ))
+	(text "inst" (rect 8 224 20 236)(font "Arial" ))
 	(port
 		(pt 0 32)
 		(input)
@@ -68,23 +68,37 @@ applicable agreement for further details.
 	(port
 		(pt 0 128)
 		(input)
-		(text "spi_SCLK" (rect 0 0 42 12)(font "Arial" ))
-		(text "spi_SCLK" (rect 21 123 63 135)(font "Arial" ))
+		(text "adat_async_in2" (rect 0 0 63 12)(font "Arial" ))
+		(text "adat_async_in2" (rect 21 123 84 135)(font "Arial" ))
 		(line (pt 0 128)(pt 16 128)(line_width 1))
 	)
 	(port
 		(pt 0 144)
 		(input)
-		(text "spi_SSEL" (rect 0 0 41 12)(font "Arial" ))
-		(text "spi_SSEL" (rect 21 139 62 151)(font "Arial" ))
+		(text "adat_async_in3" (rect 0 0 63 12)(font "Arial" ))
+		(text "adat_async_in3" (rect 21 139 84 151)(font "Arial" ))
 		(line (pt 0 144)(pt 16 144)(line_width 1))
 	)
 	(port
 		(pt 0 160)
 		(input)
-		(text "spi_MOSI" (rect 0 0 40 12)(font "Arial" ))
-		(text "spi_MOSI" (rect 21 155 61 167)(font "Arial" ))
+		(text "spi_SCLK" (rect 0 0 42 12)(font "Arial" ))
+		(text "spi_SCLK" (rect 21 155 63 167)(font "Arial" ))
 		(line (pt 0 160)(pt 16 160)(line_width 1))
+	)
+	(port
+		(pt 0 176)
+		(input)
+		(text "spi_SSEL" (rect 0 0 41 12)(font "Arial" ))
+		(text "spi_SSEL" (rect 21 171 62 183)(font "Arial" ))
+		(line (pt 0 176)(pt 16 176)(line_width 1))
+	)
+	(port
+		(pt 0 192)
+		(input)
+		(text "spi_MOSI" (rect 0 0 40 12)(font "Arial" ))
+		(text "spi_MOSI" (rect 21 187 61 199)(font "Arial" ))
+		(line (pt 0 192)(pt 16 192)(line_width 1))
 	)
 	(port
 		(pt 248 32)
@@ -103,9 +117,23 @@ applicable agreement for further details.
 	(port
 		(pt 248 64)
 		(output)
-		(text "spi_MISO" (rect 0 0 40 12)(font "Arial" ))
-		(text "spi_MISO" (rect 187 59 227 71)(font "Arial" ))
+		(text "adat_bitstream_out2" (rect 0 0 81 12)(font "Arial" ))
+		(text "adat_bitstream_out2" (rect 146 59 227 71)(font "Arial" ))
 		(line (pt 248 64)(pt 232 64)(line_width 1))
+	)
+	(port
+		(pt 248 80)
+		(output)
+		(text "adat_bitstream_out3" (rect 0 0 81 12)(font "Arial" ))
+		(text "adat_bitstream_out3" (rect 146 75 227 87)(font "Arial" ))
+		(line (pt 248 80)(pt 232 80)(line_width 1))
+	)
+	(port
+		(pt 248 96)
+		(output)
+		(text "spi_MISO" (rect 0 0 40 12)(font "Arial" ))
+		(text "spi_MISO" (rect 187 91 227 103)(font "Arial" ))
+		(line (pt 248 96)(pt 232 96)(line_width 1))
 	)
 	(parameter
 		"SAMPLE_WIDTH"
@@ -153,7 +181,7 @@ applicable agreement for further details.
 		""
 		(type "PARAMETER_SIGNED_DEC")	)
 	(drawing
-		(rectangle (rect 16 16 232 192)(line_width 1))
+		(rectangle (rect 16 16 232 224)(line_width 1))
 	)
 	(annotation_block (parameter)(rect 264 -64 364 16))
 )
