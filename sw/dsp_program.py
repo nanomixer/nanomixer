@@ -288,5 +288,5 @@ if __name__ == '__main__':
     with open('instr.mif', 'w') as f:
         assemble(mixer.program, f)
 
-    print "Program length:", len(mixer.program)
-    print "Used", next_param_addr, "params and", next_sample_addr, "sample memory addresses."
+    print("Program length:", len(mixer.program))
+    print("Used", next_param_addr, "params and", next_sample_addr, "sample memory addresses.")
