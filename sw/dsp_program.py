@@ -46,8 +46,8 @@ class BiquadChain(Component):
 
     def __init__(self, n, params=None):
         # Params can be passed to share parameter memory.
-        self.storage = [self.make_storage() for i in xrange(n + 1)]
-        self.params = params or [self.make_params() for i in xrange(n)]
+        self.storage = [self.make_storage() for i in range(n + 1)]
+        self.params = params or [self.make_params() for i in range(n)]
         self.input = self.storage[0].xn
         self.output = self.storage[-1].xn
 
@@ -68,11 +68,11 @@ class BiquadChain(Component):
 
     @classmethod
     def make_storage(cls):
-        return cls.Storage._make([Addr() for i in xrange(3)])
+        return cls.Storage._make([Addr() for i in range(3)])
 
     @classmethod
     def make_params(cls):
-        return cls.Params._make([Addr() for i in xrange(5)])
+        return cls.Params._make([Addr() for i in range(5)])
 
 
 class SingleBiquad(Component):
@@ -115,11 +115,11 @@ class StateVarFilter(Component):
 
     @classmethod
     def make_storage(cls):
-        return cls.Storage._make([Addr() for i in xrange(5)])
+        return cls.Storage._make([Addr() for i in range(5)])
 
     @classmethod
     def make_params(cls):
-        return cls.Params._make([Addr() for i in xrange(3)])
+        return cls.Params._make([Addr() for i in range(3)])
 
     @classmethod
     def encode_params(cls, Fc, Q, Fs):
