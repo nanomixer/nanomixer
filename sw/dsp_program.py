@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # Throughout, doing things in channel order makes sure that the data for every
 # individual channel will be ready by the time we need it. If a core is ever
 # processing just a single channel, NOTE that this may need to be revised.
