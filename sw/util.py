@@ -1,10 +1,11 @@
 import itertools
+from functools import partial
 
 
 def flattened(iterable):
     iterable = iter(iterable)
     while True:
-        item = iterable.next()
+        item = next(iterable)
         try:
             iterable = itertools.chain(iter(item), iterable)
         except TypeError:
@@ -16,11 +17,12 @@ def roundrobin(*iterables):
     "roundrobin('ABC', 'D', 'EF') --> A D E B F C"
     # Recipe credited to George Sakkis
     pending = len(iterables)
-    nexts = itertools.cycle(iter(it).next for it in iterables)
+    iterables = (iter(it) for it in iterables)
+    nexts = itertools.cycle(partial(next, it) for it in iterables)
     while pending:
         try:
-            for next in nexts:
-                yield next()
+            for next_thunk in nexts:
+                yield next_thunk()
         except StopIteration:
             pending -= 1
             nexts = itertools.cycle(itertools.islice(nexts, pending))
