@@ -1,5 +1,6 @@
 import itertools
 from functools import partial
+import marshal
 
 
 def flattened(iterable):
@@ -26,3 +27,23 @@ def roundrobin(*iterables):
         except StopIteration:
             pending -= 1
             nexts = itertools.cycle(itertools.islice(nexts, pending))
+
+
+class OneStepMemoizer(object):
+    def __init__(self):
+        self.cur = {}
+        self.next = {}
+
+    def get(self, func, *a, **kw):
+        key = marshal.dumps((a, kw))
+        if key in self.cur:
+            val = self.cur[key]
+        else:
+            val = func(*a, **kw)
+            self.cur[key] = val
+        self.next[key] = val
+        return val
+
+    def advance(self):
+        self.cur = self.next
+        self.next = {}
