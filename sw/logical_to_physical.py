@@ -164,8 +164,8 @@ def logical_to_physical(state, mixer, set_memory, memoizer):
     gain_for_physical_bus = np.zeros((num_physical_buses, num_downmix_channels))
 
     for logical_bus, physical_buses in enumerate(logical_bus_to_physical_bus_mapping):
-        bus_output_level = get_state_param(state_names.bus, dict(bus=logical_bus), 'lvl')
-        absBusFaderLevel = 10. ** (bus_output_level / 20.)
+        bus_output_level_db = get_state_param(state_names.bus, dict(bus=logical_bus), 'lvl')
+        bus_output_level = 10. ** (bus_output_level_db / 20.)
         for channel in xrange(num_downmix_channels):
             if logical_bus == solo_bus_index:
                 # Solo bus is entirely controlled by PFLs. Notably, independent of muting.
@@ -176,7 +176,7 @@ def logical_to_physical(state, mixer, set_memory, memoizer):
                 level_db = get_state_param(state_names.fader, dict(bus=logical_bus, channel=channel), 'lvl')
                 level = 10. ** (level_db / 20.)
             # Combine the effect of the bus fader with the channel fader to get the gain matrix entry.
-            absLevel = level * absBusFaderLevel
+            absLevel = level * bus_output_level
             if len(physical_buses) == 1:
                 # Mono.
                 gain_for_physical_bus[physical_buses[0], channel] = absLevel
