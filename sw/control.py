@@ -71,7 +71,7 @@ class Controller(object):
         raw = self.io_thread.get_meter()[1]
         return dict(
             c=raw[:metadata['num_channels']].tolist(),
-            b=raw[metadata['num_channels']:].tolist())
+            b=raw[metadata['num_busses']:].tolist())
 
     def dump_state_to_mixer(self):
         self._update_state()
