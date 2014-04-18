@@ -222,7 +222,7 @@ ScaleView = React.createClass
 
 
 
-faderWidth = 60
+faderWidth = channelWidth = 60
 grooveHeight = 400
 grooveWidth = 4
 gripWidth = 35
@@ -302,7 +302,7 @@ ChannelViewInMix = React.createClass
             muteButton = StateToggleButton {state, className: 'mute-button', name: state.format 'channel', {channel, param: 'mute'}}, "mute"
             pflButton = StateToggleButton {state, className: 'pfl-button', name: state.format 'channel', {channel, param: 'pfl'}}, "PFL"
 
-        D.div {className: 'channel-view-in-mix'},
+        D.div {className: 'channel-view-in-mix', style: {width: channelWidth}},
             D.div {className: 'fader', style: {height: grooveHeight + gripHeight}},
                 D.div {
                     className: 'groove',
