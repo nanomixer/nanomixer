@@ -1,12 +1,13 @@
 import numpy as np
-from dsp_program import HARDWARE_PARAMS, mixer
+from dsp_program import mixer
 import logging
 import time
 import json
 from datetime import datetime
 from spi_channel import SPIChannel
 from fpga_data_link import IOThread, SPI_BUF_SIZE_IN_WORDS
-from logical_to_physical import get_initial_state, logical_to_physical, metadata
+from logical_to_physical import (
+    get_initial_state, logical_to_physical, metadata, physical_to_logical_bus_meters, num_physical_buses)
 from util import OneStepMemoizer
 
 logger = logging.getLogger(__name__)
@@ -71,7 +72,7 @@ class Controller(object):
         raw = self.io_thread.get_meter()[1]
         return dict(
             c=raw[:metadata['num_channels']].tolist(),
-            b=raw[metadata['num_busses']:].tolist())
+            b=physical_to_logical_bus_meters(raw[metadata['num_busses']:].tolist()))
 
     def dump_state_to_mixer(self):
         self._update_state()
@@ -90,14 +91,21 @@ class DummyController(Controller):
         self.meter_levels = np.zeros(metadata['num_channels'])
 
     def get_meter(self):
-        bus = 0
         core = 0
-        cur_gains = [self.io_thread._param_mem_contents[addr] + 1e-6 for addr in mixer.downmixes[bus].gain[core]]
-        meter_levels = 20 * np.log10(np.array(cur_gains))
-        offsets = np.array([np.sin(2*np.pi*(time.time() + chan / 4.)) for chan in xrange(metadata['num_channels'])])
+        downmix_matrix = np.array([
+            [self.io_thread._param_mem_contents[addr] + 1e-6 for addr in mixer.downmixes[bus].gain[core]]
+            for bus in range(num_physical_buses)])
+
+        def abs_to_db(x): return 20. * np.log10(x)
+        def db_to_abs(x): return 10. ** (x / 20.)
+
+        # Fake input levels as based on bus 0 gains.
+        channels = np.arange(metadata['num_channels'])
+        channel_levels = downmix_matrix[0] + db_to_abs(np.sin(2 * np.pi * (time.time() + channels / 4.)))
+        bus_levels = np.dot(downmix_matrix, channel_levels)
         return dict(
-            c=(meter_levels + offsets).tolist(),
-            b=[np.logaddexp.reduce(meter_levels).tolist()]*HARDWARE_PARAMS['num_busses_per_core'])
+            c=abs_to_db(channel_levels).tolist(),
+            b=physical_to_logical_bus_meters(abs_to_db(bus_levels).tolist()))
 
 
 

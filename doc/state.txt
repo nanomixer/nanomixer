@@ -52,9 +52,9 @@ For each controllable value (defined below), each client maintains two values: t
 Metering packets
 ----------------
 
-A meter packet is a JSON object (encoded along with the whole state update packet) with the following schema:
+A meter packet is a JSON object (encoded along with the whole state update packet) with the following schema (all levels in dB):
 
 {
-    "c": [<channel 0 level in dB>, ...],
-    "b": [<bus 0 level in dB>, ...]
+    "c": [<channel 0 level>, <ch 1 level>, ...],
+    "b": [[<bus 0 left level>, <bus 0 right level>], [<bus 1 mono level>], ...]
 }

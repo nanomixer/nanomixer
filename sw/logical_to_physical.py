@@ -52,6 +52,11 @@ num_physical_buses = HARDWARE_PARAMS['num_busses_per_core'] * HARDWARE_PARAMS['n
 logical_bus_for_physical_bus = invert_mapping(logical_bus_to_physical_bus_mapping, num_physical_buses)
 
 
+def physical_to_logical_bus_meters(physical_bus_meters):
+    return [[physical_bus_meters[bus] for bus in physical_buses]
+            for physical_buses in logical_bus_to_physical_bus_mapping]
+
+
 metadata = dict(
     num_busses=len(logical_bus_to_physical_bus_mapping),
     num_channels=HARDWARE_PARAMS['num_cores'] * HARDWARE_PARAMS['num_channels_per_core'],

@@ -162,15 +162,21 @@ Meter = React.createClass
         @paint()
 
     paint: ->
+        {levels, width} = @props
+        numChan = levels.length
+        chanWidth = width / numChan
+
         ctx = @getDOMNode().getContext('2d')
         ctx.clearRect(0, 0, 1000, 1000)
-        y = posToPixel(posToDb.invert(@props.level))
         gradient = ctx.createLinearGradient(0, 0, 20, grooveHeight)
         gradient.addColorStop(0, 'rgba(255, 0, 0, .5)')
         gradient.addColorStop(.5, 'rgba(255, 255, 0, .5)')
         gradient.addColorStop(1, 'rgba(0, 255, 0, .5)')
         ctx.fillStyle = gradient
-        ctx.fillRect(0, y, 1000, 1000)
+
+        for level, chan in levels
+            y = posToPixel(posToDb.invert(level))
+            ctx.fillRect(chan * chanWidth, y, chanWidth, 1000)
 
     render: ->
         {width, height} = @props
@@ -291,13 +297,13 @@ ChannelViewInMix = React.createClass
         gripTop = Math.round(posToPixel(posToDb.invert(@getLevel())) - gripHeight/2)
         if channel is 'master'
             channelName = state.getParam('bus', {bus}, 'name')
-            signalLevel = state.getBusMeter(bus)
+            signalLevels = state.getBusMeter(bus)
             panner = false
             muteButton = false
             pflButton = false
         else
             channelName = state.getParam('channel', {channel}, 'name')
-            signalLevel = state.getChannelMeter(channel)
+            signalLevels = [state.getChannelMeter(channel)]
             panner = DragToAdjustText({state, name: state.format('fader', {bus, channel, param: 'pan'}), scale: panToPixel, horiz: true, style: {textAlign: 'center'}})
             muteButton = StateToggleButton {state, className: 'mute-button', name: state.format 'channel', {channel, param: 'mute'}}, "mute"
             pflButton = StateToggleButton {state, className: 'pfl-button', name: state.format 'channel', {channel, param: 'pfl'}}, "PFL"
@@ -307,7 +313,7 @@ ChannelViewInMix = React.createClass
                 D.div {
                     className: 'groove',
                     style: {height: grooveHeight, top: gripHeight / 2, width: grooveWidth, left: (faderWidth - grooveWidth) / 2}}
-                Meter({width: 20, height: grooveHeight + gripHeight / 2, level: signalLevel})
+                Meter({width: 20, height: grooveHeight + gripHeight / 2, levels: signalLevels})
                 ScaleView({})
                 D.div {
                     className: 'grip' + (if grabbed then ' grabbed' else ''), ref: 'grip',
