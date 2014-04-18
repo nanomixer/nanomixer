@@ -1,4 +1,5 @@
 from __future__ import print_function
+import string
 
 OPCODE_WIDTH = 6
 SAMPLE_ADDR_WIDTH = 10
@@ -45,11 +46,14 @@ def get_addr(addr):
     return getattr(addr, 'addr', addr)
 
 class Instruction(object):
-    def __init__(self, sample_addr, param_or_io_addr):
+    def __init__(self, sample_addr, param_or_io_addr, comment=''):
         self.sample_addr = sample_addr
         self.param_or_io_addr = param_or_io_addr
-    def __repr__(self):
+        self.comment = comment
+    def render_instr(self):
         return '{}({}, {})'.format(self.__class__.__name__, self.sample_addr, self.param_or_io_addr)
+    def __repr__(self):
+        return string.ljust(self.render_instr(), 16) + ('# ' + self.comment if self.comment else '')
     def assemble(self):
         print(repr(self))
         return (
@@ -59,9 +63,9 @@ class Instruction(object):
 
 class Nop(Instruction):
     opcode = 0
-    def __init__(self):
-        Instruction.__init__(self, sample_addr=0, param_or_io_addr=0)
-    def __repr__(self): return '{}()'.format(self.__class__.__name__)
+    def __init__(self, **kwargs):
+        Instruction.__init__(self, sample_addr=0, param_or_io_addr=0, **kwargs)
+    def render_instr(self): return '{}()'.format(self.__class__.__name__)
 class Mul(Instruction):
     opcode = 1
 class Mac(Instruction):
@@ -70,33 +74,33 @@ class RotMac(Instruction):
     opcode = 3
 class Store(Instruction):
     opcode = 4
-    def __init__(self, dest_sample_addr):
+    def __init__(self, dest_sample_addr, **kwargs):
         Instruction.__init__(
-            self, sample_addr=dest_sample_addr, param_or_io_addr=0)
-    def __repr__(self): return '{}({})'.format(self.__class__.__name__, self.sample_addr)
+            self, sample_addr=dest_sample_addr, param_or_io_addr=0, **kwargs)
+    def render_instr(self): return '{}({})'.format(self.__class__.__name__, self.sample_addr)
 class In(Instruction):
     opcode = 5
-    def __init__(self, dest_sample_addr, io_addr):
+    def __init__(self, dest_sample_addr, io_addr, **kwargs):
         Instruction.__init__(
-            self, sample_addr=dest_sample_addr, param_or_io_addr=io_addr)
+            self, sample_addr=dest_sample_addr, param_or_io_addr=io_addr, **kwargs)
 class Out(Instruction):
     opcode = 6
-    def __init__(self, dest_io_addr):
+    def __init__(self, dest_io_addr, **kwargs):
         Instruction.__init__(
-            self, sample_addr=0, param_or_io_addr=dest_io_addr)
-    def __repr__(self): return '{}({})'.format(self.__class__.__name__, self.param_or_io_addr)
+            self, sample_addr=0, param_or_io_addr=dest_io_addr, **kwargs)
+    def render_instr(self): return '{}({})'.format(self.__class__.__name__, self.param_or_io_addr)
 class Spin(Instruction):
     opcode = 7
-    def __init__(self, spin_amount):
+    def __init__(self, spin_amount, **kwargs):
         Instruction.__init__(
-            self, sample_addr=spin_amount, param_or_io_addr=0)
-    def __repr__(self): return '{}({})'.format(self.__class__.__name__, self.sample_addr)
+            self, sample_addr=spin_amount, param_or_io_addr=0, **kwargs)
+    def render_instr(self): return '{}({})'.format(self.__class__.__name__, self.sample_addr)
 class AMac(Instruction):
     opcode = 8
-    def __init__(self, sample_addr):
+    def __init__(self, sample_addr, **kwargs):
         Instruction.__init__(
-            self, sample_addr=sample_addr, param_or_io_addr=0)
-    def __repr__(self): return '{}({})'.format(self.__class__.__name__, self.sample_addr)
+            self, sample_addr=sample_addr, param_or_io_addr=0, **kwargs)
+    def render_instr(self): return '{}({})'.format(self.__class__.__name__, self.sample_addr)
 class AuxOut(Out):
     opcode = 9
 
