@@ -1,5 +1,4 @@
 from __future__ import print_function
-import string
 
 OPCODE_WIDTH = 6
 SAMPLE_ADDR_WIDTH = 10
@@ -53,7 +52,7 @@ class Instruction(object):
     def render_instr(self):
         return '{}({}, {})'.format(self.__class__.__name__, self.sample_addr, self.param_or_io_addr)
     def __repr__(self):
-        return string.ljust(self.render_instr(), 16) + ('# ' + self.comment if self.comment else '')
+        return "{:16s} {}".format(self.render_instr(), '# ' + self.comment if self.comment else '')
     def assemble(self):
         print(repr(self))
         return (
