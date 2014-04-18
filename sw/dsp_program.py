@@ -177,6 +177,8 @@ class BusStrip(object):
         self.program = self.biquad_chain.program + [
             Nop(),
             Nop(),
+            Nop(),
+            Nop(),
             Load(self.biquad_chain.output),
             Out(bus, comment='End of BusStrip {}'.format(bus))]
 
