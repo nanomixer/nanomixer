@@ -225,7 +225,7 @@ ScaleView = React.createClass
 faderWidth = channelWidth = 60
 grooveHeight = 400
 grooveWidth = 4
-gripWidth = 30
+gripWidth = 35
 gripHeight = gripWidth * 2
 posToDb = faderPositionToDb.copy().clamp(true).domain(faderDomain())
 posToPixel = d3.scale.linear().domain([0, 1]).range([grooveHeight+gripHeight/2, gripHeight/2])
