@@ -1,0 +1,2 @@
+#!/bin/sh
+quartus_stp -t reprogram.tcl
