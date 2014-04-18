@@ -28,13 +28,15 @@ class Resource(BaseNamespace):
                 else:
                     print "Oops, couldn't handle", control, value
 
+            result = dict(seq=seq, state=self.session['response_state'])
+
             if msg.get('snapshot', False):
                 controller.save_snapshot()
+                result['snapshot_saved'] = True
 
-            self.emit('msg', dict(
-                seq=seq,
-                state=self.session['response_state'],
-                meter=controller.get_meter()))
+            result['meter'] = controller.get_meter()
+
+            self.emit('msg', result)
             self.session['response_state'] = {}
         except Exception as e:
             traceback.print_exc()

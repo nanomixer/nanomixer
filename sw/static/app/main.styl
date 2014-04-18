@@ -1,12 +1,16 @@
+@import 'nib'
+
 fader-height = 576px
 name-height = 16px
 
 bg-color = #303030
-text-color = darken(#dbdbdb, 40)
+light-text-color = #dbdbdb
+text-color = darken(light-text-color, 40)
 
 *
     -moz-box-sizing border-box
     box-sizing border-box
+    user-select none
 
 html, body
     margin 0
@@ -20,6 +24,17 @@ body
 h1
     margin 0
 
+button
+    border 1px outset black
+    background bg-color
+    color light-text-color
+
+    &.active
+        color black
+
+    &:focus
+        outline none
+
 .nav
     position absolute
     top 0
@@ -30,27 +45,38 @@ h1
 
     .mode-picker, .item-picker
         display inline-block
+        button
+            margin 0
+        button.active
+            background #5a5aff
+            box-shadow 0 0 20px @background
+            position relative
+            z-index 1
+        margin-right 25px
 
     button
         height 30px
 
+    & > button
+        position absolute
+        right 0
+
 .channel-view-in-mix
     float left
+    width 70px
 
     .name
         border 1px inset transparent
         text-align center
         background #111
         color white
-        &:hover
-            border-color white
 
 .fader
     position relative
     .meter
         width 20px
         position absolute
-        right 10px
+        right 15px
     .groove
         background black
         position absolute
@@ -62,6 +88,8 @@ h1
         background-image: url('fader.png')
         background-size: contain // https://developer.mozilla.org/en-US/docs/Web/Guide/CSS/Scaling_background_images
 
+        &.grabbed
+            box-shadow 0 0 24px white
 
     .scale
         position absolute
@@ -75,15 +103,18 @@ h1
 
 .mute-button, .pfl-button
     text-align center
-    height 20px
+    height 30px
     width 100%
 
-.mute-button.enabled
-    background red
+.mute-button.active
+    background #AC0000
+    box-shadow 0 0 20px 1px #ac0000
 
-.pfl-button.enabled
-    color white
-    background #333
+.pfl-button.active
+    background yellow
+    box-shadow 0 0 20px 1px yellow
+    position relative
+    z-index 1
 
 .master-fader
     background black

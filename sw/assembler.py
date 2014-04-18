@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 OPCODE_WIDTH = 6
 SAMPLE_ADDR_WIDTH = 10
 PARAM_ADDR_WIDTH = 10
@@ -49,7 +51,7 @@ class Instruction(object):
     def __repr__(self):
         return '{}({}, {})'.format(self.__class__.__name__, self.sample_addr, self.param_or_io_addr)
     def assemble(self):
-        print repr(self)
+        print(repr(self))
         return (
             bin_(self.opcode, OPCODE_WIDTH) +
             bin_(get_addr(self.sample_addr), SAMPLE_ADDR_WIDTH) +
@@ -99,11 +101,11 @@ class AuxOut(Out):
     opcode = 9
 
 def assemble(instructions, outfile):
-    print >>outfile, "DEPTH = 2048;"
-    print >>outfile, "WIDTH = {};".format(OPCODE_WIDTH + SAMPLE_ADDR_WIDTH + PARAM_ADDR_WIDTH)
-    print >>outfile, "ADDRESS_RADIX = HEX;"
-    print >>outfile, "DATA_RADIX = BIN;"
-    print >>outfile, "CONTENT BEGIN"
+    print("DEPTH = 2048;", file=outfile)
+    print("WIDTH = {};".format(OPCODE_WIDTH + SAMPLE_ADDR_WIDTH + PARAM_ADDR_WIDTH), file=outfile)
+    print("ADDRESS_RADIX = HEX;", file=outfile)
+    print("DATA_RADIX = BIN;", file=outfile)
+    print("CONTENT BEGIN", file=outfile)
     for addr, inst in enumerate(instructions):
-        print >>outfile, '{:02x} : {};'.format(addr, inst.assemble())
-    print >>outfile, "END;"
+        print('{:02x} : {};'.format(addr, inst.assemble()), file=outfile)
+    print("END;", file=outfile)

@@ -95,6 +95,8 @@ socket.on 'msg', (msg) ->
     state.handleUpdate msg
 
     # ui.meterRev lastSeqReceived
+    if msg.snapshot_saved
+        alert 'Snapshot saved!'
 
     # Request another update.
     throttledSendUpdate()
@@ -152,6 +154,7 @@ faderLevelToText = (value) ->
 D = React.DOM
 
 Meter = React.createClass
+    displayName: "Meter"
     componentDidMount: ->
         @paint()
 
@@ -179,6 +182,7 @@ faderTicks = [MIN_FADER, -60, -50, -40, -30, -20, -10, -5, 0, 5, 10]
 faderLabels = ['\u221e', '60', '50', '40', '30', '20', '10', '5', 'U', '5', '10']
 
 SVGText = React.createClass
+  displayName: "SVGText"
   _setAttrs: ->
     {textAnchor, dy} = @props
     @getDOMNode().setAttribute('text-anchor', textAnchor) if textAnchor?
@@ -202,6 +206,7 @@ SVGText = React.createClass
 
 
 ScaleView = React.createClass
+    displayName: 'ScaleView'
     shouldComponentUpdate: -> false
 
     render: ->
@@ -209,8 +214,8 @@ ScaleView = React.createClass
         labels = []
         for [dB, label] in _.zip(faderTicks, faderLabels)
             y = posToPixel(posToDb.invert(dB))
-            lines.push D.line({x1: -5, x2: 0, y1: y, y2: y})
-            labels.push SVGText({dy: '.35em', textAnchor: 'end', x: -8, y: y}, label)
+            lines.push D.line({key: y, x1: -5, x2: 0, y1: y, y2: y})
+            labels.push SVGText({key: y, dy: '.35em', textAnchor: 'end', x: -8, y: y}, label)
 
         D.svg {className: 'scale', width: 20, height: grooveHeight + gripHeight},
             D.g {transform: 'translate(20, 0)'}, lines, labels
@@ -227,18 +232,21 @@ posToPixel = d3.scale.linear().domain([0, 1]).range([grooveHeight+gripHeight/2, 
 panToPixel = d3.scale.linear().domain([-.5, .5]).range([-200, 200]).clamp(true)
 
 StateToggleButton = React.createClass
+    displayName: 'StateToggleButton'
     render: ->
         {state, name, className, children} = @props
-        enabled = state.get name
-        className = className + " enabled" if enabled
+        active = state.get name
+        className = className + " active" if active
         D.button {className, onClick: @handleClick}, children
 
     handleClick: ->
         {state, name} = @props
-        enabled = state.get name
-        state.set name, !enabled
+        active = state.get name
+        state.set name, !active
 
 ChannelViewInMix = React.createClass
+    displayName: 'ChannelViewInMix'
+    getInitialState: -> {}
     levelParamName: ->
         {state, bus, channel} = @props
         if channel is 'master'
@@ -255,9 +263,13 @@ ChannelViewInMix = React.createClass
             .on('dragstart', =>
                 d3.event.sourceEvent.stopPropagation() # silence other listeners
                 state.grab(@levelParamName())
+                @setState {grabbed: true}
                 )
             .on('drag', @drag)
-            .on('dragend', => state.release(@levelParamName()))
+            .on('dragend', =>
+                state.release(@levelParamName())
+                @setState {grabbed: false}
+                )
             .origin( =>
                 {x: 0, y: posToPixel(posToDb.invert(@getLevel()))})
         d3.select(grip).call(dragBehavior)
@@ -274,6 +286,7 @@ ChannelViewInMix = React.createClass
 
     render: ->
         {state, bus, channel} = @props
+        {grabbed} = @state
 
         gripTop = Math.round(posToPixel(posToDb.invert(@getLevel())) - gripHeight/2)
         if channel is 'master'
@@ -297,7 +310,7 @@ ChannelViewInMix = React.createClass
                 Meter({width: 20, height: grooveHeight + gripHeight / 2, level: signalLevel})
                 ScaleView({})
                 D.div {
-                    className: 'grip', ref: 'grip',
+                    className: 'grip' + (if grabbed then ' grabbed' else ''), ref: 'grip',
                     style: {top: gripTop, left: (faderWidth - gripWidth) / 2, width: gripWidth, height: gripHeight}
                 }
             pflButton
@@ -306,11 +319,12 @@ ChannelViewInMix = React.createClass
             panner
 
 MixerView = React.createClass
+    displayName: 'MixerView'
     render: ->
         {state, bus} = @props
         D.div {},
             for channel in [0...state.metadata.num_channels]
-                ChannelViewInMix({state, bus, channel})
+                ChannelViewInMix({key: channel, state, bus, channel})
             D.div {className: "master-fader"},
                 ChannelViewInMix({state, bus, channel: 'master'})
 
@@ -323,9 +337,6 @@ MixerView = React.createClass
 freqToPixel = d3.scale.log().range([0, 300]).domain([20000, 20]).clamp(true)
 gainToPixel = d3.scale.linear().domain([-20, 20]).range([200, -200]).clamp(true)
 qToPixel = d3.scale.log().domain([.3, 3]).range([200, -200]).clamp(true)
-
-
-
 
 
 defaultFormat = d3.format(',.1f')
@@ -378,6 +389,7 @@ formatFreq = (freq) ->
         "#{d3.round(freq, 0)}"
 
 FilterView = React.createClass
+    displayName: 'FilterView'
     render: ->
         {state, nameFormat, which} = @props
         freq = state.format(nameFormat, copyWith(which, {param: 'freq'}))
@@ -390,6 +402,7 @@ FilterView = React.createClass
             DragToAdjustText {className: 'q', state, name: q, scale: qToPixel}
 
 FilterVis = React.createClass
+    displayName: 'FilterVis'
     render: ->
         {width, height, magnitudes} = @props
 
@@ -405,6 +418,7 @@ FilterVis = React.createClass
 
 
 FilterBankView = React.createClass
+    displayName: 'FilterBankView'
     render: ->
         {state, nameFormat, which, numFilters} = @props
         labels = D.div {className: "labels"},
@@ -417,9 +431,10 @@ FilterBankView = React.createClass
         D.div {className: 'filterbank'},
             labels,
             for filter in [0...numFilters]
-                FilterView({state, nameFormat, which: copyWith(which, {filter})})
+                FilterView({key: filter, state, nameFormat, which: copyWith(which, {filter})})
 
 ChannelStripView = React.createClass
+    displayName: 'ChannelStripView'
     getInitialState: -> @getTypeDependentState(@props)
     componentWillReceiveProps: (props) -> @setState @getTypeDependentState(props)
     getTypeDependentState: (props) ->
@@ -467,40 +482,41 @@ ChannelStripView = React.createClass
             state.set nameParam, newName
 
 Nav = React.createClass
+    displayName: 'Nav'
     saveSnapshot: ->
         checkpoint = true
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        props = ['section', 'idx', 'busNames', 'channelNames']
+        props = ['section', 'indices', 'busNames', 'channelNames']
         not _.isEqual(
             _.pick(nextProps, props...)
             _.pick(@props, props...))
 
     render: ->
-        {section, idx} = @props
+        {section, indices} = @props
         itemNames = switch section
             when 'mix' then @props.busNames
             when 'channel' then @props.channelNames
             when 'bus' then @props.busNames
+        idx = indices[section]
 
         items = for item, i in itemNames
-            D.label {},
-                D.input {type: 'radio', onChange: @props.itemChanged.bind(this, i), checked: idx is i}
-                item
+            D.button {key: i, onClick: @props.indexChanged.bind(this, i), className: idx is i and 'active'}, item
 
 
         D.div {className: 'nav'},
             D.div {className: "mode-picker"},
-                D.button {onClick: @props.kindChanged.bind(this, 'mix')}, "Mix"
-                D.button {onClick: @props.kindChanged.bind(this, 'channel')}, "Channel"
-                D.button {onClick: @props.kindChanged.bind(this, 'bus')}, "Bus"
+                D.button {className: section == 'mix' and 'active', onClick: @props.kindChanged.bind(this, 'mix')}, "Mix"
+                D.button {className: section == 'channel' and 'active', onClick: @props.kindChanged.bind(this, 'channel')}, "Channel"
+                D.button {className: section == 'bus' and 'active', onClick: @props.kindChanged.bind(this, 'bus')}, "Bus"
             D.div {className: "item-picker"}, items
             D.button {onClick: @saveSnapshot}, 'Save'
 
 UI = React.createClass
+    displayName: 'UI'
     getInitialState: -> {
         section: 'mix'
-        idx: 0
+        indices: {mix: 0, channel: 0, bus: 0}
     }
 
     render: ->
@@ -508,20 +524,23 @@ UI = React.createClass
 
         return D.div {}, "Waiting for server..." unless state.metadata?
 
-        {section, idx} = @state
+        {section, indices} = @state
 
         kindChanged = (section) => @setState {section}
-        itemChanged = (idx) => @setState {idx}
+        indexChanged = (idx) =>
+            change = {}
+            change[section] = {$set: idx}
+            @setState {indices: React.addons.update(indices, change)}
 
         channelNames = (state.getParam('channel', {channel}, 'name') for channel in [0...state.metadata.num_channels])
         busNames = (state.getParam('bus', {bus}, 'name') for bus in [0...state.metadata.num_busses])
 
         D.div {},
-            Nav({section, idx, channelNames, busNames, itemChanged, kindChanged})
+            Nav({section, indices, channelNames, busNames, indexChanged, kindChanged})
             switch section
-                when 'mix' then MixerView({state, bus: idx})
-                when 'channel' then ChannelStripView({state, stripType: 'channel', idx})
-                when 'bus' then ChannelStripView({state, stripType: 'bus', idx})
+                when 'mix' then MixerView({state, bus: indices.mix})
+                when 'channel' then ChannelStripView({state, stripType: 'channel', idx: indices.channel})
+                when 'bus' then ChannelStripView({state, stripType: 'bus', idx: indices.bus})
 
 
 ui = React.renderComponent(UI({state}), document.body)
